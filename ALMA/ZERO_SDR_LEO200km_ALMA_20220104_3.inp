@@ -1,0 +1,434 @@
+#define t8_p        -3.63497047e-001
+#define tq11_p      -3.64851148e-001
+#define tq21_p      -1.74711599e-001
+#define tq22_p      -1.33191178e-001
+#define tq11_y      -4.13168952e-002
+#define tq21_y      -6.39678697e-003
+#define tq22_y      -5.42452840e-003
+#define payload      1.03961757e+002
+#define time_TGTE    8.11314499e+001
+#define time_MECO1   1.00000000e+002
+#define tq11_r       0
+#define tq21_r       0
+#define tq22_r       0
+
+SimulationConditions {
+    SimulationTitle1    = "RLV Sizing"
+    SimulationTitle2    = "LEO Mission"
+    Comment             = "az 95deg, alphat 3deg @ MECO"
+//    Aoa-Schedule        = Both
+//    Tass                = EventList.TGTS
+//    Tase                = EventList.TGTE
+    Freedom = 3D
+//  PathSearch          = Optimize
+//  PathSearch          = TrajSearch
+    PathSearch          = OFF
+    DONLP2              = ON // OFF
+    InputDataPrint      = ON
+    BinaryOutput        = OFF
+    MaxTime             = 6.0e+3
+    MinAltitude         = -1.0e+3
+    MaxAltitude         = 1.0e+8
+    TiedownEnd          = EventList.LIFTOFF
+    Range_inc           = 1
+    Range_tanm          = 1
+    Range_asnd          = 1
+    Range_manm          = 1
+    Range_az            = 1
+    MinorTime           = 1
+    Guidance            = OFF
+    OutputTableDiscon = OFF
+    Refract             = OFF
+    TabWarning        = OFF
+}
+
+InitialConditions {
+    T0 = 0.0
+    Tf = EventList.SimEnd
+    Latg0  = 42.504038
+    Lng0   = 143.456784
+
+    H0     = 0.05
+    Vr0    =  0.0
+    Fpvrg0 = 90.0
+    Azvrg0 =  0.0
+
+    EularLB0  = (0.0 90.0 0.0)
+    EularLBD0 = (0.0 90.0 0.0)
+    BodyRate0 = (0.0 0.0 0.0)
+    LngLS     = 143.456784
+    LatgLS    = 42.504038
+    EularL0L  = (0.0 0.0  95)    // Initial direction
+    EularL1L2 = (0.0 0.0  95)
+    PosRef    = (0.0 0.0 0.0)
+}
+
+Integrate-Interval {
+    EventList.LIFTOFF  0.1 // 1.0
+}
+
+Environment {
+  Earth {
+    Re = 6.378142E+06                
+    Rp = 6.356757E+06                
+    GM = 3.986009017E14              
+    J2 = 1.082628E-3                 
+    J3 = -2.538E-6                   
+    J4 = -1.593E-6                   
+    J5 = -2.3E-7                     
+    Omega = 4.178074625e-3           
+    AtmosphereType = US62            
+    AtmosphereEnd = EventList.SCSEP
+    Wind {
+-1000	0.000000000	241.7261998	0  // ave. wind at Taiki
+0	0.000000000	241.7261998	0
+0.5	0.000000000	273.1478393	0
+1	0.000000000	274.8889259	0
+1.5	5.965905044	275.191608	0
+2	7.410800273	273.9411212	0
+2.5	8.866502818	272.0970216	0
+3	10.33438098	270.7311195	0
+3.5	11.75061469	269.2593799	0
+4	13.16934958	268.1246851	0
+4.5	14.56076699	267.3493735	0
+5	15.94924723	266.7360691	0
+5.5	17.36445189	266.2466675	0
+6	18.87766834	265.8469524	0
+6.5	20.41593584	265.5182466	0
+7	21.96670491	265.1775985	0
+7.5	23.5969801	264.7555792	0
+8	25.3454825	264.4094137	0
+8.5	27.09443683	264.1116355	0
+9	28.71506895	263.8086364	0
+9.5	30.16721584	263.5431879	0
+10	31.6248665	263.3535566	0
+10.5	32.72818807	263.257794	0
+11	33.4845609	263.3131777	0
+11.5	34.1015102	263.4391694	0
+12	34.38805928	263.6225229	0
+12.5	33.90803219	263.9497294	0
+13	33.13074753	264.2529558	0
+13.5	32.16716001	264.549779	0
+14	30.90731895	264.7143072	0
+14.5	29.26265996	264.5583969	0
+15	27.52786666	264.2878973	0
+15.5	25.79377005	263.9810185	0
+16	24.06052003	263.629915	0
+23	0	263.629915	0
+1000000000	0	263.629915	0
+    }
+  }
+}
+
+/* Aerodynamics Data */
+Aerodynamics {
+    Symmetry {
+        EventList.LIFTOFF   NORMAL
+    }
+    ReferenceData {
+        EventList.LIFTOFF  2.2698 0.0
+        EventList.MSEP     2.2698 0.0   // kandokakuninsuru
+    }
+    VAeroThreshold = 10.0
+    Cx {
+       Time EventList.LIFTOFF {
+           Kc = 1.0
+            0	0.28
+	0.2	0.28
+	0.4	0.28
+	0.6	0.29
+	0.8	0.35
+	1	0.64
+	1.2	0.69
+	1.4	0.69
+	1.6	0.66
+	1.8	0.62
+	2	0.58
+	2.5	0.495
+	3	0.431
+	3.5	0.40
+	4	0.375
+	4.5	0.355
+        }
+    }
+    Cy  { Time EventList.LIFTOFF { 0.0 0.0  10.0 0.0 } }
+    Cz  { Time EventList.LIFTOFF { 0.0 0.0  10.0 0.0 } }
+    Cmy { Time EventList.LIFTOFF { 0.0 0.0  10.0 0.0 } }
+    Cmz { Time EventList.LIFTOFF { 0.0 0.0  10.0 0.0 } }
+    Cmx { Time EventList.LIFTOFF { 0.0 0.0  10.0 0.0 } }
+}
+
+Engine MainEngine {
+  Tig          = EventList.LIFTOFF
+  Tbo          = EventList.MECO
+  Tsep         = EventList.MSEP
+    Win          =   3426.0
+    Wp           =  21829.0
+    X-e          = 0.0
+    R-e          = 0.0
+    Theta-e      = 0.0
+    Cant-e       = 0.0
+    thrust_coeff =  1.0
+    wdot_coeff   =  1.0
+    ArgMultiplier = 1.0
+    NozzleExitArea {
+        0.0 1.152
+     1000.0 1.152
+    }
+    EngineTable { Type = Isp
+      0.000          495000	313.0
+//      99.000          495000	313.0
+//      100.000          275000	313.0
+//      400.000        275000	313.0
+      400.000          495000	313.0
+    }
+}
+
+Engine 2ndEngine {
+  Tig          = EventList.SEIG1
+  Tbo          = EventList.SECO1
+  Tsep         = EventList.SCSEP
+    Win          =   802.0
+    Wp           =  4683.0
+    X-e          = 0.0
+    R-e          = 0.0
+    Theta-e      = 0.0
+    Cant-e       = 0.0
+    thrust_coeff =  1.0
+    wdot_coeff   =  1.0
+    ArgMultiplier = 1.0
+    NozzleExitArea { 0.0 0.0 }
+    EngineTable { Type = Isp
+      0.000            60300	343
+      400.000          60300	343
+    }
+}
+
+Radar UCHUGAOKA {  Altitude = 201.86   Longitude = 130.90567  Latitude = 30.39977  }
+Radar KAHAN     {  Altitude = 114.126  Longitude = 130.96254  Latitude = 30.38569  }
+Radar MASUDA    {  Altitude = 147.4    Longitude = 131.01709  Latitude = 30.55532  }
+Radar OGASAWARA {  Altitude = 208.328  Longitude = 142.21506  Latitude = 27.07901  }
+Radar CHRISTMAS {  Altitude =  24.7    Longitude =-157.44792  Latitude =  2.04622  }
+Radar SANTIAGO  {  Altitude  =  703.2  Longitude = -70.66828  Latitude =-33.15137  }
+Radar MINAMI    {  Altitude =   0.0    Longitude = 153.981156 Latitude = 24.28555  }
+Radar GUAM      {  Altitude  =  163.6  Longitude = 144.74639  Latitude = 13.41905  }
+Radar GUAM2     {  Altitude  =  156.8  Longitude = 144.74681  Latitude = 13.41911  }
+Radar OKINAWA   {  Altitude  =  128.3  Longitude = 127.90335  Latitude = 26.50004  }
+Radar UCHINOURA {  Altitude  = 329.43  Longitude = 131.084433 Latitude = 31.255631 }
+Radar TAIKI { Altitude = 72.0 Longitude = 143.275213 Latitude = 42.488623 }
+Radar TAIKI-SEIKA { Altitude = 40 Longitude = 143.45141 Latitude = 43.598077 }
+Radar NEMURO { Altitude = 40 Longitude = 145.58261587626006 Latitude = 43.326895526271024 }
+
+
+// Inert-Weight Data Section：投棄物質量データセクション       	
+Inert-Weight {
+  Fairing {                       // フェアリング		
+    Tdrop   = EventList.FRGDR
+    Weight  = 110.0
+  }
+  Payload {			       // 衛星                   	
+    Tdrop   = EventList.Infinite
+    Weight  = payload
+  }
+}
+
+Mass-Property {
+    Time EventList.Start { 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 }
+}
+
+Control-Program {
+//    Time EventList.LIFTOFF { 0.0  0.0000  0.0000  0.0000
+//                             3.0  0.0000  0.0000  0.0000  }
+    Time EventList.LIFTOFF { 0.0  0.0000  0.0000  0.0000  }
+    Time EventList.T4      { 0.0  t8_p    0.0000  0.0000  }
+    Time EventList.TGTS    {
+        Type = Aerodynamic
+        Argument = time
+        Interpolation = Step
+        EulerAngle1 {
+            0.0  0.0  0.0  0.0  0.0
+            1.0  0.0  0.0  0.0  0.0
+        }
+        EulerAngle2 {
+            0.0  0.0  0.0  0.0  0.0
+            1.0  0.0  0.0  0.0  0.0
+        }
+        EulerAngle3 {
+            0.0  0.0  0.0  0.0  0.0
+            1.0  0.0  0.0  0.0  0.0
+        }
+    }
+    Time EventList.TGTE    { 0.0  0.0000  0.0000  0.0000  }
+    Time EventList.Q11S    { 0.0  tq11_p  tq11_y  tq11_r  }
+    Time EventList.MECO    { 0.0  0.0000  0.000   0.0000  }
+    Time EventList.Q21S    { 0.0  tq21_p  tq21_y  tq21_r  }
+    Time EventList.Q22S    { 0.0  tq22_p  tq22_y  tq22_r  }
+    Time EventList.SECO1   { 0.0  0.0000  0.0000  0.0000  }
+}
+
+// Event-List Data Section：イベント・リスト・データセクション 
+EventList {
+  LIFTOFF      0.0                                           	"Lift Off"
+  HSPOINT      Test(s,0.763E+00,ASCENT,0.0001,EventList.LIFTOFF)    "RANGE0.763KM"    
+  T4           EventList.LIFTOFF  +  10.0       "RATE CHANGE "
+  TGTS         EventList.LIFTOFF  +  20.0       "Total G-Turn Start"
+  TGTE         EventList.LIFTOFF  + time_TGTE   "Total G-Turn End"
+//  TGTE         Test(h,25.0,ASCENT,0.01,EventList.LIFTOFF)   "Total G-Turn End"
+  Q11S         EventList.TGTE   +     0.0                    "RATE CHANGE"
+  MECO1        EventList.LIFTOFF  + time_MECO1  "Partial Cutoff"
+  MECO         Test(MainEngine.Wp,109.1,DESCENT,1.0e-8,EventList.LIFTOFF)         "1st stage Burn Out"
+  MSEP         EventList.MECO    +  5.000         "Separation"
+  SEIG1        EventList.MSEP    +  5.000         "Second engine ignition"
+  Q21S         EventList.SEIG1   +    10.0                    "RATE CHANGE"
+  Q22S         EventList.SEIG1   +    150.0                    "RATE CHANGE"
+  FRGDR        Test(h,130.0,ASCENT,0.1,EventList.LIFTOFF)       "Faring Drop"
+//  FRGDR        EventList.SEIG1   +    30.0                    "RATE CHANGE"
+  SECO1        Test(2ndEngine.Wp,94,DESCENT,1.0e-8,EventList.LIFTOFF)         "2nd stage burn out"
+  SCSEP        EventList.SECO1   +    50.0                    "SpaceCraft Separation"
+  IIPPOINT     Test(latgiip,0.0E+00,DESCENT,0.1,EventList.LIFTOFF)    "IIP LATG 0.0DEG"
+  IIPEnd       Test(hp, 0.0,ASCENT,0.1,EventList.LIFTOFF)    "IIP LATG 0.0DEG"
+  SimEnd       EventList.SCSEP    +   10.0                    "Simulation End"
+  Infinite     1.0E+04                          "INFINITE Time"
+}
+
+Report-File opt.txt {
+	CharactersPerLine = 255
+	LinesPerPage = 65536
+	Trajectory-Data {
+		Print-Intervals {
+			0.0  100000.0
+		}
+		Print-Parameters {
+			"time" (time 13 R 3) \n
+		}
+	}
+	Event-Information {
+		EventList.LIFTOFF
+	}
+	Trajectory-Summary {
+		time 13 R 3
+	}
+}
+
+General-Output-Files {
+    opt_ascent.csv {
+        Print-Intervals {
+            EventList.LIFTOFF   1.0
+        }
+        Print-Parameters {
+            (time        23 E 15)
+            (h           23 E 15)
+            (s           23 E 15)
+            (lng         23 E 15)
+            (latg        23 E 15)
+            (longiip     23 E 15)
+            (latgiip     23 E 15)
+            (ha          23 E 15)
+            (hp          23 E 15)
+            (inc         23 E 15)
+            (argp        23 E 15)
+            (asnd        23 E 15)
+            (tanm        23 E 15)
+            (vi          23 E 15)
+            (fpvgd       23 E 15)
+            (azvgd       23 E 15)
+            (weight      23 E 15)
+            (Fvac        23 E 15)
+            (Fr          23 E 15)
+            (eularGDB[1] 23 E 15)
+            (eularGDB[2] 23 E 15)
+            (eularGDB[0] 23 E 15)
+            (qbi[0]      23 E 15)
+            (qbi[1]      23 E 15)
+            (qbi[2]      23 E 15)
+            (qbi[3]      23 E 15)
+            (axb         23 E 15)
+            (q           23 E 15)
+            (alphat      23 E 15)
+            (alpha       23 E 15)
+            (beta        23 E 15)
+            (alphaq      23 E 15)
+            (M           23 E 15)
+            (vr          23 E 15)
+            (va          23 E 15)
+            (P           23 E 15)
+            (Q           23 E 15)
+            (R           23 E 15)
+            (MASUDA.Elevation 23 E 15)
+            (OGASAWARA.Elevation 23 E 15)
+            (GUAM.Elevation 23 E 15)
+            (TAIKI.Elevation 23 E 15)
+            (TAIKI-SEIKA.Elevation 23 E 15)
+	    (NEMURO.Elevation 23 E 15)
+            (weight      23 E 15)
+            (Payload.Weight 23 E 15)
+            (Vlossxb     23 E 15)
+            (Vlossg      23 E 15)
+            (Vlossaoa      23 E 15)
+            (Vlossbp      23 E 15)
+            (Vlossyzb      23 E 15)
+            (Videal      23 E 15)
+            (Vgain      23 E 15)
+            (MainEngine.Wp 23 E 15)
+            (2ndEngine.Wp 23 E 15)
+(TAIKI-SEIKA.Range 23 E 15)
+(TAIKI-SEIKA.Tlookang 23 E 15)
+(Rou 23 E 15)
+(Ta 23 E 15)
+        }
+    }
+}
+
+DONLP2 {
+    NominalPrintOut = OFF
+    Option {
+        epsx     = 0.01
+        delmin   = 0.001
+        difftype = 2
+    }
+    OptimizedVariable {
+        weight EventList.SECO1 MAX 0.01 2000
+	}
+    ControlVariables {
+        Q EventList.T4     t8_p       0.001   -9.0   3.0
+        Q EventList.Q11S   tq11_p     0.001   -9.0   9.0
+        Q EventList.Q21S   tq21_p     0.001   -9.0   9.0
+        Q EventList.Q22S   tq22_p     0.001   -9.0   9.0
+
+        R EventList.Q11S   tq11_y     0.001   -9.0   9.0
+//        P EventList.Q11S   tq11_r     0.001   -9.0   9.0
+        R EventList.Q21S   tq21_y     0.001   -9.0   9.0
+//        P EventList.Q21S   tq21_r     0.001   -9.0   9.0
+        R EventList.Q22S   tq22_y     0.001   -9.0   9.0
+
+          Payload.Weight   payload    1.0000    0.0  200.0
+          EventList.TGTE   time_TGTE  1.0000    60.0 100.0
+//          EventList.MECO1  time_MECO1 1.0000    80.0 130.0
+    }
+    Constraints {
+        rc              EventList.SCSEP         6578142.0  GT   100.0
+        vi              EventList.SCSEP         7784.3       GT   1.0
+        fpvgd               EventList.SCSEP  0.0         EQ    0.1
+//        ha                  EventList.SCSEP  200         GT    1.0
+//        hp                  EventList.SCSEP  200         GT    1.0
+        q               EventList.MECO          25         LT   0.1
+        alphat          EventList.MECO         3.0         LT   0.1
+        alphaq          EventList.MECO1         25E+3     LT   0.1E+3
+    }
+}
+
+MonoVariant {
+    Time EventList.MECO1 {
+        MainEngine.thrust_coeff = 0.55555555555555555555    // 5/9
+    }
+}
+
+Custom_DataSection {
+    CustomConditions {
+        CalcAngle3D = OFF
+//        MaxAcceleration     = 100.0 // [G]
+    }
+    Sensor {
+        IMU_Pos       = ( 0.0 0.0 0.0 )
+    }
+}

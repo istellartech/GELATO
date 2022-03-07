@@ -1,0 +1,14 @@
+num,name,timeAt_sec,rocketStage,engineOn,thrust_n,nozzleArea_m2,attitude,pitchrate_dps,yawrate_dps,mass_jettison_kg,num_nodes,timeFixed
+1,LIFTOFF,0,1,True,495000,1.152,vertical,0.0,0.0,0.0,6,True
+2,T4,10,1,True,495000,1.152,kick-turn,-0.44571,0.0,0.0,6,True
+3,TGTS,20,1,True,495000,1.152,zero-lift-turn,0.0,0.0,0.0,16,True
+4,TGTE,84.769,1,True,495000,1.152,pitch-yaw,-0.10,0.0,0.0,4,True
+5,PartialCutoff,100,1,True,275000,0.640,same-rate,-0.10,0.0,0.0,6,True
+6,MECO,162.491,1,False,0,0,hold,0.0,0.0,0.0,3,True
+7,MSEP,167.491,2,False,0,0,hold,0.0,0.0,3529.8,3,True
+8,SEIG1,172.491,2,True,60300,0,hold,0.0,0.0,0.0,3,True
+9,Q21S,182.491,2,True,60300,0,pitch-yaw,-0.10,-0.0,0.0,6,True
+10,FRGDR,208.9,2,True,60300,0,same-rate,-0.10,-0.0,110.0,6,True
+11,Q22S,322.491,2,True,60300,0,pitch-yaw,-0.10,-0.0,0.0,8,False
+12,SECO1,427.305,2,False,0,0,hold,0.0,0.0,0.0,3,False
+13,SCSEP,477.305,2,False,0,0,hold,0.0,0.0,0.0,2,True
