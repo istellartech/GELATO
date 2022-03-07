@@ -235,7 +235,8 @@ plt.plot(tx_res,x_res[:,0], '.-', lw=0.8)
 plt.grid()
 plt.xlim([0,None])
 plt.ylim([0,None])
-plt.savefig("figures/mass.png")
+if flag_savefig:
+    plt.savefig("figures/mass.png")
 
 print("initial mass          : {} kg".format(x_res[0,0]))
 print("payload + fairing     : {} kg".format(x_res[0,0] - m_init))
@@ -246,7 +247,8 @@ plt.plot(tu_res,u_res, '.-', lw=0.8, label=["roll", "pitch", "yaw"])
 plt.grid()
 plt.legend()
 plt.xlim([0,None])
-plt.savefig("figures/omega.png")
+if flag_savefig:
+    plt.savefig("figures/omega.png")
 
 out = output_6DoF(x_res, u_res, tx_res, tu_res, pdict)
 

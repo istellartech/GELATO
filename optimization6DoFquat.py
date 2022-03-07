@@ -20,7 +20,8 @@ def dynamics(x, u, t, param, wind, ca):
     d_pitch = u[1]
     d_yaw = u[2]
     
-    _,_,altitude_m = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
+    pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
+    altitude_m = geopotential_altitude(pos_llh[2])
     rho = airdensity_at(altitude_m)
     p = airpressure_at(altitude_m)
 
@@ -131,7 +132,8 @@ def zerolift_turn_correct(x,t,wind=np.zeros((2,3))):
     
     r = norm(pos_eci)
     
-    _,_,altitude_m = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
+    pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
+    altitude_m = geopotential_altitude(pos_llh[2])
     rho = airdensity_at(altitude_m)
     
     vel_ecef = vel_eci2ecef(vel_eci, pos_eci, t)
@@ -400,7 +402,8 @@ def angle_of_attack_all_rad(x, u, t, wind):
     vel_eci = x[4:7]
     thrust_dir_eci = quatrot(conj(x[7:11]), np.array([1.0, 0.0, 0.0]))
     
-    _,_,altitude_m = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
+    pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
+    altitude_m = geopotential_altitude(pos_llh[2])
     rho = airdensity_at(altitude_m)
         
     vel_ecef = vel_eci2ecef(vel_eci, pos_eci, t)
@@ -425,7 +428,8 @@ def angle_of_attack_ab_rad(x, u, t, wind):
     quat_eci2body = x[7:11]
     thrust_dir_eci = quatrot(conj(quat_eci2body), np.array([1.0, 0.0, 0.0]))
     
-    _,_,altitude_m = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
+    pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
+    altitude_m = geopotential_altitude(pos_llh[2])
     rho = airdensity_at(altitude_m)
         
     vel_ecef = vel_eci2ecef(vel_eci, pos_eci, t)
@@ -453,7 +457,8 @@ def dynamic_pressure_pa(x, u, t, wind):
     quat_eci2body = x[7:11]
     thrust_dir_eci = quatrot(conj(quat_eci2body), np.array([1.0, 0.0, 0.0]))
     
-    _,_,altitude_m = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
+    pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
+    altitude_m = geopotential_altitude(pos_llh[2])
     rho = airdensity_at(altitude_m)
         
     vel_ecef = vel_eci2ecef(vel_eci, pos_eci, t)
@@ -640,6 +645,7 @@ def output_6DoF(x_res, u_res, tx_res, tu_res, pdict):
         out["section"][i] = section
 
         pos_llh = eci2geodetic(pos, t)
+        altitude_m = geopotential_altitude(pos_llh[2])
         out["lat"][i]  = pos_llh[0]
         out["lon"][i]  = pos_llh[1]
         out["alt"][i]  = pos_llh[2] / 1000.0
@@ -653,7 +659,7 @@ def output_6DoF(x_res, u_res, tx_res, tu_res, pdict):
         vel_ground_ned  = quatrot(quat_ecef2nedg(eci2ecef(pos, t)), vel_ground_ecef)
         out["vel_NED_X"][i], out["vel_NED_Y"][i], out["vel_NED_Z"][i] = vel_ground_ned
         vel_ned         = quatrot(quat_eci2nedg(pos, t), vel)
-        vel_air_ned     = vel_ground_ned - wind_ned(pos_llh[2], pdict["wind_table"])
+        vel_air_ned     = vel_ground_ned - wind_ned(altitude_m, pdict["wind_table"])
         vel_air_body    = quatrot(quat_nedg2body(quat, pos, t), vel_air_ned)
         out["vr"][i] = norm(vel_ground_ecef)
         
@@ -677,7 +683,6 @@ def output_6DoF(x_res, u_res, tx_res, tu_res, pdict):
         out["roll"][i]    = euler[2]
 
         #####
-        _,_,altitude_m = ecef2geodetic(pos[0],pos[1],pos[2])
         rho = airdensity_at(altitude_m)
         p = airpressure_at(altitude_m)
 
