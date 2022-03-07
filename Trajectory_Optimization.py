@@ -19,7 +19,7 @@ from numba import jit
 
 mission_name = sys.argv[1]
 
-wind = pd.read_csv("wind_average-Copy1.csv")
+wind = pd.read_csv("wind_ALMA.csv")
 wind["wind_n"] = wind["wind_speed[m/s]"] * -np.cos(np.radians(wind["direction[deg]"]))
 wind["wind_e"] = wind["wind_speed[m/s]"] * -np.sin(np.radians(wind["direction[deg]"]))
 
