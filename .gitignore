@@ -1,0 +1,9 @@
+.ipynb_checkpoints/*
+*/.ipynb_checkpoints/*
+__pycache__/*
+figures/*
+*.csv
+*.json
+*.inp
+*.out
+*.png
