@@ -2,4 +2,5 @@
 */.ipynb_checkpoints/*
 __pycache__/*
 figures/*
+*_pyIPOPT*
 *.png
