@@ -11,7 +11,7 @@ from datetime import datetime
 
 from utils import *
 from coordinate import *
-from optimization6DoFquat import *
+from optimization3DoF import *
 from PSfunctions import *
 from USStandardAtmosphere import *
 from pyoptsparse import IPOPT, SLSQP, Optimization
@@ -85,7 +85,7 @@ for i in events.index:
 
 pdict = {"params": events.to_dict('records')}
 nodes = events["num_nodes"][:-1]
-num_states = 11
+num_states = 7
 num_controls = 3
 
 assert(len(nodes) == len(pdict["params"])-1)
@@ -123,22 +123,22 @@ unit_R = 6378137
 unit_V = 1000.0
 unit_m = m_init
 
-unit_x = np.array([unit_m] + [unit_R]*3 + [unit_V]*3 + [1.0]*4)
+unit_x = np.array([unit_m] + [unit_R]*3 + [unit_V]*3)
 unit_u = np.ones(num_controls)
 unit_t = pdict["params"][-1]["timeAt_sec"]
 
 unit_xut = {"x": unit_x, "u": unit_u, "t": unit_t}
 
 condition = {**settings["TerminalCondition"], **settings["FlightConstraint"]}
-condition["x_init"] = x_init
+condition["x_init"] = x_init[0:7]
 condition["u_init"] = u_init
 condition["init_azimuth_deg"] = launch_conditions["init_azimuth_deg"]
 condition["OptimizationMode"] = settings["OptimizationMode"]
 
-xdict_init = initialize_xdict_6DoF_2(x_init, pdict, condition, unit_xut, 'LG', 0.1, False)
+xdict_init = initialize_xdict_3DoF(x_init, pdict, condition, unit_xut, 'LG', 0.1, True)
 
-xx_lower0 = np.array(([0.0] + [-unit_R*10]*3 + [-unit_V*20]*3 + [-1.0]*4)        * (N + num_sections))
-xx_upper0 = np.array(([m_init*2.0] + [ unit_R*10]*3 + [ unit_V*20]*3 + [ 1.0]*4) * (N + num_sections)) 
+xx_lower0 = np.array(([0.0] + [-unit_R*10]*3 + [-unit_V*20]*3)        * (N + num_sections))
+xx_upper0 = np.array(([m_init*2.0] + [ unit_R*10]*3 + [ unit_V*20]*3) * (N + num_sections)) 
 xx_scale  = np.array(unit_x.tolist() * (N + num_sections))
 uu_lower0 = np.array([-6.0] * num_controls * N)
 uu_upper0 = np.array([ 6.0] * num_controls * N)
@@ -154,9 +154,9 @@ t_upper = 1.0
 
 def objfunc(xdict):
     funcs = {}
-    funcs["obj"] = cost_6DoF_LG(xdict, condition)
-    funcs["eqcon"] = equality_6DoF_LG(xdict, pdict, unit_xut, condition)
-    funcs["ineqcon"] = inequality_6DoF_LG(xdict, pdict, unit_xut, condition)
+    funcs["obj"] = cost_3DoF_LG(xdict, condition)
+    funcs["eqcon"] = equality_3DoF_LG(xdict, pdict, unit_xut, condition)
+    funcs["ineqcon"] = inequality_3DoF_LG(xdict, pdict, unit_xut, condition)
     fail = False
     
     return funcs, fail
@@ -168,12 +168,12 @@ optProb.addVarGroup("uvars", len(xdict_init["uvars"]), value=xdict_init["uvars"]
 optProb.addVarGroup("t",     len(xdict_init["t"]),     value=xdict_init["t"],     lower=t_lower,  upper=t_upper)
 
 
-e  =   equality_6DoF_LG(xdict_init, pdict, unit_xut, condition)
-ie = inequality_6DoF_LG(xdict_init, pdict, unit_xut, condition)
+e  =   equality_3DoF_LG(xdict_init, pdict, unit_xut, condition)
+ie = inequality_3DoF_LG(xdict_init, pdict, unit_xut, condition)
 
-#print("number of variables             : {}".format(len(xdict_init["xvars"])+len(xdict_init["uvars"])+len(xdict_init["t"])))
-#print("number of equality constraints  : {}".format(len(e)))
-#print("number of inequality constraints: {}".format(len(ie)))
+print("number of variables             : {}".format(len(xdict_init["xvars"])+len(xdict_init["uvars"])+len(xdict_init["t"])))
+print("number of equality constraints  : {}".format(len(e)))
+print("number of inequality constraints: {}".format(len(ie)))
 
 optProb.addConGroup("eqcon", len(e), lower=0.0, upper=0.0)
 optProb.addConGroup("ineqcon", len(ie), lower=0.0, upper=None)
@@ -242,14 +242,14 @@ print("initial mass          : {} kg".format(x_res[0,0]))
 print("payload + fairing     : {} kg".format(x_res[0,0] - m_init))
 
 plt.figure()
-plt.title("Target rate[deg/s]")
-plt.plot(tu_res,u_res, '.-', lw=0.8, label=["roll", "pitch", "yaw"])
+plt.title("Thrust direction(ECI)")
+plt.plot(tu_res,u_res, '.-', lw=0.8, label=["X", "Y", "Z"])
 plt.grid()
 plt.legend()
 plt.xlim([0,None])
 if flag_savefig:
-    plt.savefig("figures/omega.png")
+    plt.savefig("figures/thrustdir.png")
 
-out = output_6DoF(x_res, u_res, tx_res, tu_res, pdict)
+out = output_3DoF(x_res, u_res, tx_res, tu_res, pdict)
 
 out.to_csv("{}_{}_pyIPOPT_result.csv".format(mission_name, timestamp))

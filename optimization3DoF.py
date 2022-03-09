@@ -7,6 +7,7 @@ from USStandardAtmosphere import *
 from coordinate import *
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from scipy import interpolate
 
 
 @jit(nopython=True)
@@ -62,6 +63,54 @@ def dynamics(x, u, t, param, wind, ca):
     ret[7:11] = d_quat
         
     return ret
+
+@jit(nopython=True)
+def dynamics_3DoF(x, u, t, param, wind, ca):
+
+    mass = x[0]
+    pos_eci = x[1:4]
+    vel_eci = x[4:7]
+
+    thrustdir_eci = u
+    
+    pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
+    altitude_m = geopotential_altitude(pos_llh[2])
+    rho = airdensity_at(altitude_m)
+    p = airpressure_at(altitude_m)
+
+    
+    #対気速度
+    
+    vel_ecef = vel_eci2ecef(vel_eci, pos_eci, t)
+    vel_wind_ned = wind_ned(altitude_m, wind)
+    
+    vel_wind_eci = quatrot(quat_nedg2eci(pos_eci, t), vel_wind_ned)
+    vel_air_eci = ecef2eci(vel_ecef, t) - vel_wind_eci
+    mach_number = norm(vel_air_eci) / speed_of_sound(altitude_m)
+    
+    thrust_vac_n = param[0]
+    massflow_kgps = param[1]
+    airArea_m2 = param[2]
+    airAxialForce_coeff = np.interp(mach_number, ca[:,0], ca[:,1])
+    nozzleArea_m2 = param[4]
+    
+    ret = np.zeros(7)
+    
+    aero_n_eci = 0.5 * rho * norm(vel_air_eci) * -vel_air_eci * airArea_m2 * airAxialForce_coeff
+
+    thrust_n = thrust_vac_n - nozzleArea_m2 * p
+    thrust_n_eci = thrustdir_eci * thrust_n
+    gravity_eci = gravity(pos_eci)
+    
+    acc_eci = gravity_eci + (thrust_n_eci + aero_n_eci) / mass
+    
+    
+    ret[0] = -massflow_kgps   
+    ret[1:4] = vel_eci
+    ret[4:7] = acc_eci
+        
+    return ret
+
 
 
 def rocket_simulation(x_init, u_table, pdict, t_init, t_out, dt=0.1):
@@ -165,7 +214,7 @@ def runge_kutta_4d(function, x, t, dt):
 
 
 
-def equality_6DoF_LG(xdict, pdict, unit_xut, condition):
+def equality_3DoF_LG(xdict, pdict, unit_xut, condition):
     con = []
     unit_x = unit_xut["x"]
     unit_u = unit_xut["u"]
@@ -178,7 +227,7 @@ def equality_6DoF_LG(xdict, pdict, unit_xut, condition):
     num_sections = pdict["num_sections"]
     
     #initial condition
-    con.append((xx[0,1:11] - condition["x_init"][1:11]) / unit_x[1:11])
+    con.append((xx[0,1:7] - condition["x_init"][1:7]) / unit_x[1:7])
     if not condition["OptimizationMode"]["Maximize initial mass"]:
         con.append((xx[0,0] - condition["x_init"][0]) / unit_x[0])
 
@@ -187,7 +236,6 @@ def equality_6DoF_LG(xdict, pdict, unit_xut, condition):
     con.append([(t[i] - pdict["params"][i]["timeAt_sec"]) / unit_t for i in range(num_sections+1) if pdict["params"][i]["timeFixed"] and not free_tf])
     
 
-    
     param = np.zeros(5)
     
     for i in range(num_sections):
@@ -205,32 +253,25 @@ def equality_6DoF_LG(xdict, pdict, unit_xut, condition):
         param[1] = pdict["params"][i]["massflow_kgps"]
         param[2] = pdict["params"][i]["airArea_m2"]
         param[4] = pdict["params"][i]["nozzleArea_m2"]
-        zlt = pdict["params"][i]["do_zeroliftturn"]
         
-        ps = equality_ps_6DoF_LG(x, u, t_nodes, param, pdict["wind_table"], pdict["ca_table"], pdict["ps_params"][i]["D"], tf, to, unit_x)
+        ps = equality_ps_3DoF_LG(x, u, t_nodes, param, pdict["wind_table"], pdict["ca_table"], pdict["ps_params"][i]["D"], tf, to, unit_x)
         
         con.append(ps.ravel())
-        
+
 
         if i < num_sections-1:
             # knotting constraints: 現在のsectionの末尾と次のsectionの先頭の連続性
             xoi_next = xx[b+i+1]
-            xfi = x_final(x, u, t_nodes, param, pdict["wind_table"], pdict["ca_table"], pdict["ps_params"][i]["weight"], tf, to, unit_x)
+            xfi = x_final_3DoF(x, u, t_nodes, param, pdict["wind_table"], pdict["ca_table"], pdict["ps_params"][i]["weight"], tf, to, unit_x)
             d_xx = (xoi_next - xfi) / unit_x
             uoi_next = uu[b+1]
             ufi = u[-1]
             d_uu = (uoi_next - ufi) / unit_u
             con.append(d_xx[1:7]) # pos, vel
-            
-            ALMA_mode = False
-            if zlt and ALMA_mode:
-                con.append(x[0,7:11] - zerolift_turn_correct(x[0],to, pdict["wind_table"])) # quatの不連続を許可
-            else:
-                con.append(d_xx[7:11]) # quat
             con.append((d_xx[0]) + pdict["params"][i+1]["mass_jettison_kg"] / unit_x[0]) # mass : 投棄物考慮
         else:
             # terminal conditions
-            xf = x_final(x, u, t_nodes, param, pdict["wind_table"], pdict["ca_table"], pdict["ps_params"][i]["weight"], tf, to, unit_x)
+            xf = x_final_3DoF(x, u, t_nodes, param, pdict["wind_table"], pdict["ca_table"], pdict["ps_params"][i]["weight"], tf, to, unit_x)
             
             pos_f = xf[1:4]
             vel_f = xf[4:7]
@@ -264,49 +305,60 @@ def equality_6DoF_LG(xdict, pdict, unit_xut, condition):
             if condition["inclination_deg"] is not None:
                 con.append((elem[2] - condition["inclination_deg"]) / 90.0)            
         
-        #rate constraint
         
         att = pdict["params"][i]["attitude"]
-        if att == "zero-lift-turn":
-            #zero-lift-turn: pitch/yaw free, roll hold
-            con.append(u[:,0])
-        
-        else:    
-            # pitch/yaw rate constant
-            con.append((u[1:,1:] - u[0,1:]).ravel())
-            
-            
-            if pdict["params"][i]["hold_yaw"]:
-                
-                # yaw hold
-                con.append(u[0,2])
-                con.append(u[:,0])
-                if pdict["params"][i]["hold_pitch"]:
-                    # total attitude hold
-                    con.append(u[0,1])
-            else:
-                # roll constraint
-                con.append(roll_direction(x[1:]))
-                
-                if att == "same-rate":
-                    # same pitch/yaw rate as previous section
-                    uf_prev = uu[a-1]
-                    con.append(u[0,1:] - uf_prev[1:])
 
-            
-            
+        if pdict["params"][i]["engineOn"] == False or pdict["params"][i]["thrust_n"] <= 0.0:
+            # attitude hold
+            con.append((u - uu[a-1]).ravel())
+
+        else:
+            if att == "vertical":
+                # vertical ascent
+                con.append((u[1:] - u[0]).ravel())
+                con.append(normalize(u[0]) - normalize(x[0,1:4]))
+
+            else:
+                #thrust direction constraint
+                con.append(norm(u, axis=1)-1.0)
+
+                if att == "hold":
+                    # attitude hold
+                    con.append((u[1:] - u[0]).ravel())
+
+                elif att == "kick-turn":
+                    con.append(azimuth_constraint(x[1:], u, t_nodes, condition["init_azimuth_deg"]))
+
+
     return np.concatenate(con, axis=None)
 
+@jit(nopython=True)
+def azimuth_constraint(xv, uv, tv, azimuth_deg):
+
+    con = np.zeros(len(tv))
+    
+    for i in range(len(tv)):
+        r_eci = xv[i,1:4]
+        v_eci = xv[i,4:7]
+        t = tv[i]
+        pos_ecef = eci2ecef(r_eci, t)
+        vel_ground_ecef = vel_eci2ecef(v_eci, r_eci, t)
+        vel_ground_ned = quatrot(quat_ecef2nedg(pos_ecef), vel_ground_ecef)
+
+        ref_vec_ned = np.array((cos(radians(azimuth_deg - 90.0)), sin(radians(azimuth_deg - 90.0)), 0.0))
+        con[i] = ref_vec_ned.dot(normalize(vel_ground_ned))
+
+    return con
 
 @jit(nopython=True)
-def equality_ps_6DoF_LG(x, u, t, param, wind, ca, D, tf, to, unit_x):
+def equality_ps_3DoF_LG(x, u, t, param, wind, ca, D, tf, to, unit_x):
 
     lh = D.dot(x / unit_x)
 
     n = len(t)
     r = np.zeros((n, len(x[0])))
     for i in range(n):
-        r[i] = dynamics(x[i+1], u[i], t[i], param, wind, ca)
+        r[i] = dynamics_3DoF(x[i+1], u[i], t[i], param, wind, ca)
     rh =  (tf-to) / 2.0 * r / unit_x
     ps = lh - rh
 
@@ -314,18 +366,18 @@ def equality_ps_6DoF_LG(x, u, t, param, wind, ca, D, tf, to, unit_x):
 
 
 @jit(nopython=True)
-def x_final(x, u, t, param, wind, ca, weight, tf, to, unit_x):
+def x_final_3DoF(x, u, t, param, wind, ca, weight, tf, to, unit_x):
 
     n = len(t)
     r = np.zeros((n, len(x[0])))
     for i in range(n):
-        r[i] = dynamics(x[i+1], u[i], t[i], param, wind, ca)
+        r[i] = dynamics_3DoF(x[i+1], u[i], t[i], param, wind, ca)
     rh =  (tf-to) / 2.0 * r
 
     return x[0] + weight.dot(rh)
 
 
-def inequality_6DoF_LG(xdict, pdict, unit_xut, condition):
+def inequality_3DoF_LG(xdict, pdict, unit_xut, condition):
     
     con = []
     
@@ -346,10 +398,6 @@ def inequality_6DoF_LG(xdict, pdict, unit_xut, condition):
         t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0        
 
         # kick turn
-        if "kick" in pdict["params"][i]["attitude"]:
-            con.append(-u[:,1])
-            #con.append(u[:,1]+0.36)
-        
         # zerolift turn
         if pdict["params"][i]["do_zeroliftturn"]:
             if condition["aoa_max_deg"] is not None:
@@ -384,23 +432,12 @@ def q_alpha_zerolift(x, u, t, wind):
     return np.array([angle_of_attack_all_rad(x[i], u[i], t[i], wind) * dynamic_pressure_pa(x[i], u[i], t[i], wind)  for i in range(len(t))])
 
 @jit(nopython=True)
-def roll_direction(x):
-    return np.array([yb_r_dot(x[i]) for i in range(len(x))])
-
-@jit(nopython=True)
-def yb_r_dot(x):
-    pos_eci = x[1:4]
-    quat_eci2body = x[7:11]
-    yb_dir_eci = quatrot(conj(quat_eci2body), np.array([0.0, 1.0, 0.0]))
-    return yb_dir_eci.dot(normalize(pos_eci))
-
-@jit(nopython=True)
 def angle_of_attack_all_rad(x, u, t, wind):
     
     mass = x[0]
     pos_eci = x[1:4]
     vel_eci = x[4:7]
-    thrust_dir_eci = quatrot(conj(x[7:11]), np.array([1.0, 0.0, 0.0]))
+    thrust_dir_eci = u
     
     pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
     altitude_m = geopotential_altitude(pos_llh[2])
@@ -425,8 +462,8 @@ def angle_of_attack_ab_rad(x, u, t, wind):
     mass = x[0]
     pos_eci = x[1:4]
     vel_eci = x[4:7]
-    quat_eci2body = x[7:11]
-    thrust_dir_eci = quatrot(conj(quat_eci2body), np.array([1.0, 0.0, 0.0]))
+    thrust_dir_eci = u
+    dcm = dcm_from_thrustvector(pos_eci, u)
     
     pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
     altitude_m = geopotential_altitude(pos_llh[2])
@@ -438,7 +475,7 @@ def angle_of_attack_ab_rad(x, u, t, wind):
     vel_wind_eci = quatrot(quat_nedg2eci(pos_eci, t), vel_wind_ned)
     vel_air_eci = ecef2eci(vel_ecef, t) - vel_wind_eci
     
-    vel_air_body = quatrot(quat_eci2body, vel_air_eci)
+    vel_air_body = dcm.dot(vel_air_eci)
     
     if vel_air_body[0] < 0.001:
         return np.zeros(2)
@@ -455,7 +492,7 @@ def dynamic_pressure_pa(x, u, t, wind):
     pos_eci = x[1:4]
     vel_eci = x[4:7]
     quat_eci2body = x[7:11]
-    thrust_dir_eci = quatrot(conj(quat_eci2body), np.array([1.0, 0.0, 0.0]))
+    thrust_dir_eci = u
     
     pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
     altitude_m = geopotential_altitude(pos_llh[2])
@@ -470,19 +507,18 @@ def dynamic_pressure_pa(x, u, t, wind):
 
     
 
-def cost_6DoF_LG(xdict, condition):
+def cost_3DoF_LG(xdict, condition):
     
     if condition["OptimizationMode"]["Maximize excess propellant mass"]:
         return xdict["t"][-1] #到達時間を最小化(=余剰推進剤を最大化)
     else:
         return -xdict["xvars"][0] #初期質量(無次元)を最大化
 
-    
-def initialize_xdict_6DoF_2(x_init, pdict, condition, unit_xut, mode='LGL', dt=0.005, flag_display=True):
+def initialize_xdict_3DoF(x_init, pdict, condition, unit_xut, mode='LGL', dt=0.005, flag_display=True):
     
     xdict = {}
     num_sections = pdict["num_sections"]
-     
+    
     time_nodes = np.array([])
     time_x_nodes = np.array([])
     
@@ -503,31 +539,23 @@ def initialize_xdict_6DoF_2(x_init, pdict, condition, unit_xut, mode='LGL', dt=0
     time_knots = np.array([e["timeAt_sec"] for e in pdict["params"]])
     xdict["t"] = (time_knots / unit_xut["t"]).ravel()
 
-    # 現在位置と目標軌道から、適当に目標位置・速度を決める
+    u_nodes_6DoF = np.vstack([[[0.0, pdict["params"][i]["pitchrate_dps"],pdict["params"][i]["yawrate_dps"]]] * pdict["ps_params"][i]["nodes"] for i in range(num_sections)])
     
-    if condition["rf_km"] is not None:
-        r_final = condition["rf_km"]
-    else:
-        if condition["hp_km"] is None or condition["ha_km"] is None:
-            print("DESTINATION ORBIT NOT DETERMINED!!")
-            sys.exit()
-    print(r_final)
+    u_table_6DoF = np.hstack((time_nodes.reshape(-1,1),u_nodes_6DoF))
+    x_nodes_6DoF, _ = rocket_simulation(x_init, u_table_6DoF, pdict, time_x_nodes[0], time_x_nodes, dt)
+    x_nodes_3DoF = x_nodes_6DoF[:, 0:7] 
+    ux_nodes_3DoF = np.array([quatrot(conj(x[7:11]), np.array([1.0, 0.0, 0.0])) for x in x_nodes_6DoF])
+    u_nodes_3DoF = interpolate.interp1d(time_x_nodes, ux_nodes_3DoF, axis=0)(time_nodes)
     
-    u_nodes = np.vstack([[[0.0, pdict["params"][i]["pitchrate_dps"],pdict["params"][i]["yawrate_dps"]]] * pdict["ps_params"][i]["nodes"] for i in range(num_sections)])
-    xdict["uvars"] = (u_nodes / unit_xut["u"]).ravel()
-        
-    u_table = np.hstack((time_nodes.reshape(-1,1),u_nodes))
-    
-    x_nodes, _ = rocket_simulation(x_init, u_table, pdict, time_nodes[0], time_x_nodes, dt)
-    
-    xdict["xvars"] = (x_nodes / unit_xut["x"]).ravel()
+    xdict["xvars"] = (x_nodes_3DoF / unit_xut["x"]).ravel()
+    xdict["uvars"] = u_nodes_3DoF.ravel()
     
     if flag_display:
-        display_6DoF(output_6DoF(x_nodes, u_nodes, time_x_nodes, time_nodes, pdict))
+        display_6DoF(output_3DoF(x_nodes_3DoF, u_nodes_3DoF, time_x_nodes, time_nodes, pdict))
     return xdict
     
 
-def output_6DoF(x_res, u_res, tx_res, tu_res, pdict):
+def output_3DoF(x_res, u_res, tx_res, tu_res, pdict):
     
     
     
@@ -556,10 +584,10 @@ def output_6DoF(x_res, u_res, tx_res, tu_res, pdict):
             "vel_NED_X"  : np.zeros(N),
             "vel_NED_Y"  : np.zeros(N),
             "vel_NED_Z"  : np.zeros(N),
-            "quat_i2b_0" : x_res[:,7],
-            "quat_i2b_1" : x_res[:,8],
-            "quat_i2b_2" : x_res[:,9],
-            "quat_i2b_3" : x_res[:,10],
+            "quat_i2b_0" : np.zeros(N),
+            "quat_i2b_1" : np.zeros(N),
+            "quat_i2b_2" : np.zeros(N),
+            "quat_i2b_3" : np.zeros(N),
             "accel_X"    : np.zeros(N),
             "aero_X"     : np.zeros(N),
             "heading"    : np.zeros(N),
@@ -568,12 +596,12 @@ def output_6DoF(x_res, u_res, tx_res, tu_res, pdict):
             "vi"         : norm(x_res[:,4:7],axis=1),
             "fpvgd"      : np.zeros(N),
             "azvgd"      : np.zeros(N),
-            "thrustvec_X": np.zeros(N),
-            "thrustvec_Y": np.zeros(N),
-            "thrustvec_Z": np.zeros(N),
-            "rate_P"     : np.interp(tx_res, tu_res, u_res[:,0]),
-            "rate_Q"     : np.interp(tx_res, tu_res, u_res[:,1]),
-            "rate_R"     : np.interp(tx_res, tu_res, u_res[:,2]),
+            "thrustvec_X": np.interp(tx_res, tu_res, u_res[:,0]),
+            "thrustvec_Y": np.interp(tx_res, tu_res, u_res[:,1]),
+            "thrustvec_Z": np.interp(tx_res, tu_res, u_res[:,2]),
+            "rate_P"     : np.zeros(N),
+            "rate_Q"     : np.zeros(N),
+            "rate_R"     : np.zeros(N),
             "vr"         : np.zeros(N),
             "va"         : np.zeros(N),
             "aoa_total"  : np.zeros(N),
@@ -588,11 +616,18 @@ def output_6DoF(x_res, u_res, tx_res, tu_res, pdict):
     for i in range(N):
         
         x = x_res[i]
+        u = np.zeros(3)
+        for j in range(3):
+            u[j] = np.interp(tx_res[i], tu_res, u_res[:,j])
         t = tx_res[i]
         mass = x[0]
         pos = x[1:4]
         vel = x[4:7]
-        quat = normalize(x[7:11])
+        thrustdir_eci = u
+        C_i2b = dcm_from_thrustvector(pos, u)
+        quat = quat_from_dcm(C_i2b)
+        C_g2i = dcm_from_quat(quat_nedg2eci(pos, t))
+        C_g2b = C_i2b.dot(C_g2i)
         
         if t >= pdict["params"][section]["timeFinishAt_sec"]:
             section += 1
@@ -627,15 +662,14 @@ def output_6DoF(x_res, u_res, tx_res, tu_res, pdict):
         q = 0.5 * norm(vel_air_ned)**2 * airdensity_at(pos_llh[2])
         out["q"][i] = q
         
-        aoa_all_deg = angle_of_attack_all_rad(x, 0.0, t, pdict["wind_table"]) * 180.0 / np.pi
-        aoa_ab_deg = angle_of_attack_ab_rad(x, 0.0, t, pdict["wind_table"]) * 180.0 / np.pi
+        aoa_all_deg = angle_of_attack_all_rad(x, u, t, pdict["wind_table"]) * 180.0 / np.pi
+        aoa_ab_deg = angle_of_attack_ab_rad(x, u, t, pdict["wind_table"]) * 180.0 / np.pi
         
         out["aoa_total"][i] = aoa_all_deg
         out["aoa_alpha"][i], out["aoa_beta"][i] = aoa_ab_deg
 
         thrustdir_eci = quatrot(conj(quat), np.array([1.0, 0.0, 0.0]))
-        out["thrustvec_X"][i], out["thrustvec_Y"][i], out["thrustvec_Z"][i] = thrustdir_eci
-        euler = euler_from_quat(quat_nedg2body(quat, pos, t))
+        euler = euler_from_dcm(C_g2b)
         out["heading"][i] = euler[0]
         out["pitch"][i]   = euler[1]
         out["roll"][i]    = euler[2]
@@ -655,15 +689,12 @@ def output_6DoF(x_res, u_res, tx_res, tu_res, pdict):
         mach_number = norm(vel_air_eci) / speed_of_sound(altitude_m)
         airAxialForce_coeff = np.interp(mach_number, pdict["ca_table"][:,0], pdict["ca_table"][:,1])
         out["va"][i] = norm(vel_air_eci)        
-        
-        ret = np.zeros(11)
-        
+                
         aero_n_eci = 0.5 * rho * norm(vel_air_eci) * -vel_air_eci * airArea_m2 * airAxialForce_coeff
         aero_n_body = quatrot(quat, aero_n_eci)
 
         thrust_n = thrust_vac_n - nozzleArea_m2 * p
         out["thrust"][i] = thrust_n
-        thrustdir_eci = quatrot(conj(quat), np.array([1.0, 0.0, 0.0]))
         thrust_n_eci = thrustdir_eci * thrust_n
         gravity_eci = gravity(pos)
         out["aero_X"][i] = aero_n_body[0]
