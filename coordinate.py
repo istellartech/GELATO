@@ -250,8 +250,7 @@ def euler_from_dcm(C):
     return np.rad2deg(np.array([az, el, ro]))
 
 @jit(nopython=True)
-def dcm_from_thrustvector(x, u):
-    pos_eci = x[0:3]
+def dcm_from_thrustvector(pos_eci, u):
 
     xb_dir = normalize(u)
     if u.dot(normalize(pos_eci)) > 0.999999:

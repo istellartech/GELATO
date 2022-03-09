@@ -273,7 +273,8 @@ def equality_6DoF_LG(xdict, pdict, unit_xut, condition):
         
         else:    
             # pitch/yaw rate constant
-            con.append((u[1:,1:] - u[0,1:]).ravel())
+            if att != "pitch-yaw-free":
+                con.append((u[1:,1:] - u[0,1:]).ravel())
             
             
             if pdict["params"][i]["hold_yaw"]:
@@ -478,48 +479,6 @@ def cost_6DoF_LG(xdict, condition):
         return -xdict["xvars"][0] #初期質量(無次元)を最大化
 
 
-def initialize_xdict_6DoF(x_init, pdict, unit_xut, mode='LGL', dt=0.005, flag_display=True):
-    
-    xdict = {}
-    num_sections = pdict["num_sections"]
-    
-    
-    time_nodes = np.array([])
-    time_x_nodes = np.array([])
-    
-    for i in range(num_sections):
-        to = pdict["params"][i]["timeAt_sec"]
-        tf = pdict["params"][i]["timeFinishAt_sec"]
-        tau = pdict["ps_params"][i]["tau"]
-        
-        if mode=='LG' or mode=='LGR':
-            tau_x = np.hstack((-1.0, tau))
-        else:
-            tau_x = tau
-        
-        time_nodes = np.hstack((time_nodes, tau*(tf-to)/2.0 + (tf+to)/2.0))
-        time_x_nodes = np.hstack((time_x_nodes, tau_x*(tf-to)/2.0 + (tf+to)/2.0))
-
-
-    time_knots = np.array([e["timeAt_sec"] for e in pdict["params"]])
-    xdict["t"] = (time_knots / unit_xut["t"]).ravel()
-
-    u_nodes = np.vstack([[[0.0, pdict["params"][i]["pitchrate_dps"],pdict["params"][i]["yawrate_dps"]]] * pdict["ps_params"][i]["nodes"] for i in range(num_sections)])
-    xdict["uvars"] = (u_nodes / unit_xut["u"]).ravel()
-        
-    u_table = np.hstack((time_nodes.reshape(-1,1),u_nodes))
-    
-    x_nodes, _ = rocket_simulation(x_init, u_table, pdict, time_nodes[0], time_x_nodes, dt)
-    
-    xdict["xvars"] = (x_nodes / unit_xut["x"]).ravel()
-    
-    if flag_display:
-        display_6DoF(output_6DoF(x_nodes, u_nodes, time_x_nodes, time_nodes, pdict))
-    return xdict
-
-#def recalculate_6DoF(x_res, u_res, tx_res, tu_res, dt=1.0):
-    
-    
 def initialize_xdict_6DoF_2(x_init, pdict, condition, unit_xut, mode='LGL', dt=0.005, flag_display=True):
     
     xdict = {}
@@ -725,8 +684,8 @@ def display_6DoF(out, flag_savefig=False):
     plt.title('Altitude[km]')
         
     plt.plot(out["time"], out["alt"], '.-', lw=0.8, label='Altitude')
-    plt.plot(out["time"], out["ha"], label='hp')
-    plt.plot(out["time"], out["hp"], label='ha')
+    plt.plot(out["time"], out["ha"], label='ha')
+    plt.plot(out["time"], out["hp"], label='hp')
 
     plt.ylim([0,None])
     plt.xlim([0,None])
