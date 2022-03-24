@@ -15,18 +15,18 @@ from pyoptsparse import IPOPT, Optimization
 
 mission_name = sys.argv[1]
 
-wind = pd.read_csv("wind_ALMA.csv")
+fin = open(mission_name, 'r')
+settings = json.load(fin)
+fin.close()
+
+wind = pd.read_csv(settings["Wind file"])
 wind["wind_n"] = wind["wind_speed[m/s]"] * -np.cos(np.radians(wind["direction[deg]"]))
 wind["wind_e"] = wind["wind_speed[m/s]"] * -np.sin(np.radians(wind["direction[deg]"]))
 
 wind_table = wind[["altitude[m]","wind_n","wind_e"]].to_numpy()
 
-ca = pd.read_csv("ca.csv")
+ca = pd.read_csv(settings["CA file"])
 ca_table = ca.to_numpy()
-
-fin = open('{}-settings.json'.format(mission_name), 'r')
-settings = json.load(fin)
-fin.close()
 
 stages = settings["RocketStage"]
 launch_conditions = settings["LaunchCondition"]
@@ -36,7 +36,7 @@ t_init = 0.0
 launchsite_ecef = np.array(pm.geodetic2ecef(launch_conditions["latitude_deg"], launch_conditions["longitude_deg"], launch_conditions["height_m"]))
 launchsite_eci = ecef2eci(launchsite_ecef, t_init)
 
-events = pd.read_csv("{}-events.csv".format(mission_name))
+events = pd.read_csv(settings["Event setting file"])
 
 num_sections = len(events) - 1
 
@@ -177,12 +177,8 @@ optProb.addObj("obj")
 
 timestamp = datetime.now().strftime('%Y-%m-%d-%H%M%S')
 
-fin = open('{}-solveroption.json'.format(mission_name), 'r')
-solver_option = json.load(fin)
-fin.close()
-
-options_IPOPT = solver_option["IPOPT"]
-options_IPOPT["output_file"] = "{}_{}_pyIPOPT.out".format(mission_name,timestamp)
+options_IPOPT = settings["IPOPT"]
+options_IPOPT["output_file"] = "{}_{}_pyIPOPT.out".format(settings["name"],timestamp)
 opt = IPOPT(options=options_IPOPT)
 
 sol = opt(optProb, sens="FD")
@@ -248,4 +244,4 @@ if flag_savefig:
 
 out = output_6DoF(x_res, u_res, tx_res, tu_res, pdict)
 
-out.to_csv("{}_{}_pyIPOPT_result.csv".format(mission_name, timestamp))
+out.to_csv("{}_{}_pyIPOPT_result.csv".format(settings["name"], timestamp))

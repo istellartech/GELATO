@@ -1,0 +1,70 @@
+{
+  "name": "Zero-east",
+
+  "RocketStage": {
+    "1": {
+      "dryMass_kg": 3529.8,
+      "propellantMass_kg": 21725.2,
+      "Isp_vac": 313.0,
+      "airArea_m2": 2.2698
+    },
+    "2": {
+      "dryMass_kg": 917.0,
+      "propellantMass_kg": 4568.0,
+      "Isp_vac": 343.0,
+      "airArea_m2": 0.0
+    }
+  },
+
+  "LaunchCondition": {
+    "longitude_deg": 143.456784,
+    "latitude_deg": 42.504038,
+    "height_m": 50.0,
+    "init_azimuth_deg": 90.0,
+    "payload_mass": null
+  },
+
+  "TerminalCondition": {
+    "hp_km": null,
+    "ha_km": null,
+    "inclination_deg": null,
+    "rf_km": 6578.137,
+    "vtf_kmps": 7.7843,
+    "vrf_kmps": null,
+    "vf_elev_deg": 0.0
+  },
+
+  "FlightConstraint": {
+    "aoa_max_deg": 0.05,
+    "q_max_kpa" : null,
+    "q-alpha_max_kpa-deg": null,
+    "q_sep_max_pa": 15.0
+  },
+
+  "GroundStation": {
+    "TAIKI-SEIKA": {
+      "longitude_deg": 143.451410,
+      "latitude_deg": 42.598077,
+      "height_m": 40.0,
+      "elevation_min_deg": null,
+      "lookAngle_min_deg": null
+    }
+  },
+
+  "Event setting file": "Zero-east-events.csv",
+  "Wind file": "wind_ALMA.csv",
+  "CA file": "ca.csv",
+
+  "OptimizationMode": {
+    "Maximize initial mass": true,
+    "Maximize excess propellant mass": false
+  },
+
+  "IPOPT": {
+    "print_level": 3,
+    "linear_solver": "pardisomkl",
+    "print_timing_statistics": "yes",
+    "tol": 1e-10,
+    "max_iter": 500
+  }
+}
