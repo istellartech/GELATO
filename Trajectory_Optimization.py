@@ -2,10 +2,7 @@ import sys
 
 import numpy as np
 import pandas as pd
-import csv
-import zipfile
 import json
-import random
 import matplotlib.pyplot as plt
 from datetime import datetime
 
@@ -14,8 +11,7 @@ from coordinate import *
 from optimization6DoFquat import *
 from PSfunctions import *
 from USStandardAtmosphere import *
-from pyoptsparse import IPOPT, SLSQP, Optimization
-from numba import jit
+from pyoptsparse import IPOPT, Optimization
 
 mission_name = sys.argv[1]
 

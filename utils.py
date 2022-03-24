@@ -1,6 +1,5 @@
 import numpy as np
 from numpy.linalg import norm
-import quaternion
 from math import sin,cos,asin,atan2,sqrt,radians,degrees
 from numba import jit
 

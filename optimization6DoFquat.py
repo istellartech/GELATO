@@ -1,12 +1,11 @@
+import sys
 import numpy as np
 import pandas as pd
-from scipy import special
 from numba import jit
 from utils import *
 from USStandardAtmosphere import *
 from coordinate import *
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 
 @jit(nopython=True)
@@ -130,11 +129,9 @@ def zerolift_turn_correct(x,t,wind=np.zeros((2,3))):
     vel_eci = x[4:7]
     #quat_eci2body = x[7:11]
     
-    r = norm(pos_eci)
     
     pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
     altitude_m = geopotential_altitude(pos_llh[2])
-    rho = airdensity_at(altitude_m)
     
     vel_ecef = vel_eci2ecef(vel_eci, pos_eci, t)
     vel_wind_ned = wind_ned(altitude_m, wind)
@@ -333,9 +330,7 @@ def inequality_6DoF_LG(xdict, pdict, unit_xut, condition):
     xx = xdict["xvars"].reshape(-1,pdict["num_states"]) * unit_xut["x"]
     uu = xdict["uvars"].reshape(-1,pdict["num_controls"]) * unit_xut["u"]
     t = xdict["t"] * unit_xut["t"]
-        
-    wind = pdict["wind_table"]
-    
+            
     for i in range(pdict["num_sections"]):
         
         a = pdict["ps_params"][i]["index_start"]
@@ -405,7 +400,6 @@ def angle_of_attack_all_rad(x, u, t, wind):
     
     pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
     altitude_m = geopotential_altitude(pos_llh[2])
-    rho = airdensity_at(altitude_m)
         
     vel_ecef = vel_eci2ecef(vel_eci, pos_eci, t)
     vel_wind_ned = wind_ned(altitude_m, wind)
@@ -427,11 +421,9 @@ def angle_of_attack_ab_rad(x, u, t, wind):
     pos_eci = x[1:4]
     vel_eci = x[4:7]
     quat_eci2body = x[7:11]
-    thrust_dir_eci = quatrot(conj(quat_eci2body), np.array([1.0, 0.0, 0.0]))
     
     pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
     altitude_m = geopotential_altitude(pos_llh[2])
-    rho = airdensity_at(altitude_m)
         
     vel_ecef = vel_eci2ecef(vel_eci, pos_eci, t)
     vel_wind_ned = wind_ned(altitude_m, wind)
@@ -455,8 +447,6 @@ def dynamic_pressure_pa(x, u, t, wind):
     mass = x[0]
     pos_eci = x[1:4]
     vel_eci = x[4:7]
-    quat_eci2body = x[7:11]
-    thrust_dir_eci = quatrot(conj(quat_eci2body), np.array([1.0, 0.0, 0.0]))
     
     pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
     altitude_m = geopotential_altitude(pos_llh[2])
@@ -619,7 +609,6 @@ def output_6DoF(x_res, u_res, tx_res, tu_res, pdict):
         out["vel_NED_X"][i], out["vel_NED_Y"][i], out["vel_NED_Z"][i] = vel_ground_ned
         vel_ned         = quatrot(quat_eci2nedg(pos, t), vel)
         vel_air_ned     = vel_ground_ned - wind_ned(altitude_m, pdict["wind_table"])
-        vel_air_body    = quatrot(quat_nedg2body(quat, pos, t), vel_air_ned)
         out["vr"][i] = norm(vel_ground_ecef)
         
         out["azvgd"][i] = degrees(atan2(vel_ned[1], vel_ned[0]))
