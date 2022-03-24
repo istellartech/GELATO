@@ -70,11 +70,12 @@ def haversine(lon1, lat1, lon2, lat2, r):
     a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
     return 2 * r * asin(sqrt(a)) 
 
+@jit('f8(f8,f8,f8,f8,f8,f8)',nopython=True)
 def distance_on_earth(x_km, y_km, z_km, lon0, lat0, time):
     radius_km = 6378.142
     angular_velocity_rps = 0.729211586e-4
 
-    r_km = norm([x_km, y_km, z_km])
+    r_km = norm(np.array([x_km, y_km, z_km]))
     latitude = asin(z_km/r_km)
     longitude = atan2(y_km,x_km) - angular_velocity_rps*time
     
