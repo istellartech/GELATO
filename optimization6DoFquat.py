@@ -8,7 +8,7 @@ from coordinate import *
 import matplotlib.pyplot as plt
 
 
-@jit(nopython=True)
+@jit('f8[:](f8[:],f8[:],f8,f8[:],f8[:,:],f8[:,:])',nopython=True)
 def dynamics(x, u, t, param, wind, ca):
 
     mass = x[0]
@@ -296,7 +296,7 @@ def equality_6DoF_LG(xdict, pdict, unit_xut, condition):
     return np.concatenate(con, axis=None)
 
 
-@jit(nopython=True)
+@jit('f8[:,:](f8[:,:],f8[:,:],f8[:],f8[:],f8[:,:],f8[:,:],f8[:,:],f8,f8,f8[:])',nopython=True)
 def equality_ps_6DoF_LG(x, u, t, param, wind, ca, D, tf, to, unit_x):
 
     lh = D.dot(x / unit_x)
@@ -311,7 +311,7 @@ def equality_ps_6DoF_LG(x, u, t, param, wind, ca, D, tf, to, unit_x):
     return ps
 
 
-@jit(nopython=True)
+@jit('f8[:](f8[:,:],f8[:,:],f8[:],f8[:],f8[:,:],f8[:,:],f8[:],f8,f8,f8[:])',nopython=True)
 def x_final(x, u, t, param, wind, ca, weight, tf, to, unit_x):
 
     n = len(t)

@@ -28,7 +28,7 @@ def quatrot(q, v):
     rvq = quatmult(conj(q), quatmult(vq, q))
     return rvq[1:4]
 
-@jit(nopython=True)
+@jit('f8[:,:](f8[:])',nopython=True)
 def dcm_from_quat(q):
     C = np.zeros((3,3))
     C[0,0] = q[0]**2+q[1]**2-q[2]**2-q[3]**2
@@ -45,7 +45,7 @@ def dcm_from_quat(q):
 
     return C
 
-@jit(nopython=True)
+@jit('f8[:](f8[:,:])',nopython=True)
 def quat_from_dcm(C):
     if (1.0 + C[0,0] + C[1,1] + C[2,2]) < 0.0:
         print("quaternion conversion error")
@@ -203,7 +203,7 @@ def quat_from_euler(az, el, ro):
 
     return quatmult(qz, quatmult(qy, qx))
 
-@jit(nopython=True)
+@jit('f8[:](f8[:])',nopython=True)
 def gravity(pos):
     x,y,z = pos
     
@@ -238,7 +238,7 @@ def euler_from_quat(q):
         ro = atan2(2.0 * (q[0]*q[1]+q[2]*q[3]), 1.0-2.0*(q[1]**2+q[2]**2))
     return np.rad2deg(np.array([az, el, ro]))
 
-@jit(nopython=True)
+@jit('f8[:](f8[:,:])',nopython=True)
 def euler_from_dcm(C):
     el = asin(-C[0,2])
     if cos(el) < 0.0001:
@@ -249,7 +249,7 @@ def euler_from_dcm(C):
         ro = atan2(C[1,2], C[2,2])
     return np.rad2deg(np.array([az, el, ro]))
 
-@jit(nopython=True)
+@jit('f8[:,:](f8[:],f8[:])',nopython=True)
 def dcm_from_thrustvector(pos_eci, u):
 
     xb_dir = normalize(u)
