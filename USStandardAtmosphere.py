@@ -26,7 +26,6 @@ def us_standard_atmosphere_params_at(altitude_m):
 
     
     GRAVITY_ACC_CONST = 9.80665
-    R = 287.0531 # specific gas constant for dry air
     Rstar = 8314.32
     
     #  b <  7:[Hb, Lmb, Tmb, Pb, R]
