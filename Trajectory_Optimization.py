@@ -151,7 +151,13 @@ t_upper = 1.0
 def objfunc(xdict):
     funcs = {}
     funcs["obj"] = cost_6DoF_LG(xdict, condition)
-    funcs["eqcon"] = equality_6DoF_LG(xdict, pdict, unit_xut, condition)
+    funcs["eqcon_init"] = equality_init(xdict, pdict, unit_xut, condition)
+    funcs["eqcon_time"] = equality_time(xdict, pdict, unit_xut, condition)
+    funcs["eqcon_diff"] = equality_6DoF_LG_diff(xdict, pdict, unit_xut, condition)
+    funcs["eqcon_knot"] = equality_6DoF_LG_knot(xdict, pdict, unit_xut, condition)
+    funcs["eqcon_terminal"] = equality_6DoF_LG_terminal(xdict, pdict, unit_xut, condition)
+    funcs["eqcon_rate"] = equality_6DoF_LG_rate(xdict, pdict, unit_xut, condition)
+
     funcs["ineqcon"] = inequality_6DoF_LG(xdict, pdict, unit_xut, condition)
     fail = False
     
@@ -164,14 +170,25 @@ optProb.addVarGroup("uvars", len(xdict_init["uvars"]), value=xdict_init["uvars"]
 optProb.addVarGroup("t",     len(xdict_init["t"]),     value=xdict_init["t"],     lower=t_lower,  upper=t_upper)
 
 
-e  =   equality_6DoF_LG(xdict_init, pdict, unit_xut, condition)
+e_init  = equality_init(xdict_init, pdict, unit_xut, condition)
+e_time  = equality_time(xdict_init, pdict, unit_xut, condition)
+e_diff  = equality_6DoF_LG_diff(xdict_init, pdict, unit_xut, condition)
+e_knot  = equality_6DoF_LG_knot(xdict_init, pdict, unit_xut, condition)
+e_terminal  = equality_6DoF_LG_terminal(xdict_init, pdict, unit_xut, condition)
+e_rate  = equality_6DoF_LG_rate(xdict_init, pdict, unit_xut, condition)
+
 ie = inequality_6DoF_LG(xdict_init, pdict, unit_xut, condition)
 
 #print("number of variables             : {}".format(len(xdict_init["xvars"])+len(xdict_init["uvars"])+len(xdict_init["t"])))
 #print("number of equality constraints  : {}".format(len(e)))
 #print("number of inequality constraints: {}".format(len(ie)))
 
-optProb.addConGroup("eqcon", len(e), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_init", len(e_init), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_time", len(e_time), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_diff", len(e_diff), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_knot", len(e_knot), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_terminal", len(e_terminal), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_rate", len(e_rate), lower=0.0, upper=0.0)
 optProb.addConGroup("ineqcon", len(ie), lower=0.0, upper=None)
 optProb.addObj("obj")
 

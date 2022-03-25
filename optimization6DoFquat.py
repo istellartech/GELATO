@@ -161,6 +161,287 @@ def runge_kutta_4d(function, x, t, dt):
     return x + (k1 + 2.0*k2 + 2.0*k3 + k4) / 6.0 * dt
 
 
+def equality_init(xdict, pdict, unit_xut, condition):
+    con = []
+    unit_x = unit_xut["x"]
+    unit_u = unit_xut["u"]
+    unit_t = unit_xut["t"]
+    
+    xx = xdict["xvars"].reshape(-1,pdict["num_states"]) * unit_xut["x"]
+    uu = xdict["uvars"].reshape(-1,pdict["num_controls"]) * unit_xut["u"]
+    t = xdict["t"] * unit_t
+
+    num_sections = pdict["num_sections"]
+    
+    #initial condition
+    con.append((xx[0,1:11] - condition["x_init"][1:11]) / unit_x[1:11])
+    if not condition["OptimizationMode"]["Maximize initial mass"]:
+        con.append((xx[0,0] - condition["x_init"][0]) / unit_x[0])
+
+    return np.concatenate(con, axis=None)
+
+def equality_time(xdict, pdict, unit_xut, condition):
+    con = []
+    unit_x = unit_xut["x"]
+    unit_u = unit_xut["u"]
+    unit_t = unit_xut["t"]
+    
+    xx = xdict["xvars"].reshape(-1,pdict["num_states"]) * unit_xut["x"]
+    uu = xdict["uvars"].reshape(-1,pdict["num_controls"]) * unit_xut["u"]
+    t = xdict["t"] * unit_t
+
+    num_sections = pdict["num_sections"]
+    
+    #knotting time
+    free_tf = condition["OptimizationMode"]["Maximize excess propellant mass"]
+    con.append([(t[i] - pdict["params"][i]["timeAt_sec"]) / unit_t for i in range(num_sections+1) if pdict["params"][i]["timeFixed"] and not free_tf])
+    
+    return np.concatenate(con, axis=None)
+
+
+def equality_6DoF_LG_diff(xdict, pdict, unit_xut, condition):
+    con = []
+    unit_x = unit_xut["x"]
+    unit_u = unit_xut["u"]
+    unit_t = unit_xut["t"]
+    
+    xx = xdict["xvars"].reshape(-1,pdict["num_states"]) * unit_xut["x"]
+    uu = xdict["uvars"].reshape(-1,pdict["num_controls"]) * unit_xut["u"]
+    t = xdict["t"] * unit_t
+
+    num_sections = pdict["num_sections"]
+    
+
+    
+    param = np.zeros(5)
+    
+    for i in range(num_sections):
+        a = pdict["ps_params"][i]["index_start"]
+        b = a + pdict["ps_params"][i]["nodes"]
+        x = xx[a+i:b+i+1]
+        u = uu[a:b]
+        to = t[i]
+        tf = t[i+1]
+        t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
+        
+        # Pseudo-spectral constraints
+        
+        param[0] = pdict["params"][i]["thrust_n"]
+        param[1] = pdict["params"][i]["massflow_kgps"]
+        param[2] = pdict["params"][i]["airArea_m2"]
+        param[4] = pdict["params"][i]["nozzleArea_m2"]
+        zlt = pdict["params"][i]["do_zeroliftturn"]
+        
+        ps = equality_ps_6DoF_LG(x, u, t_nodes, param, pdict["wind_table"], pdict["ca_table"], pdict["ps_params"][i]["D"], tf, to, unit_x)
+        
+        con.append(ps.ravel())
+
+            
+            
+    return np.concatenate(con, axis=None)
+
+
+def equality_6DoF_LG_knot(xdict, pdict, unit_xut, condition):
+    con = []
+    unit_x = unit_xut["x"]
+    unit_u = unit_xut["u"]
+    unit_t = unit_xut["t"]
+    
+    xx = xdict["xvars"].reshape(-1,pdict["num_states"]) * unit_xut["x"]
+    uu = xdict["uvars"].reshape(-1,pdict["num_controls"]) * unit_xut["u"]
+    t = xdict["t"] * unit_t
+
+    num_sections = pdict["num_sections"]
+    
+
+    
+    param = np.zeros(5)
+    
+    for i in range(num_sections):
+        a = pdict["ps_params"][i]["index_start"]
+        b = a + pdict["ps_params"][i]["nodes"]
+        x = xx[a+i:b+i+1]
+        u = uu[a:b]
+        to = t[i]
+        tf = t[i+1]
+        t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
+        
+        # Pseudo-spectral constraints
+        
+        param[0] = pdict["params"][i]["thrust_n"]
+        param[1] = pdict["params"][i]["massflow_kgps"]
+        param[2] = pdict["params"][i]["airArea_m2"]
+        param[4] = pdict["params"][i]["nozzleArea_m2"]
+        zlt = pdict["params"][i]["do_zeroliftturn"]
+        
+
+        if i < num_sections-1:
+            # knotting constraints: 現在のsectionの末尾と次のsectionの先頭の連続性
+            xoi_next = xx[b+i+1]
+            xfi = x_final(x, u, t_nodes, param, pdict["wind_table"], pdict["ca_table"], pdict["ps_params"][i]["weight"], tf, to, unit_x)
+            d_xx = (xoi_next - xfi) / unit_x
+            uoi_next = uu[b+1]
+            ufi = u[-1]
+            d_uu = (uoi_next - ufi) / unit_u
+            con.append(d_xx[1:7]) # pos, vel
+            
+            ALMA_mode = False
+            if zlt and ALMA_mode:
+                con.append(x[0,7:11] - zerolift_turn_correct(x[0],to, pdict["wind_table"])) # quatの不連続を許可
+            else:
+                con.append(d_xx[7:11]) # quat
+            con.append((d_xx[0]) + pdict["params"][i+1]["mass_jettison_kg"] / unit_x[0]) # mass : 投棄物考慮
+
+    return np.concatenate(con, axis=None)
+
+
+def equality_6DoF_LG_terminal(xdict, pdict, unit_xut, condition):
+    con = []
+    unit_x = unit_xut["x"]
+    unit_u = unit_xut["u"]
+    unit_t = unit_xut["t"]
+    
+    xx = xdict["xvars"].reshape(-1,pdict["num_states"]) * unit_xut["x"]
+    uu = xdict["uvars"].reshape(-1,pdict["num_controls"]) * unit_xut["u"]
+    t = xdict["t"] * unit_t
+
+    num_sections = pdict["num_sections"]
+    
+    
+    param = np.zeros(5)
+    
+    for i in range(num_sections):
+        a = pdict["ps_params"][i]["index_start"]
+        b = a + pdict["ps_params"][i]["nodes"]
+        x = xx[a+i:b+i+1]
+        u = uu[a:b]
+        to = t[i]
+        tf = t[i+1]
+        t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
+        
+        # Pseudo-spectral constraints
+        
+        param[0] = pdict["params"][i]["thrust_n"]
+        param[1] = pdict["params"][i]["massflow_kgps"]
+        param[2] = pdict["params"][i]["airArea_m2"]
+        param[4] = pdict["params"][i]["nozzleArea_m2"]
+        zlt = pdict["params"][i]["do_zeroliftturn"]
+                
+
+        if i < num_sections-1:
+            # knotting constraints: 現在のsectionの末尾と次のsectionの先頭の連続性
+            ufi = u[-1]
+
+        else:
+            # terminal conditions
+            xf = x_final(x, u, t_nodes, param, pdict["wind_table"], pdict["ca_table"], pdict["ps_params"][i]["weight"], tf, to, unit_x)
+            
+            pos_f = xf[1:4]
+            vel_f = xf[4:7]
+            elem = orbital_elements(pos_f, vel_f)
+            
+            if condition["hp_km"] is not None:
+                hp = elem[0] * (1.0 - elem[1]) + 6378137
+                con.append((hp - condition["hp_km"]*1000) / unit_x[1])
+                
+            if condition["ha_km"] is not None:
+                ha = elem[0] * (1.0 + elem[1]) + 6378137
+                con.append((ha - condition["ha_km"]*1000) / unit_x[1])
+                
+            if condition["rf_km"] is not None:
+                rf = norm(pos_f)
+                con.append((rf - condition["rf_km"]*1000) / unit_x[1])
+                
+            if condition["vtf_kmps"] is not None:
+                vrf = vel_f.dot(normalize(pos_f))
+                vtf = sqrt(norm(vel_f)**2 - vrf**2)
+                con.append((vtf - condition["vtf_kmps"]*1000) / unit_x[4])
+                
+            if condition["vf_elev_deg"] is not None:
+                cos_vf_angle = normalize(vel_f).dot(normalize(pos_f))
+                con.append(cos(radians(90.0-condition["vf_elev_deg"])) - cos_vf_angle)
+                
+            if condition["vrf_kmps"] is not None:
+                vrf = vel_f.dot(normalize(pos_f))
+                con.append((vrf - condition["vrf_kmps"]*1000) / unit_x[4])
+                
+            if condition["inclination_deg"] is not None:
+                con.append((elem[2] - condition["inclination_deg"]) / 90.0)            
+        
+        #rate constraint
+
+            
+            
+    return np.concatenate(con, axis=None)
+
+
+def equality_6DoF_LG_rate(xdict, pdict, unit_xut, condition):
+    con = []
+    unit_x = unit_xut["x"]
+    unit_u = unit_xut["u"]
+    unit_t = unit_xut["t"]
+    
+    xx = xdict["xvars"].reshape(-1,pdict["num_states"]) * unit_xut["x"]
+    uu = xdict["uvars"].reshape(-1,pdict["num_controls"]) * unit_xut["u"]
+    t = xdict["t"] * unit_t
+
+    num_sections = pdict["num_sections"]
+    
+    param = np.zeros(5)
+    
+    for i in range(num_sections):
+        a = pdict["ps_params"][i]["index_start"]
+        b = a + pdict["ps_params"][i]["nodes"]
+        x = xx[a+i:b+i+1]
+        u = uu[a:b]
+        to = t[i]
+        tf = t[i+1]
+        t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
+        
+        # Pseudo-spectral constraints
+        
+        param[0] = pdict["params"][i]["thrust_n"]
+        param[1] = pdict["params"][i]["massflow_kgps"]
+        param[2] = pdict["params"][i]["airArea_m2"]
+        param[4] = pdict["params"][i]["nozzleArea_m2"]
+        zlt = pdict["params"][i]["do_zeroliftturn"]
+        
+        #rate constraint
+        
+        att = pdict["params"][i]["attitude"]
+        if att == "zero-lift-turn":
+            #zero-lift-turn: pitch/yaw free, roll hold
+            con.append(u[:,0])
+        
+        else:    
+            # pitch/yaw rate constant
+            if att != "pitch-yaw-free":
+                con.append((u[1:,1:] - u[0,1:]).ravel())
+            
+            
+            if pdict["params"][i]["hold_yaw"]:
+                
+                # yaw hold
+                con.append(u[0,2])
+                con.append(u[:,0])
+                if pdict["params"][i]["hold_pitch"]:
+                    # total attitude hold
+                    con.append(u[0,1])
+            else:
+                # roll constraint
+                con.append(roll_direction(x[1:]))
+                
+                if att == "same-rate":
+                    # same pitch/yaw rate as previous section
+                    uf_prev = uu[a-1]
+                    con.append(u[0,1:] - uf_prev[1:])
+
+            
+            
+    return np.concatenate(con, axis=None)
+
+
+
 
 def equality_6DoF_LG(xdict, pdict, unit_xut, condition):
     con = []
