@@ -118,77 +118,86 @@ u_init = np.zeros(num_controls)
 unit_R = 6378137
 unit_V = 1000.0
 unit_m = m_init
-
-unit_x = np.array([unit_m] + [unit_R]*3 + [unit_V]*3 + [1.0]*4)
-unit_u = np.ones(num_controls)
+unit_u = 1.0
 unit_t = pdict["params"][-1]["timeAt_sec"]
 
-unit_xut = {"x": unit_x, "u": unit_u, "t": unit_t}
+unitdict = {"mass"     : unit_m,
+            "position" : unit_R,
+            "velocity" : unit_V,
+            "u"        : unit_u,
+            "t"        : unit_t
+}
+
 
 condition = {**settings["TerminalCondition"], **settings["FlightConstraint"]}
-condition["x_init"] = x_init
-condition["u_init"] = u_init
+condition["init"] = {}
+condition["init"]["mass"] = m_init
+condition["init"]["position"] = r_init
+condition["init"]["velocity"] = v_init
+condition["init"]["quaternion"] = quat_init
+condition["init"]["u"] = u_init
 condition["init_azimuth_deg"] = launch_conditions["init_azimuth_deg"]
 condition["OptimizationMode"] = settings["OptimizationMode"]
 
-xdict_init = initialize_xdict_6DoF_2(x_init, pdict, condition, unit_xut, 'LG', 0.1, False)
+xdict_init = initialize_xdict_6DoF_2(x_init, pdict, condition, unitdict, 'LG', 0.1, False)
 
-xx_lower0 = np.array(([0.0] + [-unit_R*10]*3 + [-unit_V*20]*3 + [-1.0]*4)        * (N + num_sections))
-xx_upper0 = np.array(([m_init*2.0] + [ unit_R*10]*3 + [ unit_V*20]*3 + [ 1.0]*4) * (N + num_sections)) 
-xx_scale  = np.array(unit_x.tolist() * (N + num_sections))
-uu_lower0 = np.array([-6.0] * num_controls * N)
-uu_upper0 = np.array([ 6.0] * num_controls * N)
-uu_scale  = np.array(unit_u.tolist() * N)
-
-xx_lower = xx_lower0 / xx_scale
-xx_upper = xx_upper0 / xx_scale
-uu_lower = uu_lower0 / uu_scale
-uu_upper = uu_upper0 / uu_scale
-
-t_lower = 0.0
-t_upper = 1.0
 
 def objfunc(xdict):
     funcs = {}
     funcs["obj"] = cost_6DoF_LG(xdict, condition)
-    funcs["eqcon_init"] = equality_init(xdict, pdict, unit_xut, condition)
-    funcs["eqcon_time"] = equality_time(xdict, pdict, unit_xut, condition)
-    funcs["eqcon_diff"] = equality_6DoF_LG_diff(xdict, pdict, unit_xut, condition)
-    funcs["eqcon_knot"] = equality_6DoF_LG_knot(xdict, pdict, unit_xut, condition)
-    funcs["eqcon_terminal"] = equality_6DoF_LG_terminal(xdict, pdict, unit_xut, condition)
-    funcs["eqcon_rate"] = equality_6DoF_LG_rate(xdict, pdict, unit_xut, condition)
+    funcs["eqcon_init"] = equality_init(xdict, unitdict, condition)
+    funcs["eqcon_time"] = equality_time(xdict, pdict, unitdict, condition)
+    funcs["eqcon_dyn_mass"] = equality_dynamics_mass(xdict, pdict, unitdict)
+    funcs["eqcon_dyn_pos"]  = equality_dynamics_position(xdict, pdict, unitdict)
+    funcs["eqcon_dyn_vel"]  = equality_dynamics_velocity(xdict, pdict, unitdict)
+    funcs["eqcon_dyn_quat"] = equality_dynamics_quaternion(xdict, pdict, unitdict)
 
-    funcs["ineqcon"] = inequality_6DoF_LG(xdict, pdict, unit_xut, condition)
+    funcs["eqcon_knot"] = equality_knot(xdict, pdict, unitdict)
+    funcs["eqcon_terminal"] = equality_6DoF_LG_terminal(xdict, pdict, unitdict, condition)
+    funcs["eqcon_rate"] = equality_6DoF_LG_rate(xdict, pdict, unitdict)
+
+    funcs["ineqcon"] = inequality_6DoF(xdict, pdict, unitdict, condition)
     fail = False
     
     return funcs, fail
 
 optProb = Optimization("Rocket trajectory optimization", objfunc)
 
-optProb.addVarGroup("xvars", len(xdict_init["xvars"]), value=xdict_init["xvars"], lower=xx_lower, upper=xx_upper)
-optProb.addVarGroup("uvars", len(xdict_init["uvars"]), value=xdict_init["uvars"], lower=uu_lower, upper=uu_upper)
-optProb.addVarGroup("t",     len(xdict_init["t"]),     value=xdict_init["t"],     lower=t_lower,  upper=t_upper)
+optProb.addVarGroup("mass", len(xdict_init["mass"]), value=xdict_init["mass"], lower=0.0, upper=unit_m*2.0)
+optProb.addVarGroup("position", len(xdict_init["position"]), value=xdict_init["position"], lower=-unit_R*10, upper=unit_R*10)
+optProb.addVarGroup("velocity", len(xdict_init["velocity"]), value=xdict_init["velocity"], lower=-unit_V*20, upper=unit_V*20)
+optProb.addVarGroup("quaternion", len(xdict_init["quaternion"]), value=xdict_init["quaternion"], lower=-1.0, upper=1.0)
+
+optProb.addVarGroup("u", len(xdict_init["u"]), value=xdict_init["u"], lower=-9.0, upper=9.0)
+optProb.addVarGroup("t", len(xdict_init["t"]), value=xdict_init["t"], lower=0.0,  upper=2.0)
 
 
-e_init  = equality_init(xdict_init, pdict, unit_xut, condition)
-e_time  = equality_time(xdict_init, pdict, unit_xut, condition)
-e_diff  = equality_6DoF_LG_diff(xdict_init, pdict, unit_xut, condition)
-e_knot  = equality_6DoF_LG_knot(xdict_init, pdict, unit_xut, condition)
-e_terminal  = equality_6DoF_LG_terminal(xdict_init, pdict, unit_xut, condition)
-e_rate  = equality_6DoF_LG_rate(xdict_init, pdict, unit_xut, condition)
+e_init = equality_init(xdict_init, unitdict, condition)
+e_time = equality_time(xdict_init, pdict, unitdict, condition)
+e_dyn_mass = equality_dynamics_mass(xdict_init, pdict, unitdict)
+e_dyn_pos  = equality_dynamics_position(xdict_init, pdict, unitdict)
+e_dyn_vel  = equality_dynamics_velocity(xdict_init, pdict, unitdict)
+e_dyn_quat = equality_dynamics_quaternion(xdict_init, pdict, unitdict)
 
-ie = inequality_6DoF_LG(xdict_init, pdict, unit_xut, condition)
+e_knot = equality_knot(xdict_init, pdict, unitdict)
+e_terminal = equality_6DoF_LG_terminal(xdict_init, pdict, unitdict, condition)
+e_rate = equality_6DoF_LG_rate(xdict_init, pdict, unitdict)
+
+ie = inequality_6DoF(xdict_init, pdict, unitdict, condition)
 
 #print("number of variables             : {}".format(len(xdict_init["xvars"])+len(xdict_init["uvars"])+len(xdict_init["t"])))
 #print("number of equality constraints  : {}".format(len(e)))
 #print("number of inequality constraints: {}".format(len(ie)))
 
-optProb.addConGroup("eqcon_init", len(e_init), lower=0.0, upper=0.0, wrt=["xvars"])
-optProb.addConGroup("eqcon_time", len(e_time), lower=0.0, upper=0.0, wrt=["t"])
-optProb.addConGroup("eqcon_diff", len(e_diff), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_init", len(e_init), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_time", len(e_time), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_dyn_mass", len(e_dyn_mass), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_dyn_pos", len(e_dyn_pos), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_dyn_vel", len(e_dyn_vel), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_dyn_quat", len(e_dyn_quat), lower=0.0, upper=0.0)
 optProb.addConGroup("eqcon_knot", len(e_knot), lower=0.0, upper=0.0)
 optProb.addConGroup("eqcon_terminal", len(e_terminal), lower=0.0, upper=0.0)
-optProb.addConGroup("eqcon_rate", len(e_rate), lower=0.0, upper=0.0, wrt=["xvars", "uvars"])
+optProb.addConGroup("eqcon_rate", len(e_rate), lower=0.0, upper=0.0)
 optProb.addConGroup("ineqcon", len(ie), lower=0.0, upper=None)
 optProb.addObj("obj")
 
@@ -204,18 +213,13 @@ sol = opt(optProb, sens="FD")
 
 for i,p in enumerate(pdict["params"]):
     if not p["timeFixed"]:
-        p["timeAt_sec"] = sol.xStar["t"][i] * unit_xut["t"]
+        p["timeAt_sec"] = sol.xStar["t"][i] * unitdict["t"]
         
 flag_savefig = False
 # ========================
 # Post Process
 # ------------------------
 # Convert parameter vector to variable
-
-xvars_res = sol.xStar["xvars"] * xx_scale
-x_res = np.reshape(xvars_res, (-1,pdict["num_states"]))
-uvars_res = sol.xStar["uvars"] * uu_scale
-u_res = np.reshape(uvars_res, (-1,pdict["num_controls"]))
 
 tu_res = np.array([])
 tx_res = np.array([])
@@ -224,41 +228,34 @@ for i in range(num_sections):
     to = sol.xStar["t"][i]
     tf = sol.xStar["t"][i+1]
     tau_x = np.hstack((-1.0, pdict["ps_params"][i]["tau"]))
-    tu_res = np.hstack((tu_res, (pdict["ps_params"][i]["tau"]*(tf-to)/2 + (tf+to)/2) * unit_xut["t"]))
-    tx_res = np.hstack((tx_res, (tau_x*(tf-to)/2 + (tf+to)/2) * unit_xut["t"]))
+    tu_res = np.hstack((tu_res, (pdict["ps_params"][i]["tau"]*(tf-to)/2 + (tf+to)/2) * unitdict["t"]))
+    tx_res = np.hstack((tx_res, (tau_x*(tf-to)/2 + (tf+to)/2) * unitdict["t"]))
 
-# output raw data
+# output
 
-#with open("{}_{}_pyIPOPT_xres.csv".format(mission_name,timestamp), "w") as f1:
-#    writer = csv.writer(f1)
-#    writer.writerows(np.hstack((tx_res.reshape(-1,1),x_res)))
-    
-#with open("{}_{}_pyIPOPT_ures.csv".format(mission_name,timestamp), "w") as f2:
-#    writer = csv.writer(f2)
-#    writer.writerows(np.hstack((tu_res.reshape(-1,1),u_res)))
-    
+m_res = sol.xStar["mass"] * unitdict["mass"]
 
 plt.figure()
 plt.title("Mass[kg]")
-plt.plot(tx_res,x_res[:,0], '.-', lw=0.8)
+plt.plot(tx_res, m_res, '.-', lw=0.8)
 plt.grid()
 plt.xlim([0,None])
 plt.ylim([0,None])
 if flag_savefig:
     plt.savefig("figures/mass.png")
 
-print("initial mass          : {} kg".format(x_res[0,0]))
-print("payload + fairing     : {} kg".format(x_res[0,0] - m_init))
+print("initial mass          : {} kg".format(m_res[0]))
+print("payload + fairing     : {} kg".format(m_res[0] - m_init))
 
 plt.figure()
 plt.title("Target rate[deg/s]")
-plt.plot(tu_res,u_res, '.-', lw=0.8, label=["roll", "pitch", "yaw"])
+plt.plot(tu_res, sol.xStar["u"].reshape(-1,3) * unitdict["u"], '.-', lw=0.8, label=["roll", "pitch", "yaw"])
 plt.grid()
 plt.legend()
 plt.xlim([0,None])
 if flag_savefig:
     plt.savefig("figures/omega.png")
 
-out = output_6DoF(x_res, u_res, tx_res, tu_res, pdict)
+out = output_6DoF(sol.xStar, unitdict, tx_res, tu_res, pdict)
 
 out.to_csv("{}_{}_pyIPOPT_result.csv".format(settings["name"], timestamp))
