@@ -88,9 +88,9 @@ assert(len(nodes) == len(pdict["params"])-1)
 
 N = sum(nodes)
 
-D = [differentiation_matrix_LG(n) for n in nodes]
-weight = [weight_LG(n) for n in nodes]
-tau = [nodes_LG(n) for n in nodes]
+D = [differentiation_matrix_LGR(n) for n in nodes]
+weight = [weight_LGR(n) for n in nodes]
+tau = [nodes_LGR(n) for n in nodes]
 index = [0]
 k = 0
 for n in nodes:
@@ -140,12 +140,12 @@ condition["init"]["u"] = u_init
 condition["init_azimuth_deg"] = launch_conditions["init_azimuth_deg"]
 condition["OptimizationMode"] = settings["OptimizationMode"]
 
-xdict_init = initialize_xdict_6DoF_2(x_init, pdict, condition, unitdict, 'LG', 0.1, False)
+xdict_init = initialize_xdict_6DoF_2(x_init, pdict, condition, unitdict, 'LGR', 0.1, False)
 
 
 def objfunc(xdict):
     funcs = {}
-    funcs["obj"] = cost_6DoF_LG(xdict, condition)
+    funcs["obj"] = cost_6DoF(xdict, condition)
     funcs["eqcon_init"] = equality_init(xdict, unitdict, condition)
     funcs["eqcon_time"] = equality_time(xdict, pdict, unitdict, condition)
     funcs["eqcon_dyn_mass"] = equality_dynamics_mass(xdict, pdict, unitdict)
@@ -153,9 +153,9 @@ def objfunc(xdict):
     funcs["eqcon_dyn_vel"]  = equality_dynamics_velocity(xdict, pdict, unitdict)
     funcs["eqcon_dyn_quat"] = equality_dynamics_quaternion(xdict, pdict, unitdict)
 
-    funcs["eqcon_knot"] = equality_knot(xdict, pdict, unitdict)
-    funcs["eqcon_terminal"] = equality_6DoF_LG_terminal(xdict, pdict, unitdict, condition)
-    funcs["eqcon_rate"] = equality_6DoF_LG_rate(xdict, pdict, unitdict)
+    funcs["eqcon_knot"] = equality_knot_LGR(xdict, pdict, unitdict)
+    funcs["eqcon_terminal"] = equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition)
+    funcs["eqcon_rate"] = equality_6DoF_rate(xdict, pdict, unitdict)
 
     funcs["ineqcon"] = inequality_6DoF(xdict, pdict, unitdict, condition)
     fail = False
@@ -180,9 +180,9 @@ e_dyn_pos  = equality_dynamics_position(xdict_init, pdict, unitdict)
 e_dyn_vel  = equality_dynamics_velocity(xdict_init, pdict, unitdict)
 e_dyn_quat = equality_dynamics_quaternion(xdict_init, pdict, unitdict)
 
-e_knot = equality_knot(xdict_init, pdict, unitdict)
-e_terminal = equality_6DoF_LG_terminal(xdict_init, pdict, unitdict, condition)
-e_rate = equality_6DoF_LG_rate(xdict_init, pdict, unitdict)
+e_knot = equality_knot_LGR(xdict_init, pdict, unitdict)
+e_terminal = equality_6DoF_LGR_terminal(xdict_init, pdict, unitdict, condition)
+e_rate = equality_6DoF_rate(xdict_init, pdict, unitdict)
 
 ie = inequality_6DoF(xdict_init, pdict, unitdict, condition)
 
