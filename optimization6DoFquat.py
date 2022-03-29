@@ -240,8 +240,7 @@ def equality_time(xdict, pdict, unitdict, condition):
     num_sections = pdict["num_sections"]
     
     #knotting time
-    free_tf = condition["OptimizationMode"]["Maximize excess propellant mass"]
-    con.append([(t[i] - pdict["params"][i]["timeAt_sec"]) / unit_t for i in range(num_sections+1) if pdict["params"][i]["timeFixed"] and not free_tf])
+    con.append([(t[i] - pdict["params"][i]["timeAt_sec"]) / unit_t for i in range(num_sections+1) if pdict["params"][i]["timeFixed"]])
     
     return np.concatenate(con, axis=None)
 
@@ -278,6 +277,23 @@ def equality_dynamics_mass(xdict, pdict, unitdict):
             
     return np.concatenate(con, axis=None)
 
+def equality_jac_dynamics_mass(pdict, unitdict):
+    jac_mass = np.zeros((pdict["N"], pdict["total_points"]))
+    jac_t = np.zeros((pdict["N"], pdict["num_sections"]+1))
+    num_sections = pdict["num_sections"]
+
+    for i in range(num_sections):
+        a = pdict["ps_params"][i]["index_start"]
+        n = pdict["ps_params"][i]["nodes"]
+        b = a + n
+
+        D = pdict["ps_params"][i]["D"]
+        jac_mass[a:b, a+i:b+i+1] = D
+        jac_t[a:b, i+1] = pdict["params"][i]["massflow_kgps"] * unitdict["t"] / unitdict["mass"] / 2.0
+        jac_t[a:b, i] =  -pdict["params"][i]["massflow_kgps"] * unitdict["t"] / unitdict["mass"] / 2.0
+            
+    jac = {"t": to_sparse_simple(jac_t), "mass": to_sparse_simple(jac_mass)}
+    return jac
 
 def equality_dynamics_position(xdict, pdict, unitdict):
     con = []
@@ -385,48 +401,6 @@ def equality_dynamics_quaternion(xdict, pdict, unitdict):
         rh = np.array([dynamics_quaternion(quat_i_[j+1], u_i_[j]) for j in range(n)]) * (tf-to) / 2.0
         con.append((lh - rh).ravel())
                         
-    return np.concatenate(con, axis=None)
-
-
-def equality_6DoF_LG_diff(xdict, pdict, unit_xut, condition):
-    con = []
-    unit_x = unit_xut["x"]
-    unit_u = unit_xut["u"]
-    unit_t = unit_xut["t"]
-    
-    xx = xdict["xvars"].reshape(-1,pdict["num_states"]) * unit_xut["x"]
-    uu = xdict["uvars"].reshape(-1,pdict["num_controls"]) * unit_xut["u"]
-    t = xdict["t"] * unit_t
-
-    num_sections = pdict["num_sections"]
-    
-
-    
-    param = np.zeros(5)
-    
-    for i in range(num_sections):
-        a = pdict["ps_params"][i]["index_start"]
-        b = a + pdict["ps_params"][i]["nodes"]
-        x = xx[a+i:b+i+1]
-        u = uu[a:b]
-        to = t[i]
-        tf = t[i+1]
-        t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
-        
-        # Pseudo-spectral constraints
-        
-        param[0] = pdict["params"][i]["thrust_n"]
-        param[1] = pdict["params"][i]["massflow_kgps"]
-        param[2] = pdict["params"][i]["airArea_m2"]
-        param[4] = pdict["params"][i]["nozzleArea_m2"]
-        zlt = pdict["params"][i]["do_zeroliftturn"]
-        
-        ps = equality_ps_6DoF_LG(x, u, t_nodes, param, pdict["wind_table"], pdict["ca_table"], pdict["ps_params"][i]["D"], tf, to, unit_x)
-        
-        con.append(ps.ravel())
-
-            
-            
     return np.concatenate(con, axis=None)
 
 
@@ -577,19 +551,13 @@ def equality_6DoF_LG_terminal(xdict, pdict, unitdict, condition):
 def equality_6DoF_LG_rate(xdict, pdict, unitdict):
     con = []
 
-    unit_mass= unitdict["mass"]
     unit_pos = unitdict["position"]
-    unit_vel = unitdict["velocity"]
     unit_u = unitdict["u"]
-    unit_t = unitdict["t"]
 
-    mass_ = xdict["mass"] * unit_mass
     pos_ = xdict["position"].reshape(-1,3) * unit_pos
-    vel_ = xdict["velocity"].reshape(-1,3) * unit_vel
     quat_ = xdict["quaternion"].reshape(-1,4)
     
     u_ = xdict["u"].reshape(-1,3) * unit_u
-    t = xdict["t"] * unit_t
 
     num_sections = pdict["num_sections"]
     
@@ -1005,8 +973,6 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         #####
         
     return pd.DataFrame(out)
-    
-  
 
 def display_6DoF(out, flag_savefig=False):
     

@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.linalg import norm
+from scipy import sparse
 from math import sin,cos,asin,atan2,sqrt,radians,degrees
 from numba import jit
 
@@ -88,3 +89,11 @@ def wind_ned(altitude_m, wind_data):
     wind[1] = np.interp(altitude_m, wind_data[:,0], wind_data[:,2])
     wind[2] = 0.0
     return wind
+
+def to_sparse_simple(mat):
+    smat = sparse.coo_matrix(mat)
+    smat_simple = {
+        "coo": [smat.row, smat.col, smat.data],
+        "shape": list(smat.shape)
+    }
+    return smat_simple

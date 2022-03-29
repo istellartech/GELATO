@@ -35,7 +35,7 @@
   },
 
   "FlightConstraint": {
-    "aoa_max_deg": 0.05,
+    "aoa_max_deg": 0.5,
     "q_max_kpa" : null,
     "q-alpha_max_kpa-deg": null,
     "q_sep_max_pa": 15.0
@@ -64,7 +64,7 @@
     "print_level": 3,
     "linear_solver": "pardisomkl",
     "print_timing_statistics": "yes",
-    "tol": 1e-10,
-    "max_iter": 300
+    "tol": 1e-8,
+    "max_iter": 200
   }
 }

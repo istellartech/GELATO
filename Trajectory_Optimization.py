@@ -101,6 +101,7 @@ pdict["ps_params"]= [{"index_start": index[i],"nodes": nodes[i], "D" : D[i], "ta
 pdict["wind_table"] = wind_table
 pdict["ca_table"] = ca_table
 pdict["N"] = N
+pdict["total_points"] = N + num_sections
 pdict["num_states"] = num_states
 pdict["num_controls"] = num_controls
 pdict["num_sections"] = num_sections
@@ -189,15 +190,15 @@ ie = inequality_6DoF(xdict_init, pdict, unitdict, condition)
 #print("number of equality constraints  : {}".format(len(e)))
 #print("number of inequality constraints: {}".format(len(ie)))
 
-optProb.addConGroup("eqcon_init", len(e_init), lower=0.0, upper=0.0)
-optProb.addConGroup("eqcon_time", len(e_time), lower=0.0, upper=0.0)
-optProb.addConGroup("eqcon_dyn_mass", len(e_dyn_mass), lower=0.0, upper=0.0)
-optProb.addConGroup("eqcon_dyn_pos", len(e_dyn_pos), lower=0.0, upper=0.0)
-optProb.addConGroup("eqcon_dyn_vel", len(e_dyn_vel), lower=0.0, upper=0.0)
-optProb.addConGroup("eqcon_dyn_quat", len(e_dyn_quat), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_init", len(e_init), lower=0.0, upper=0.0, wrt=["mass","position","velocity","quaternion"])
+optProb.addConGroup("eqcon_time", len(e_time), lower=0.0, upper=0.0, wrt=["t"])
+optProb.addConGroup("eqcon_dyn_mass", len(e_dyn_mass), lower=0.0, upper=0.0, wrt=["mass","t"])
+optProb.addConGroup("eqcon_dyn_pos", len(e_dyn_pos), lower=0.0, upper=0.0, wrt=["position","velocity","t"])
+optProb.addConGroup("eqcon_dyn_vel", len(e_dyn_vel), lower=0.0, upper=0.0, wrt=["mass","position","velocity","quaternion","t"])
+optProb.addConGroup("eqcon_dyn_quat", len(e_dyn_quat), lower=0.0, upper=0.0, wrt=["quaternion","u","t"])
 optProb.addConGroup("eqcon_knot", len(e_knot), lower=0.0, upper=0.0)
 optProb.addConGroup("eqcon_terminal", len(e_terminal), lower=0.0, upper=0.0)
-optProb.addConGroup("eqcon_rate", len(e_rate), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_rate", len(e_rate), lower=0.0, upper=0.0, wrt=["position","quaternion","u"])
 optProb.addConGroup("ineqcon", len(ie), lower=0.0, upper=None)
 optProb.addObj("obj")
 
