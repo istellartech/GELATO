@@ -404,7 +404,7 @@ def equality_dynamics_quaternion(xdict, pdict, unitdict):
     return np.concatenate(con, axis=None)
 
 
-def equality_knot(xdict, pdict, unitdict):
+def equality_knot_LGR(xdict, pdict, unitdict):
     con = []
 
     unit_mass= unitdict["mass"]
@@ -448,25 +448,25 @@ def equality_knot(xdict, pdict, unitdict):
 
         # knotting constraints: 現在のsectionの末尾と次のsectionの先頭の連続性
         mass_next_ = mass_[b+i+1]
-        mass_final_ = mass_i_[0] + weight.dot(np.array([dynamics_mass(param) for j in range(n)])) * (tf-to) / 2.0
+        mass_final_ = mass_i_[-1]
         con.append((mass_next_ - mass_final_ + pdict["params"][i+1]["mass_jettison_kg"]) / unit_mass)
 
         pos_next_ = pos_[b+i+1]
-        pos_final_ = pos_i_[0] + weight.dot(np.array([dynamics_position(vel_i_[j+1]) for j in range(n)])) * (tf-to) / 2.0
+        pos_final_ = pos_i_[-1]
         con.append((pos_next_ - pos_final_) / unit_pos)
 
         vel_next_ = vel_[b+i+1]
-        vel_final_ = vel_i_[0] + weight.dot(np.array([dynamics_velocity(mass_i_[j+1],pos_i_[j+1],vel_i_[j+1],quat_i_[j+1],t_nodes[j],param,pdict["wind_table"],pdict["ca_table"]) for j in range(n)])) * (tf-to) / 2.0
+        vel_final_ = vel_i_[-1]
         con.append((vel_next_ - vel_final_) / unit_vel)
 
         quat_next_ = quat_[b+i+1]
-        quat_final_ = quat_i_[0] + weight.dot(np.array([dynamics_quaternion(quat_i_[j+1],u_i_[j]) for j in range(n)])) * (tf-to) / 2.0
+        quat_final_ = quat_i_[-1]
         con.append((quat_next_ - quat_final_))
 
     return np.concatenate(con, axis=None)
 
 
-def equality_6DoF_LG_terminal(xdict, pdict, unitdict, condition):
+def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     con = []
 
     unit_mass= unitdict["mass"]
@@ -511,8 +511,8 @@ def equality_6DoF_LG_terminal(xdict, pdict, unitdict, condition):
 
     # terminal conditions
 
-    pos_f = pos_i_[0] + weight.dot(np.array([dynamics_position(vel_i_[j+1]) for j in range(n)])) * (tf-to) / 2.0
-    vel_f = vel_i_[0] + weight.dot(np.array([dynamics_velocity(mass_i_[j+1],pos_i_[j+1],vel_i_[j+1],quat_i_[j+1],t_nodes[j],param,pdict["wind_table"],pdict["ca_table"]) for j in range(n)])) * (tf-to) / 2.0
+    pos_f = pos_i_[-1]
+    vel_f = vel_i_[-1]
 
     elem = orbital_elements(pos_f, vel_f)
     
@@ -548,7 +548,7 @@ def equality_6DoF_LG_terminal(xdict, pdict, unitdict, condition):
     return np.concatenate(con, axis=None)
 
 
-def equality_6DoF_LG_rate(xdict, pdict, unitdict):
+def equality_6DoF_rate(xdict, pdict, unitdict):
     con = []
 
     unit_pos = unitdict["position"]
@@ -756,7 +756,7 @@ def dynamic_pressure_pa(pos_eci, vel_eci, t, wind):
 
     
 
-def cost_6DoF_LG(xdict, condition):
+def cost_6DoF(xdict, condition):
     
     if condition["OptimizationMode"]["Maximize excess propellant mass"]:
         return xdict["t"][-1] #到達時間を最小化(=余剰推進剤を最大化)
