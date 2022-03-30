@@ -2,13 +2,13 @@ name,timeAt_sec,rocketStage,engineOn,thrust_n,nozzleArea_m2,attitude,pitchrate_d
 LIFTOFF,0,1,True,495000,1.152,vertical,0.0,0.0,4,True
 T4,10,1,True,495000,1.152,kick-turn,-0.44571,0.0,6,True
 TGTS,20,1,True,495000,1.152,zero-lift-turn,0.0,0.0,16,True
-TGTE,84.769,1,True,495000,1.152,pitch-yaw,-0.10,0.0,6,False
+TGTE,84.769,1,True,495000,1.152,pitch-yaw,-0.10,0.0,6,True
 PartialCutoff,100,1,True,275000,0.640,same-rate,-0.10,0.0,6,True
 MECO,162.491,1,False,0,0,hold,0.0,0.0,3,True
 MSEP,167.491,2,False,0,0,hold,0.0,0.0,3,True
 SEIG1,172.491,2,True,60300,0,hold,0.0,0.0,3,True
 Q21S,182.491,2,True,60300,0,pitch-yaw,-0.10,-0.0,6,True
-FRGDR,208.9,2,True,60300,0,same-rate,-0.10,-0.0,6,False
+FRGDR,208.9,2,True,60300,0,same-rate,-0.10,-0.0,6,True
 Q22S,322.491,2,True,60300,0,pitch-yaw,-0.10,-0.0,6,True
 SECO1,427.305,2,False,0,0,hold,0.0,0.0,3,True
 SCSEP,477.305,2,False,0,0,hold,0.0,0.0,2,True
