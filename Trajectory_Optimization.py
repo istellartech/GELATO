@@ -45,6 +45,7 @@ events["timeduration_sec"] = -events["timeAt_sec"].diff(-1)
 events["timeduration_sec"].iat[-1] = 9000.0
 events["timeFinishAt_sec"] = events["timeAt_sec"] + events["timeduration_sec"]
 events["mass_jettison_kg"] = 0.0
+
 for key, stage in stages.items():
     if stage["separation_at"] in events.index:
         events.at[stage["separation_at"], "mass_jettison_kg"] = stage["dryMass_kg"]
@@ -92,15 +93,12 @@ pdict = {"params": events.to_dict('records')}
 nodes = events["num_nodes"][:-1]
 for i,event_name in enumerate(events.index):
     pdict["params"][i]["name"] = event_name
-num_states = 11
-num_controls = 3
 pdict["event_index"] = {}
 assert(len(nodes) == len(pdict["params"])-1)
 
 N = sum(nodes)
 
 D = [differentiation_matrix_LGR(n) for n in nodes]
-weight = [weight_LGR(n) for n in nodes]
 tau = [nodes_LGR(n) for n in nodes]
 index = [0]
 k = 0
@@ -108,13 +106,11 @@ for n in nodes:
     k += n
     index.append(k)
     
-pdict["ps_params"]= [{"index_start": index[i],"nodes": nodes[i], "D" : D[i], "tau": tau[i], "weight": weight[i]} for i in range(num_sections)]
+pdict["ps_params"]= [{"index_start": index[i],"nodes": nodes[i], "D" : D[i], "tau": tau[i]} for i in range(num_sections)]
 pdict["wind_table"] = wind_table
 pdict["ca_table"] = ca_table
 pdict["N"] = N
 pdict["total_points"] = N + num_sections
-pdict["num_states"] = num_states
-pdict["num_controls"] = num_controls
 pdict["num_sections"] = num_sections
 
 r_init = launchsite_eci
@@ -125,7 +121,7 @@ if settings["OptimizationMode"] != "Payload":
     m_init += settings["PayloadMass"]
 x_init = np.hstack((m_init, r_init, v_init, quat_init))
 
-u_init = np.zeros(num_controls)
+u_init = np.zeros(3)
 
 unit_R = 6378137
 unit_V = 1000.0
@@ -184,8 +180,8 @@ optProb.addVarGroup("u", len(xdict_init["u"]), value=xdict_init["u"], lower=-9.0
 optProb.addVarGroup("t", len(xdict_init["t"]), value=xdict_init["t"], lower=0.0,  upper=2.0)
 
 
-e_init = equality_init(xdict_init, unitdict, condition)
-e_time = equality_time(xdict_init, pdict, unitdict, condition)
+e_init     = equality_init(xdict_init, unitdict, condition)
+e_time     = equality_time(xdict_init, pdict, unitdict, condition)
 e_dyn_mass = equality_dynamics_mass(xdict_init, pdict, unitdict)
 e_dyn_pos  = equality_dynamics_position(xdict_init, pdict, unitdict)
 e_dyn_vel  = equality_dynamics_velocity(xdict_init, pdict, unitdict)
@@ -197,20 +193,16 @@ e_rate = equality_6DoF_rate(xdict_init, pdict, unitdict)
 
 ie = inequality_6DoF(xdict_init, pdict, unitdict, condition)
 
-#print("number of variables             : {}".format(len(xdict_init["xvars"])+len(xdict_init["uvars"])+len(xdict_init["t"])))
-#print("number of equality constraints  : {}".format(len(e)))
-#print("number of inequality constraints: {}".format(len(ie)))
-
-optProb.addConGroup("eqcon_init", len(e_init), lower=0.0, upper=0.0, wrt=["mass","position","velocity","quaternion"])
-optProb.addConGroup("eqcon_time", len(e_time), lower=0.0, upper=0.0, wrt=["t"])
+optProb.addConGroup("eqcon_init",     len(e_init),     lower=0.0, upper=0.0, wrt=["mass","position","velocity","quaternion"])
+optProb.addConGroup("eqcon_time",     len(e_time),     lower=0.0, upper=0.0, wrt=["t"])
 optProb.addConGroup("eqcon_dyn_mass", len(e_dyn_mass), lower=0.0, upper=0.0, wrt=["mass","t"])
-optProb.addConGroup("eqcon_dyn_pos", len(e_dyn_pos), lower=0.0, upper=0.0, wrt=["position","velocity","t"])
-optProb.addConGroup("eqcon_dyn_vel", len(e_dyn_vel), lower=0.0, upper=0.0, wrt=["mass","position","velocity","quaternion","t"])
+optProb.addConGroup("eqcon_dyn_pos",  len(e_dyn_pos),  lower=0.0, upper=0.0, wrt=["position","velocity","t"])
+optProb.addConGroup("eqcon_dyn_vel",  len(e_dyn_vel),  lower=0.0, upper=0.0, wrt=["mass","position","velocity","quaternion","t"])
 optProb.addConGroup("eqcon_dyn_quat", len(e_dyn_quat), lower=0.0, upper=0.0, wrt=["quaternion","u","t"])
-optProb.addConGroup("eqcon_knot", len(e_knot), lower=0.0, upper=0.0)
+optProb.addConGroup("eqcon_knot",     len(e_knot),     lower=0.0, upper=0.0)
 optProb.addConGroup("eqcon_terminal", len(e_terminal), lower=0.0, upper=0.0)
-optProb.addConGroup("eqcon_rate", len(e_rate), lower=0.0, upper=0.0, wrt=["position","quaternion","u"])
-optProb.addConGroup("ineqcon", len(ie), lower=0.0, upper=None)
+optProb.addConGroup("eqcon_rate",     len(e_rate),     lower=0.0, upper=0.0, wrt=["position","quaternion","u"])
+optProb.addConGroup("ineqcon",        len(ie),         lower=0.0, upper=None)
 optProb.addObj("obj")
 
 timestamp = datetime.now().strftime('%Y-%m-%d-%H%M%S')
