@@ -61,7 +61,6 @@ events["massflow_kgps"] = 0.0
 events["airArea_m2"] = 0.0
 events["hold_pitch"] = False
 events["hold_yaw"] = False
-events["timeFixed"] = True
 
 for i in events.index:
     
