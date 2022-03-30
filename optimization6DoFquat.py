@@ -277,23 +277,6 @@ def equality_dynamics_mass(xdict, pdict, unitdict):
             
     return np.concatenate(con, axis=None)
 
-def equality_jac_dynamics_mass(pdict, unitdict):
-    jac_mass = np.zeros((pdict["N"], pdict["total_points"]))
-    jac_t = np.zeros((pdict["N"], pdict["num_sections"]+1))
-    num_sections = pdict["num_sections"]
-
-    for i in range(num_sections):
-        a = pdict["ps_params"][i]["index_start"]
-        n = pdict["ps_params"][i]["nodes"]
-        b = a + n
-
-        D = pdict["ps_params"][i]["D"]
-        jac_mass[a:b, a+i:b+i+1] = D
-        jac_t[a:b, i+1] = pdict["params"][i]["massflow_kgps"] * unitdict["t"] / unitdict["mass"] / 2.0
-        jac_t[a:b, i] =  -pdict["params"][i]["massflow_kgps"] * unitdict["t"] / unitdict["mass"] / 2.0
-            
-    jac = {"t": to_sparse_simple(jac_t), "mass": to_sparse_simple(jac_mass)}
-    return jac
 
 def equality_dynamics_position(xdict, pdict, unitdict):
     con = []
@@ -498,30 +481,30 @@ def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
 
     elem = orbital_elements(pos_f, vel_f)
     
-    if condition["hp_km"] is not None:
+    if condition["hp_m"] is not None:
         hp = elem[0] * (1.0 - elem[1]) + 6378137
-        con.append((hp - condition["hp_km"]*1000) / unit_pos)
+        con.append((hp - condition["hp_m"]) / unit_pos)
         
-    if condition["ha_km"] is not None:
+    if condition["ha_m"] is not None:
         ha = elem[0] * (1.0 + elem[1]) + 6378137
-        con.append((ha - condition["ha_km"]*1000) / unit_pos)
+        con.append((ha - condition["ha_m"]) / unit_pos)
         
-    if condition["rf_km"] is not None:
+    if condition["rf_m"] is not None:
         rf = norm(pos_f)
-        con.append((rf - condition["rf_km"]*1000) / unit_pos)
+        con.append((rf - condition["rf_m"]) / unit_pos)
         
-    if condition["vtf_kmps"] is not None:
+    if condition["vtf_mps"] is not None:
         vrf = vel_f.dot(normalize(pos_f))
         vtf = sqrt(norm(vel_f)**2 - vrf**2)
-        con.append((vtf - condition["vtf_kmps"]*1000) / unit_vel)
+        con.append((vtf - condition["vtf_mps"]) / unit_vel)
         
     if condition["vf_elev_deg"] is not None:
         cos_vf_angle = normalize(vel_f).dot(normalize(pos_f))
         con.append(cos(radians(90.0-condition["vf_elev_deg"])) - cos_vf_angle)
         
-    if condition["vrf_kmps"] is not None:
+    if condition["vrf_mps"] is not None:
         vrf = vel_f.dot(normalize(pos_f))
-        con.append((vrf - condition["vrf_kmps"]*1000) / unit_vel)
+        con.append((vrf - condition["vrf_mps"]) / unit_vel)
         
     if condition["inclination_deg"] is not None:
         con.append((elem[2] - condition["inclination_deg"]) / 90.0)            
@@ -587,6 +570,16 @@ def equality_6DoF_rate(xdict, pdict, unitdict):
             
     return np.concatenate(con, axis=None)
 
+
+def inequality_time(xdict, pdict):
+    con = []
+    t_normal = xdict["t"]
+
+    for i in range(pdict["num_sections"]-1):
+        if not (pdict["params"][i]["timeFixed"] and pdict["params"][i+1]["timeFixed"]):
+            con.append(t_normal[i+1] - t_normal[i])
+
+    return np.array(con)
 
 def inequality_6DoF(xdict, pdict, unitdict, condition):
     
@@ -773,10 +766,10 @@ def initialize_xdict_6DoF_2(x_init, pdict, condition, unitdict, mode='LGL', dt=0
 
     # 現在位置と目標軌道から、適当に目標位置・速度を決める
     
-    if condition["rf_km"] is not None:
-        r_final = condition["rf_km"]
+    if condition["rf_m"] is not None:
+        r_final = condition["rf_m"]
     else:
-        if condition["hp_km"] is None or condition["ha_km"] is None:
+        if condition["hp_m"] is None or condition["ha_m"] is None:
             print("DESTINATION ORBIT NOT DETERMINED!!")
             sys.exit()
     print(r_final)
