@@ -410,17 +410,12 @@ def equality_knot_LGR(xdict, pdict, unitdict):
     unit_mass= unitdict["mass"]
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
-    unit_u = unitdict["u"]
-    unit_t = unitdict["t"]
 
     mass_ = xdict["mass"] * unit_mass
     pos_ = xdict["position"].reshape(-1,3) * unit_pos
     vel_ = xdict["velocity"].reshape(-1,3) * unit_vel
     quat_ = xdict["quaternion"].reshape(-1,4)
     
-    u_ = xdict["u"].reshape(-1,3) * unit_u
-    t = xdict["t"] * unit_t
-
     num_sections = pdict["num_sections"]
     
     
@@ -434,17 +429,11 @@ def equality_knot_LGR(xdict, pdict, unitdict):
         pos_i_ = pos_[a+i:b+i+1]
         vel_i_ = vel_[a+i:b+i+1]
         quat_i_ = quat_[a+i:b+i+1]
-        u_i_ = u_[a:b]
-        to = t[i]
-        tf = t[i+1]
-        t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
-        
         
         param[0] = pdict["params"][i]["thrust_n"]
         param[1] = pdict["params"][i]["massflow_kgps"]
         param[2] = pdict["params"][i]["airArea_m2"]
         param[4] = pdict["params"][i]["nozzleArea_m2"]
-        weight = pdict["ps_params"][i]["weight"]
 
         # knotting constraints: 現在のsectionの末尾と次のsectionの先頭の連続性
         mass_next_ = mass_[b+i+1]
@@ -493,20 +482,13 @@ def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     a = pdict["ps_params"][i]["index_start"]
     n = pdict["ps_params"][i]["nodes"]
     b = a + n
-    mass_i_ = mass_[a+i:b+i+1]
     pos_i_ = pos_[a+i:b+i+1]
     vel_i_ = vel_[a+i:b+i+1]
-    quat_i_ = quat_[a+i:b+i+1]
-    u_i_ = u_[a:b]
-    to = t[i]
-    tf = t[i+1]
-    t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
             
     param[0] = pdict["params"][i]["thrust_n"]
     param[1] = pdict["params"][i]["massflow_kgps"]
     param[2] = pdict["params"][i]["airArea_m2"]
     param[4] = pdict["params"][i]["nozzleArea_m2"]
-    weight = pdict["ps_params"][i]["weight"]
             
 
     # terminal conditions
