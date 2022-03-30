@@ -6,13 +6,22 @@
       "dryMass_kg": 3529.8,
       "propellantMass_kg": 21725.2,
       "Isp_vac": 313.0,
-      "airArea_m2": 2.2698
+      "airArea_m2": 2.2698,
+      "separation_at": "MSEP"
     },
     "2": {
       "dryMass_kg": 917.0,
       "propellantMass_kg": 4568.0,
       "Isp_vac": 343.0,
-      "airArea_m2": 0.0
+      "airArea_m2": 0.0,
+      "separation_at": null
+    }
+  },
+
+  "dropMass": {
+    "fairing": {
+      "mass_kg": 110.0,
+      "separation_at": "FRGDR"
     }
   },
 
@@ -25,12 +34,12 @@
   },
 
   "TerminalCondition": {
-    "hp_km": null,
-    "ha_km": null,
+    "hp_m": null,
+    "ha_m": null,
     "inclination_deg": null,
-    "rf_km": 6578.137,
-    "vtf_kmps": 7.7843,
-    "vrf_kmps": null,
+    "rf_m": 6578142,
+    "vtf_mps": 7784.3,
+    "vrf_mps": null,
     "vf_elev_deg": 0.0
   },
 
