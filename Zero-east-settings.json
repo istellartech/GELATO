@@ -47,7 +47,7 @@
   "FlightConstraint": {
     "aoa_max_deg":{
       "TGTS" : {
-        "value" : 0.5,
+        "value" : 0.1,
         "range" : "all"
       },
       "MECO" : {
@@ -88,8 +88,8 @@
   "IPOPT": {
     "print_level": 3,
     "linear_solver": "pardisomkl",
-    "print_timing_statistics": "yes",
-    "tol": 1e-8,
+    "print_timing_statistics": "no",
+    "tol": 1e-6,
     "max_iter": 300
   }
 }
