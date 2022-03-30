@@ -29,6 +29,7 @@ ca = pd.read_csv(settings["CA file"])
 ca_table = ca.to_numpy()
 
 stages = settings["RocketStage"]
+dropmass = settings["dropMass"]
 launch_conditions = settings["LaunchCondition"]
 terminal_conditions = settings["TerminalCondition"]
 
@@ -36,17 +37,23 @@ t_init = 0.0
 launchsite_ecef = np.array(pm.geodetic2ecef(launch_conditions["latitude_deg"], launch_conditions["longitude_deg"], launch_conditions["height_m"]))
 launchsite_eci = ecef2eci(launchsite_ecef, t_init)
 
-events = pd.read_csv(settings["Event setting file"])
+events = pd.read_csv(settings["Event setting file"], index_col=0)
 
 num_sections = len(events) - 1
 
 events["timeduration_sec"] = -events["timeAt_sec"].diff(-1)
 events["timeduration_sec"].iat[-1] = 9000.0
 events["timeFinishAt_sec"] = events["timeAt_sec"] + events["timeduration_sec"]
-for i in range(num_sections):
-    if events.at[i,"rocketStage"] < events.at[i+1,"rocketStage"]:
-        events.at[i+1, "mass_jettison_kg"] = stages[str(events.at[i,"rocketStage"])]["dryMass_kg"]
-        
+events["mass_jettison_kg"] = 0.0
+for stage in stages.values():
+    if stage["separation_at"] in events.index:
+        events.at[stage["separation_at"], "mass_jettison_kg"] = stage["dryMass_kg"]
+for key, item in settings["dropMass"].items():
+    if item["separation_at"] in events.index:
+        events.at[item["separation_at"], "mass_jettison_kg"] = item["mass_kg"]
+    else:
+        print("WARNING: separation time is invalid : {}".format(key))
+
 events["massflow_kgps"] = 0.0
 events["airArea_m2"] = 0.0
 events["hold_pitch"] = False
@@ -245,8 +252,8 @@ plt.ylim([0,None])
 if flag_savefig:
     plt.savefig("figures/mass.png")
 
-print("initial mass          : {} kg".format(m_res[0]))
-print("payload + fairing     : {} kg".format(m_res[0] - m_init))
+print("initial mass : {} kg".format(m_res[0]))
+print("payload      : {} kg".format(m_res[0] - m_init - sum([item["mass_kg"] for item in dropmass.values()])))
 
 plt.figure()
 plt.title("Target rate[deg/s]")
