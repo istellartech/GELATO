@@ -65,6 +65,6 @@
     "linear_solver": "pardisomkl",
     "print_timing_statistics": "yes",
     "tol": 1e-8,
-    "max_iter": 200
+    "max_iter": 300
   }
 }
