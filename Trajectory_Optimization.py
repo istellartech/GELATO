@@ -45,9 +45,12 @@ events["timeduration_sec"] = -events["timeAt_sec"].diff(-1)
 events["timeduration_sec"].iat[-1] = 9000.0
 events["timeFinishAt_sec"] = events["timeAt_sec"] + events["timeduration_sec"]
 events["mass_jettison_kg"] = 0.0
-for stage in stages.values():
+for key, stage in stages.items():
     if stage["separation_at"] in events.index:
         events.at[stage["separation_at"], "mass_jettison_kg"] = stage["dryMass_kg"]
+    elif stage["separation_at"] is not None:
+        print("WARNING: separation time is invalid : stage {}".format(key))
+
 for key, item in settings["dropMass"].items():
     if item["separation_at"] in events.index:
         events.at[item["separation_at"], "mass_jettison_kg"] = item["mass_kg"]
