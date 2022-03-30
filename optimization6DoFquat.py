@@ -615,7 +615,7 @@ def inequality_6DoF(xdict, pdict, unitdict, condition):
         to = t[i]
         tf = t[i+1]
         t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
-        
+        t_i_ = np.hstack((to, t_nodes))
 
         # kick turn
         if "kick" in pdict["params"][i]["attitude"]:
@@ -628,15 +628,15 @@ def inequality_6DoF(xdict, pdict, unitdict, condition):
         if section_name in condition["aoa_max_deg"]:
             aoa_max = condition["aoa_max_deg"][section_name]["value"] * np.pi / 180.0
             if condition["aoa_max_deg"][section_name]["range"] == "all":
-                con.append(-aoa_zerolift_array(pos_i_[1:], vel_i_[1:], quat_i_[1:], t_nodes, pdict["wind_table"]) + aoa_max)
+                con.append(1.0 - aoa_zerolift_array(pos_i_, vel_i_, quat_i_, t_i_, pdict["wind_table"]) / aoa_max)
             elif condition["aoa_max_deg"][section_name]["range"] == "initial":
-                con.append(-angle_of_attack_all_rad(pos_i_[0], vel_i_[0], quat_i_[0], to, pdict["wind_table"]) + aoa_max)
+                con.append(1.0 - angle_of_attack_all_rad(pos_i_[0], vel_i_[0], quat_i_[0], to, pdict["wind_table"]) / aoa_max)
         
         # max-Q
         if section_name in condition["q_max_pa"]:
             q_max = condition["q_max_pa"][section_name]["value"]
             if condition["q_max_pa"][section_name]["range"] == "all":
-                con.append(1.0 - dynamic_pressure_array(pos_i_[1:], vel_i_[1:], t_nodes, pdict["wind_table"]) / q_max)
+                con.append(1.0 - dynamic_pressure_array(pos_i_, vel_i_, t_i_, pdict["wind_table"]) / q_max)
             elif condition["q_max_pa"][section_name]["range"] == "initial":
                 con.append(1.0 - dynamic_pressure_pa(pos_i_[0], vel_i_[0], to, pdict["wind_table"]) / q_max)
 
@@ -644,7 +644,7 @@ def inequality_6DoF(xdict, pdict, unitdict, condition):
         if section_name in condition["q-alpha_max_pa-deg"]:
             qalpha_max = condition["q-alpha_max_pa-deg"][section_name]["value"] * np.pi / 180.0
             if condition["q-alpha_max_pa-deg"][section_name]["range"] == "all":
-                con.append(1.0 - q_alpha_array(pos_i_[1:], vel_i_[1:], quat_i_[1:], t_nodes, pdict["wind_table"]) / qalpha_max)
+                con.append(1.0 - q_alpha_array(pos_i_, vel_i_, quat_i_, t_i_, pdict["wind_table"]) / qalpha_max)
             elif condition["q-alpha_max_pa-deg"][section_name]["range"] == "initial":
                 con.append(1.0 - q_alpha_pa_rad(pos_i_[0], vel_i_[0], quat_i_[0], to, pdict["wind_table"]) / qalpha_max)
 
@@ -861,6 +861,7 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
             "aoa_alpha"  : np.zeros(N),
             "aoa_beta"   : np.zeros(N),
             "q"          : np.zeros(N),
+            "q-alpha"    : np.zeros(N),
             "M"          : np.zeros(N)
         }
     
@@ -910,6 +911,7 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         aoa_ab_deg = angle_of_attack_ab_rad(pos, vel, quat, t, pdict["wind_table"]) * 180.0 / np.pi
         
         out["aoa_total"][i] = aoa_all_deg
+        out["q-alpha"][i] = aoa_all_deg * q
         out["aoa_alpha"][i], out["aoa_beta"][i] = aoa_ab_deg
 
         thrustdir_eci = quatrot(conj(quat), np.array([1.0, 0.0, 0.0]))
