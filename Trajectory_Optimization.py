@@ -214,9 +214,16 @@ optProb.addConGroup("ineqcon",        len(ie),         lower=0.0, upper=None)
 optProb.addConGroup("ineqcon_time",   len(ie_time),    lower=0.0, upper=None)
 
 if e_user is not None:
-    optProb.addConGroup("eqcon_user", len(e_user), lower=0.0, upper=0.0)
+    if hasattr(e_user,"__len__"):
+        optProb.addConGroup("eqcon_user", len(e_user), lower=0.0, upper=0.0)
+    else:
+        optProb.addConGroup("eqcon_user", 1, lower=0.0, upper=0.0)
+
 if ie_user is not None:
-    optProb.addConGroup("ineqcon_user", len(ie_user), lower=0.0, upper=None)
+    if hasattr(ie_user,"__len__"):
+        optProb.addConGroup("ineqcon_user", len(ie_user), lower=0.0, upper=None)
+    else:
+        optProb.addConGroup("ineqcon_user", 1, lower=0.0, upper=None)
 
 
 optProb.addObj("obj")

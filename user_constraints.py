@@ -53,8 +53,7 @@ def equality_user(xdict, pdict, unitdict, condition):
     _,_,alt_m_FRGDR = ecef2geodetic(pos_i_[0,0], pos_i_[0,1], pos_i_[0,2])
     alt_m_FRGDR_value = 130000.0
 
-    #return (alt_m_FRGDR / alt_m_FRGDR_value) - 1.0
-    return None
+    return (alt_m_FRGDR / alt_m_FRGDR_value) - 1.0
 
 def inequality_user(xdict, pdict, unitdict, condition):
     """
