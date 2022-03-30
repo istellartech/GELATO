@@ -25,12 +25,13 @@
     }
   },
 
+  "payloadMass" : 0.0,
+
   "LaunchCondition": {
     "longitude_deg": 143.456784,
     "latitude_deg": 42.504038,
     "height_m": 50.0,
-    "init_azimuth_deg": 90.0,
-    "payload_mass": null
+    "init_azimuth_deg": 90.0
   },
 
   "TerminalCondition": {
