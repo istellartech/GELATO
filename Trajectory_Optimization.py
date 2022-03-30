@@ -90,9 +90,11 @@ for i in events.index:
 
 pdict = {"params": events.to_dict('records')}
 nodes = events["num_nodes"][:-1]
+for i,event_name in enumerate(events.index):
+    pdict["params"][i]["name"] = event_name
 num_states = 11
 num_controls = 3
-
+pdict["event_index"] = {}
 assert(len(nodes) == len(pdict["params"])-1)
 
 N = sum(nodes)
@@ -119,7 +121,7 @@ r_init = launchsite_eci
 v_init = vel_ecef2eci(np.zeros(3),launchsite_ecef, t_init)
 quat_init = quatmult(quat_eci2nedg(r_init, t_init), quat_from_euler(launch_conditions["init_azimuth_deg"], 90.0, 0.0))
 m_init = sum([s["dryMass_kg"]+s["propellantMass_kg"] for s in stages.values()])
-if not settings["OptimizationMode"]["Maximize initial mass"]:
+if settings["OptimizationMode"] != "Payload":
     m_init += settings["PayloadMass"]
 x_init = np.hstack((m_init, r_init, v_init, quat_init))
 
