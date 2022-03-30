@@ -223,7 +223,7 @@ def equality_init(xdict, unitdict, condition):
     quat_ = xdict["quaternion"].reshape(-1,4)
 
     #initial condition
-    if not condition["OptimizationMode"]["Maximize initial mass"]:
+    if condition["OptimizationMode"] != "Payload":
         con.append((mass_[0] - condition["init"]["mass"]) / unitdict["mass"])
     con.append((pos_[0] - condition["init"]["position"]) / unitdict["position"])
     con.append((vel_[0] - condition["init"]["velocity"]) / unitdict["velocity"])
@@ -602,7 +602,6 @@ def inequality_6DoF(xdict, pdict, unitdict, condition):
     num_sections = pdict["num_sections"]
     
     
-    param = np.zeros(5)
     
     for i in range(num_sections-1):
         a = pdict["ps_params"][i]["index_start"]
@@ -617,36 +616,38 @@ def inequality_6DoF(xdict, pdict, unitdict, condition):
         tf = t[i+1]
         t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
         
-        
-        param[0] = pdict["params"][i]["thrust_n"]
-        param[1] = pdict["params"][i]["massflow_kgps"]
-        param[2] = pdict["params"][i]["airArea_m2"]
-        param[4] = pdict["params"][i]["nozzleArea_m2"]
-        weight = pdict["ps_params"][i]["weight"]  
 
         # kick turn
         if "kick" in pdict["params"][i]["attitude"]:
             con.append(-u_i_[:,1])
             #con.append(u_i_[:,1]+0.36)
         
-        # zerolift turn
-        if pdict["params"][i]["do_zeroliftturn"]:
-            if condition["aoa_max_deg"] is not None:
-                con.append(-aoa_zerolift_array(pos_i_[1:], vel_i_[1:], quat_i_[1:], t_nodes, pdict["wind_table"]) + radians(condition["aoa_max_deg"]))
-        
-        # max-Q and max-Q-alpha
-        if condition["q-alpha_max_kpa-deg"] is not None:
-            qalpha_max = condition["q-alpha_max_kpa-deg"] * 1000 * np.pi / 180.0
-            con.append(1.0 - q_alpha_zerolift_array(pos_i_[1:], vel_i_[1:], quat_i_[1:], t_nodes, pdict["wind_table"]) / qalpha_max)
-        if condition["q_max_kpa"] is not None:
-            q_max = condition["q_max_kpa"] * 1000
-            con.append(1.0 - dynamic_pressure_array(pos_i_[1:], vel_i_[1:], t_nodes, pdict["wind_table"]) / q_max)
+        section_name = pdict["params"][i]["name"]
 
-    
-        # dynamic pressure at SEP
-        if pdict["params"][i]["rocketStage"] > pdict["params"][i-1]["rocketStage"]:
-            if condition["q_sep_max_pa"] is not None:
-                con.append(1.0 - dynamic_pressure_pa(pos_i_[0], vel_i_[0], to, pdict["wind_table"]) / condition["q_sep_max_pa"])
+        # angle of attack
+        if section_name in condition["aoa_max_deg"]:
+            aoa_max = condition["aoa_max_deg"][section_name]["value"] * np.pi / 180.0
+            if condition["aoa_max_deg"][section_name]["range"] == "all":
+                con.append(-aoa_zerolift_array(pos_i_[1:], vel_i_[1:], quat_i_[1:], t_nodes, pdict["wind_table"]) + aoa_max)
+            elif condition["aoa_max_deg"][section_name]["range"] == "initial":
+                con.append(-angle_of_attack_all_rad(pos_i_[0], vel_i_[0], quat_i_[0], to, pdict["wind_table"]) + aoa_max)
+        
+        # max-Q
+        if section_name in condition["q_max_pa"]:
+            q_max = condition["q_max_pa"][section_name]["value"]
+            if condition["q_max_pa"][section_name]["range"] == "all":
+                con.append(1.0 - dynamic_pressure_array(pos_i_[1:], vel_i_[1:], t_nodes, pdict["wind_table"]) / q_max)
+            elif condition["q_max_pa"][section_name]["range"] == "initial":
+                con.append(1.0 - dynamic_pressure_pa(pos_i_[0], vel_i_[0], to, pdict["wind_table"]) / q_max)
+
+        # max-Qalpha
+        if section_name in condition["q-alpha_max_pa-deg"]:
+            qalpha_max = condition["q-alpha_max_pa-deg"][section_name]["value"] * np.pi / 180.0
+            if condition["q-alpha_max_pa-deg"][section_name]["range"] == "all":
+                con.append(1.0 - q_alpha_array(pos_i_[1:], vel_i_[1:], quat_i_[1:], t_nodes, pdict["wind_table"]) / qalpha_max)
+            elif condition["q-alpha_max_pa-deg"][section_name]["range"] == "initial":
+                con.append(1.0 - q_alpha_pa_rad(pos_i_[0], vel_i_[0], quat_i_[0], to, pdict["wind_table"]) / qalpha_max)
+
         
     return np.concatenate(con, axis=None)    
 
@@ -659,8 +660,8 @@ def aoa_zerolift_array(pos, vel, quat, t, wind):
     return np.array([angle_of_attack_all_rad(pos[i], vel[i], quat[i], t[i], wind) for i in range(len(t))])
 
 @jit(nopython=True)
-def q_alpha_zerolift_array(pos, vel, quat, t, wind):
-    return np.array([angle_of_attack_all_rad(pos[i], vel[i], quat[i], t[i], wind) * dynamic_pressure_pa(pos[i], vel[i], t[i], wind)  for i in range(len(t))])
+def q_alpha_array(pos, vel, quat, t, wind):
+    return np.array([q_alpha_pa_rad(pos[i], vel[i], quat[i], t[i], wind) for i in range(len(t))])
 
 @jit(nopython=True)
 def roll_direction_array(pos, quat):
@@ -670,6 +671,10 @@ def roll_direction_array(pos, quat):
 def yb_r_dot(pos_eci, quat_eci2body):
     yb_dir_eci = quatrot(conj(quat_eci2body), np.array([0.0, 1.0, 0.0]))
     return yb_dir_eci.dot(normalize(pos_eci))
+
+@jit(nopython=True)
+def q_alpha_pa_rad(pos_eci, vel_eci, quat, t, wind):
+    return angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind) * dynamic_pressure_pa(pos_eci, vel_eci, t, wind)
 
 @jit(nopython=True)
 def angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind):
@@ -733,10 +738,10 @@ def dynamic_pressure_pa(pos_eci, vel_eci, t, wind):
 
 def cost_6DoF(xdict, condition):
     
-    if condition["OptimizationMode"]["Maximize excess propellant mass"]:
-        return xdict["t"][-1] #到達時間を最小化(=余剰推進剤を最大化)
-    else:
+    if condition["OptimizationMode"] == "Payload":
         return -xdict["mass"][0] #初期質量(無次元)を最大化
+    else:
+        return xdict["t"][-1] #到達時間を最小化(=余剰推進剤を最大化)
 
 
 def initialize_xdict_6DoF_2(x_init, pdict, condition, unitdict, mode='LGL', dt=0.005, flag_display=True):

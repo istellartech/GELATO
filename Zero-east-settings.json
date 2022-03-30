@@ -25,7 +25,7 @@
     }
   },
 
-  "payloadMass" : 0.0,
+  "PayloadMass" : 0.0,
 
   "LaunchCondition": {
     "longitude_deg": 143.456784,
@@ -45,10 +45,28 @@
   },
 
   "FlightConstraint": {
-    "aoa_max_deg": 0.5,
-    "q_max_kpa" : null,
-    "q-alpha_max_kpa-deg": null,
-    "q_sep_max_pa": 15.0
+    "aoa_max_deg":{
+      "TGTS" : {
+        "value" : 0.5,
+        "range" : "all"
+      },
+      "MECO" : {
+        "value" : 3.0,
+        "range" : "initial"
+      }
+    },
+    "q_max_pa":{
+      "MECO" : {
+        "value" : 15.0,
+        "range" : "initial"
+      }
+    },
+    "q-alpha_max_pa-deg":{
+      "MECO1" : {
+        "value" : 25000.0,
+        "range" : "initial"
+      }
+    }
   },
 
   "GroundStation": {
@@ -56,8 +74,8 @@
       "longitude_deg": 143.451410,
       "latitude_deg": 42.598077,
       "height_m": 40.0,
-      "elevation_min_deg": null,
-      "lookAngle_min_deg": null
+      "elevation_min_deg_at": {},
+      "lookAngle_min_deg_at": {}
     }
   },
 
@@ -65,10 +83,7 @@
   "Wind file": "wind_ALMA.csv",
   "CA file": "ca.csv",
 
-  "OptimizationMode": {
-    "Maximize initial mass": true,
-    "Maximize excess propellant mass": false
-  },
+  "OptimizationMode": "Payload",
 
   "IPOPT": {
     "print_level": 3,
