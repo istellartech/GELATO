@@ -86,7 +86,7 @@
   "OptimizationMode": "Payload",
 
   "IPOPT": {
-    "print_level": 3,
+    "print_level": 5,
     "linear_solver": "pardisomkl",
     "print_timing_statistics": "no",
     "tol": 1e-6,

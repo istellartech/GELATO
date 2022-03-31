@@ -285,4 +285,4 @@ if flag_savefig:
 
 out = output_6DoF(sol.xStar, unitdict, tx_res, tu_res, pdict)
 
-out.to_csv("{}_{}_pyIPOPT_result.csv".format(settings["name"], timestamp))
+out.to_csv("{}_optResult.csv".format(settings["name"]))
