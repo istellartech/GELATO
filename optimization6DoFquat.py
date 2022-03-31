@@ -815,8 +815,9 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
     u_ = xdict["u"].reshape(-1,3) * unit_u
     
     
-    out = { "time"       : tx_res,
-            "section"    : np.zeros(N),
+    out = { "event"      : [""] * N,
+            "time"       : tx_res,
+            "section"    : np.zeros(N,dtype="i4"),
             "thrust"     : np.zeros(N),
             "mass"       : mass_,
             "lat"        : np.zeros(N),
@@ -866,6 +867,7 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         }
     
     section = 0
+    out["event"][0] = pdict["params"][0]["name"]
 
     for i in range(N):
         
@@ -875,13 +877,14 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         quat = normalize(quat_[i])
         t = tx_res[i]
         
-        if t >= pdict["params"][section]["timeFinishAt_sec"]:
+        out["section"][i] = section
+        if i >= pdict["ps_params"][section]["index_start"] + pdict["ps_params"][section]["nodes"] + section:
+            out["event"][i] = pdict["params"][section+1]["name"]
             section += 1
         thrust_vac_n = pdict["params"][section]["thrust_n"]
         massflow_kgps = pdict["params"][section]["massflow_kgps"]
         airArea_m2 = pdict["params"][section]["airArea_m2"]
         nozzleArea_m2 = pdict["params"][section]["nozzleArea_m2"]
-        out["section"][i] = section
 
         pos_llh = eci2geodetic(pos, t)
         altitude_m = geopotential_altitude(pos_llh[2])
