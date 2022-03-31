@@ -8,7 +8,7 @@ MECO,162.491,1,False,0,0,hold,0.0,0.0,2,True
 MSEP,167.491,2,False,0,0,hold,0.0,0.0,2,True
 SEIG1,172.491,2,True,60300,0,hold,0.0,0.0,2,True
 Q21S,182.491,2,True,60300,0,pitch-yaw,-0.10,-0.0,5,True
-FRGDR,208.9,2,True,60300,0,same-rate,-0.10,-0.0,5,True
+FRGDR,208.9,2,True,60300,0,same-rate,-0.10,-0.0,5,False
 Q22S,322.491,2,True,60300,0,pitch-yaw,-0.10,-0.0,6,True
 SECO1,427.305,2,False,0,0,hold,0.0,0.0,3,True
 SCSEP,477.305,2,False,0,0,hold,0.0,0.0,2,True
