@@ -890,11 +890,11 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         altitude_m = geopotential_altitude(pos_llh[2])
         out["lat"][i]  = pos_llh[0]
         out["lon"][i]  = pos_llh[1]
-        out["alt"][i]  = pos_llh[2] / 1000.0
+        out["alt"][i]  = pos_llh[2]
         
         elem = orbital_elements(pos, vel)
-        out["ha"][i] = elem[0] * (1.0 + elem[1]) / 1000.0 - 6378.137
-        out["hp"][i] = elem[0] * (1.0 - elem[1]) / 1000.0 - 6378.137
+        out["ha"][i] = elem[0] * (1.0 + elem[1]) - 6378137
+        out["hp"][i] = elem[0] * (1.0 - elem[1]) - 6378137
         out["inc"][i], out["asnd"][i], out["argp"][i], out["tanm"][i] = elem[2:6]
         
         vel_ground_ecef = vel_eci2ecef(vel, pos, t)
