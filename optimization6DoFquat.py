@@ -927,7 +927,6 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         #####
         rho = airdensity_at(altitude_m)
         p = airpressure_at(altitude_m)
-
         
         #対気速度
         
@@ -937,6 +936,7 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         vel_wind_eci = quatrot(quat_nedg2eci(pos, t), vel_wind_ned)
         vel_air_eci = ecef2eci(vel_ecef, t) - vel_wind_eci
         mach_number = norm(vel_air_eci) / speed_of_sound(altitude_m)
+        out["M"][i] = mach_number
         airAxialForce_coeff = np.interp(mach_number, pdict["ca_table"][:,0], pdict["ca_table"][:,1])
         out["va"][i] = norm(vel_air_eci)        
         
