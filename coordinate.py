@@ -279,7 +279,7 @@ def orbital_elements(r_eci, v_eci):
     
     c1_eci = normalize(c_eci)
     
-    inclination_rad = acos(c1_eci.dot(np.array([0.0,0.0,1.0])))
+    inclination_rad = acos(c1_eci[2])
     
     if inclination_rad > 1e-10:
         ascending_node_rad = atan2(c1_eci[0], -c1_eci[1])
