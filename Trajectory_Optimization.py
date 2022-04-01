@@ -3,8 +3,6 @@ import sys
 import numpy as np
 import pandas as pd
 import json
-import matplotlib.pyplot as plt
-from datetime import datetime
 
 from utils import *
 from coordinate import *
@@ -35,7 +33,7 @@ launch_conditions = settings["LaunchCondition"]
 terminal_conditions = settings["TerminalCondition"]
 
 t_init = 0.0
-launchsite_ecef = np.array(pm.geodetic2ecef(launch_conditions["latitude_deg"], launch_conditions["longitude_deg"], launch_conditions["height_m"]))
+launchsite_ecef = np.array(geodetic2ecef(launch_conditions["latitude_deg"], launch_conditions["longitude_deg"], launch_conditions["height_m"]))
 launchsite_eci = ecef2eci(launchsite_ecef, t_init)
 
 events = pd.read_csv(settings["Event setting file"], index_col=0)
@@ -228,8 +226,6 @@ if ie_user is not None:
 
 optProb.addObj("obj")
 
-timestamp = datetime.now().strftime('%Y-%m-%d-%H%M%S')
-
 options_IPOPT = settings["IPOPT"]
 options_IPOPT["output_file"] = "output/{}-IPOPT.out".format(settings["name"])
 opt = IPOPT(options=options_IPOPT)
@@ -262,15 +258,6 @@ for i in range(num_sections):
 
 m_res = sol.xStar["mass"] * unitdict["mass"]
 
-plt.figure()
-plt.title("Mass[kg]")
-plt.plot(tx_res, m_res, '.-', lw=0.8)
-plt.grid()
-plt.xlim([0,None])
-plt.ylim([0,None])
-if flag_savefig:
-    plt.savefig("figures/mass.png")
-
 res_initial = "initial mass : {:.3f} kg\n".format(m_res[0])
 res_final   = "final mass : {:.3f} kg\n".format(m_res[-1])
 res_payload = "payload : {:.3f} kg\n".format(m_res[0] - m_init - sum([item["mass_kg"] for item in dropmass.values()]))
@@ -278,15 +265,6 @@ res_payload = "payload : {:.3f} kg\n".format(m_res[0] - m_init - sum([item["mass
 print("".join([res_initial, res_final, res_payload]))
 with open("output/{}-optResult.txt".format(settings["name"]), mode="w") as fout:
     fout.write("".join([res_initial, res_final, res_payload]))
-
-plt.figure()
-plt.title("Target rate[deg/s]")
-plt.plot(tu_res, sol.xStar["u"].reshape(-1,3) * unitdict["u"], '.-', lw=0.8, label=["roll", "pitch", "yaw"])
-plt.grid()
-plt.legend()
-plt.xlim([0,None])
-if flag_savefig:
-    plt.savefig("figures/omega.png")
 
 out = output_6DoF(sol.xStar, unitdict, tx_res, tu_res, pdict)
 
