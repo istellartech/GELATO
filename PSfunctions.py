@@ -1,7 +1,5 @@
-from pyoptsparse import IPOPT,SLSQP, Optimization
-from scipy import special,optimize,integrate
+from scipy import special
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 def LegendreFunction(x, n):
