@@ -1,4 +1,6 @@
 #!/bin/bash
+source /opt/intel/oneapi/setvars.sh
+
 cd ~/Trajectory_Optimization
 
 if [ $# -lt 1 ]; then
