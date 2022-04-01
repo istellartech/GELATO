@@ -2,7 +2,6 @@ import numpy as np
 from numpy.linalg import norm
 from math import sin,cos,tan,asin,acos,atan,atan2,degrees,radians,sqrt
 from numba import jit
-import pymap3d as pm
 from utils import *
 
 @jit('f8[:](f8[:],f8[:])',nopython=True)
@@ -261,9 +260,10 @@ def dcm_from_thrustvector(pos_eci, u):
 
     return np.vstack((xb_dir, yb_dir, zb_dir))  
 
+@jit('f8[:](f8[:],f8)',nopython=True)
 def eci2geodetic(pos_in, t):
     pos_ecef = eci2ecef(pos_in, t)
-    return pm.ecef2geodetic(pos_ecef[0],pos_ecef[1],pos_ecef[2])
+    return ecef2geodetic(pos_ecef[0],pos_ecef[1],pos_ecef[2])
 
 
 @jit('f8[:](f8[:],f8[:])', nopython=True)
@@ -301,14 +301,3 @@ def orbital_elements(r_eci, v_eci):
         
     return np.array([a, e, degrees(inclination_rad), degrees(ascending_node_rad), degrees(argument_perigee), degrees(true_anomaly_rad)])
 
-@jit(nopython=True)
-def posvel_from_orbital_elements(elem):
-    
-    a = elem[0]
-    e = elem[1]
-    inclination_rad = radians(elem[2])
-    ascending_node_rad = radians(elem[3])
-    argument_perigee_rad = radians(elem[4])
-    true_anomaly_rad = radians(elem[5])
-    
-    
