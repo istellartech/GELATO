@@ -231,7 +231,7 @@ optProb.addObj("obj")
 timestamp = datetime.now().strftime('%Y-%m-%d-%H%M%S')
 
 options_IPOPT = settings["IPOPT"]
-options_IPOPT["output_file"] = "{}_{}_pyIPOPT.out".format(settings["name"],timestamp)
+options_IPOPT["output_file"] = "output/{}-IPOPT.out".format(settings["name"])
 opt = IPOPT(options=options_IPOPT)
 
 sol = opt(optProb, sens="FD")
@@ -271,8 +271,13 @@ plt.ylim([0,None])
 if flag_savefig:
     plt.savefig("figures/mass.png")
 
-print("initial mass : {} kg".format(m_res[0]))
-print("payload      : {} kg".format(m_res[0] - m_init - sum([item["mass_kg"] for item in dropmass.values()])))
+res_initial = "initial mass : {:.3f} kg\n".format(m_res[0])
+res_final   = "final mass : {:.3f} kg\n".format(m_res[-1])
+res_payload = "payload : {:.3f} kg\n".format(m_res[0] - m_init - sum([item["mass_kg"] for item in dropmass.values()]))
+
+print("".join([res_initial, res_final, res_payload]))
+with open("output/{}-optResult.txt".format(settings["name"]), mode="w") as fout:
+    fout.write("".join([res_initial, res_final, res_payload]))
 
 plt.figure()
 plt.title("Target rate[deg/s]")
@@ -285,4 +290,4 @@ if flag_savefig:
 
 out = output_6DoF(sol.xStar, unitdict, tx_res, tu_res, pdict)
 
-out.to_csv("{}_optResult.csv".format(settings["name"]))
+out.to_csv("output/{}-trajectoryResult.csv".format(settings["name"]))
