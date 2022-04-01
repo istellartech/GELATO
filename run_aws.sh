@@ -7,12 +7,12 @@ if [ $# -lt 1 ]; then
 fi
 
 echo $1
-aws s3 cp s3://ist-system/Trajectory_Optimization/$1 . --recursive --exclude "output*"
+aws s3 cp $1 . --recursive --exclude "output*"
 
 mkdir output
 ls *.json | xargs python3 Trajectory_Optimization.py
 
-aws s3 cp output s3://ist-system/Trajectory_Optimization/$1/output --recursive
+aws s3 cp output $1/output --recursive
 
 rm -r output
 rm *.json
