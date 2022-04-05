@@ -50,8 +50,10 @@ def equality_user(xdict, pdict, unitdict, condition):
 
     # user-defined section
 
-    return None
+    _,_,alt_m_FRGDR = ecef2geodetic(pos_i_[0,0], pos_i_[0,1], pos_i_[0,2])
+    alt_m_FRGDR_value = 130000.0
 
+    return (alt_m_FRGDR / alt_m_FRGDR_value) - 1.0
 
 def inequality_user(xdict, pdict, unitdict, condition):
     """
@@ -102,4 +104,6 @@ def inequality_user(xdict, pdict, unitdict, condition):
 
     # user-defined section
 
-    return None
+    t_min = 85.0
+    t_max = 90.0
+    return np.array([to - t_min, t_max-to]) / unit_t 
