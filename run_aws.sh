@@ -9,6 +9,10 @@ if [ $# -lt 1 ]; then
 fi
 
 echo $1
+rm -r output
+rm *.json
+rm *.csv
+
 cp _user_constraints_empty.py user_constraints.py
 aws s3 cp $1 . --recursive --exclude "output*"
 
