@@ -5,6 +5,7 @@ from numba import jit
 from utils import *
 from USStandardAtmosphere import *
 from coordinate import *
+from tools.plot_output import display_6DoF
 
 
 @jit(nopython=True)
@@ -60,8 +61,8 @@ def dynamics_quaternion(quat_eci2body, u):
 
 
 
-@jit('f8[:](f8[:],f8[:],f8,f8[:],f8[:,:],f8[:,:])',nopython=True)
-def dynamics(x, u, t, param, wind, ca):
+@jit(nopython=True)
+def dynamics(x, u, t, param, zlt, wind, ca):
 
     mass = x[0]
     pos_eci = x[1:4]
@@ -97,7 +98,10 @@ def dynamics(x, u, t, param, wind, ca):
     aero_n_eci = 0.5 * rho * norm(vel_air_eci) * -vel_air_eci * airArea_m2 * airAxialForce_coeff
 
     thrust_n = thrust_vac_n - nozzleArea_m2 * p
-    thrustdir_eci = quatrot(conj(quat_eci2body), np.array([1.0, 0.0, 0.0]))
+    if zlt:
+        thrustdir_eci = normalize(vel_air_eci)
+    else:
+        thrustdir_eci = quatrot(conj(quat_eci2body), np.array([1.0, 0.0, 0.0]))
     thrust_n_eci = thrustdir_eci * thrust_n
     gravity_eci = gravity(pos_eci)
     
@@ -153,11 +157,11 @@ def rocket_simulation(x_init, u_table, pdict, t_init, t_out, dt=0.1):
                 x[0] -= pdict["params"][event_index]["mass_jettison_kg"]
         
         u = np.array([np.interp(t, u_table[:,0], u_table[:,i+1]) for i in range(3)])
-        x = runge_kutta_4d(lambda xa,ta:dynamics(xa, u, ta, param, wind, ca), x, t, dt)
+        x = runge_kutta_4d(lambda xa,ta:dynamics(xa, u, ta, param, zlt, wind, ca), x, t, dt)
         t = t + dt
             
-        #if zlt:
-        #    x[7:11] = zerolift_turn_correct(x, t, wind)
+        if zlt:
+            x[7:11] = zerolift_turn_correct(x, t, wind)
         x[7:11] = normalize(x[7:11])
         
         t_map.append(t)
