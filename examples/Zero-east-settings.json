@@ -88,8 +88,8 @@
   "IPOPT": {
     "print_level": 5,
     "linear_solver": "pardisomkl",
-    "print_timing_statistics": "no",
-    "tol": 1e-6,
-    "max_iter": 300
+    "print_timing_statistics": "yes",
+    "tol": 1e-8,
+    "max_iter": 1000
   }
 }

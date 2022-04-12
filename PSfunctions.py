@@ -15,10 +15,20 @@ def lagrange(tn,k,t):
     return l
 
 def lagrangeD(tn,k,t):
-    dt = 0.001
-    lp = lagrange(tn,k,t+dt*0.5)
-    lm = lagrange(tn,k,t-dt*0.5)
-    return (lp-lm)/dt
+    N = len(tn)
+    den = 1.0
+    for i in range(N):
+        if i!=k:
+            den = den * (tn[k] - tn[i])
+    num = 0.0
+    for j in range(N):
+        num_j = 1.0
+        if j!=k:
+            for i in range(N):
+                if i!=k and i!=j:
+                    num_j = num_j * (t - tn[i])
+            num = num + num_j
+    return num/den
 
 def nodes_LGL(n):
     """ Legendre-Gauss-Lobatto(LGL) points"""
