@@ -538,7 +538,7 @@ def equality_6DoF_rate(xdict, pdict, unitdict):
         #rate constraint
         
         att = pdict["params"][i]["attitude"]
-        if att == "zero-lift-turn":
+        if att == "zero-lift-turn" or att == "free":
             #zero-lift-turn: pitch/yaw free, roll hold
             con.append(u_i_[:,0])
         
