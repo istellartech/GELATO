@@ -22,40 +22,46 @@ def dynamics_position(vel_eci):
 @jit(nopython=True)
 def dynamics_velocity(mass, pos_eci, vel_eci, quat_eci2body, t, param, wind, ca):
     
-    pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
-    altitude_m = geopotential_altitude(pos_llh[2])
-    rho = airdensity_at(altitude_m)
-    p = airpressure_at(altitude_m)
+    acc_eci = np.zeros(vel_eci.shape)
 
-    
-    vel_ecef = vel_eci2ecef(vel_eci, pos_eci, t)
-    vel_wind_ned = wind_ned(altitude_m, wind)
-    
-    vel_wind_eci = quatrot(quat_nedg2eci(pos_eci, t), vel_wind_ned)
-    vel_air_eci = ecef2eci(vel_ecef, t) - vel_wind_eci
-    mach_number = norm(vel_air_eci) / speed_of_sound(altitude_m)
-    
     thrust_vac_n = param[0]
     airArea_m2 = param[2]
-    airAxialForce_coeff = np.interp(mach_number, ca[:,0], ca[:,1])
     nozzleArea_m2 = param[4]
-        
-    aero_n_eci = 0.5 * rho * norm(vel_air_eci) * -vel_air_eci * airArea_m2 * airAxialForce_coeff
 
-    thrust_n = thrust_vac_n - nozzleArea_m2 * p
-    thrustdir_eci = quatrot(conj(quat_eci2body), np.array([1.0, 0.0, 0.0]))
-    thrust_n_eci = thrustdir_eci * thrust_n
-    gravity_eci = gravity(pos_eci)
-    
-    acc_eci = gravity_eci + (thrust_n_eci + aero_n_eci) / mass
+    for i in range(len(mass)):
+        pos_llh = ecef2geodetic(pos_eci[i,0],pos_eci[i,1],pos_eci[i,2])
+        altitude_m = geopotential_altitude(pos_llh[2])
+        rho = airdensity_at(altitude_m)
+        p = airpressure_at(altitude_m)
+
+        
+        vel_ecef = vel_eci2ecef(vel_eci[i], pos_eci[i], t[i])
+        vel_wind_ned = wind_ned(altitude_m, wind)
+        
+        vel_wind_eci = quatrot(quat_nedg2eci(pos_eci[i], t[i]), vel_wind_ned)
+        vel_air_eci = ecef2eci(vel_ecef, t[i]) - vel_wind_eci
+        mach_number = norm(vel_air_eci) / speed_of_sound(altitude_m)
+        
+        airAxialForce_coeff = np.interp(mach_number, ca[:,0], ca[:,1])
+            
+        aero_n_eci = 0.5 * rho * norm(vel_air_eci) * -vel_air_eci * airArea_m2 * airAxialForce_coeff
+
+        thrust_n = thrust_vac_n - nozzleArea_m2 * p
+        thrustdir_eci = quatrot(conj(quat_eci2body[i]), np.array([1.0, 0.0, 0.0]))
+        thrust_n_eci = thrustdir_eci * thrust_n
+        gravity_eci = gravity(pos_eci[i])
+        
+        acc_eci[i] = gravity_eci + (thrust_n_eci + aero_n_eci) / mass[i]
         
     return acc_eci
 
 @jit(nopython=True)
 def dynamics_quaternion(quat_eci2body, u):
 
-    omega_rps_body = np.deg2rad(np.array([0.0, u[0], u[1], u[2]]))
-    d_quat = 0.5 * quatmult(quat_eci2body, omega_rps_body)    
+    d_quat = np.zeros(quat_eci2body.shape)
+    for i in range(len(u)):
+        omega_rps_body = np.deg2rad(np.array([0.0, u[i,0], u[i,1], u[i,2]]))
+        d_quat[i] = 0.5 * quatmult(quat_eci2body[i], omega_rps_body)    
         
     return d_quat
 
@@ -274,7 +280,7 @@ def equality_dynamics_mass(xdict, pdict, unitdict):
         param[4] = pdict["params"][i]["nozzleArea_m2"]
 
         lh = pdict["ps_params"][i]["D"].dot(mass_i_ / unit_mass)
-        rh = np.array([dynamics_mass(param) for j in range(n)]) * (tf-to) / 2.0 / unit_mass
+        rh = np.full(n, -param[1] * (tf-to) / 2.0 / unit_mass) #dynamics_mass
         con.append(lh - rh)
             
             
@@ -310,7 +316,7 @@ def equality_dynamics_position(xdict, pdict, unitdict):
         param[4] = pdict["params"][i]["nozzleArea_m2"]
 
         lh = pdict["ps_params"][i]["D"].dot(pos_i_ / unit_pos)
-        rh = np.array([dynamics_position(vel_i_[j+1]) for j in range(n)]) * (tf-to) / 2.0 / unit_pos
+        rh = vel_i_[1:] * (tf-to) / 2.0 / unit_pos #dynamics_position
         con.append((lh - rh).ravel())
                         
     return np.concatenate(con, axis=None)
@@ -352,7 +358,7 @@ def equality_dynamics_velocity(xdict, pdict, unitdict):
         ca = pdict["ca_table"]
 
         lh = pdict["ps_params"][i]["D"].dot(vel_i_ / unit_vel)
-        rh = np.array([dynamics_velocity(mass_i_[j+1], pos_i_[j+1], vel_i_[j+1], quat_i_[j+1], t_nodes[j], param, wind, ca) for j in range(n)]) * (tf-to) / 2.0 / unit_vel
+        rh = dynamics_velocity(mass_i_[1:], pos_i_[1:], vel_i_[1:], quat_i_[1:], t_nodes, param, wind, ca) * (tf-to) / 2.0 / unit_vel
         con.append((lh - rh).ravel())
                         
     return np.concatenate(con, axis=None)
@@ -384,7 +390,7 @@ def equality_dynamics_quaternion(xdict, pdict, unitdict):
         param[4] = pdict["params"][i]["nozzleArea_m2"]
 
         lh = pdict["ps_params"][i]["D"].dot(quat_i_)
-        rh = np.array([dynamics_quaternion(quat_i_[j+1], u_i_[j]) for j in range(n)]) * (tf-to) / 2.0
+        rh = dynamics_quaternion(quat_i_[1:], u_i_) * (tf-to) / 2.0
         con.append((lh - rh).ravel())
                         
     return np.concatenate(con, axis=None)
