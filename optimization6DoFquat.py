@@ -34,7 +34,6 @@ def dynamics_velocity(mass, pos_eci, vel_eci, quat_eci2body, t, param, wind, ca)
         rho = airdensity_at(altitude_m)
         p = airpressure_at(altitude_m)
 
-        
         vel_ecef = vel_eci2ecef(vel_eci[i], pos_eci[i], t[i])
         vel_wind_ned = wind_ned(altitude_m, wind)
         
@@ -450,19 +449,19 @@ def equality_knot_LGR(xdict, pdict, unitdict):
 def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     con = []
 
-    unit_mass= unitdict["mass"]
+    #unit_mass= unitdict["mass"]
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
-    unit_u = unitdict["u"]
-    unit_t = unitdict["t"]
+    #unit_u = unitdict["u"]
+    #unit_t = unitdict["t"]
 
-    mass_ = xdict["mass"] * unit_mass
+    #mass_ = xdict["mass"] * unit_mass
     pos_ = xdict["position"].reshape(-1,3) * unit_pos
     vel_ = xdict["velocity"].reshape(-1,3) * unit_vel
-    quat_ = xdict["quaternion"].reshape(-1,4)
+    #quat_ = xdict["quaternion"].reshape(-1,4)
     
-    u_ = xdict["u"].reshape(-1,3) * unit_u
-    t = xdict["t"] * unit_t
+    #u_ = xdict["u"].reshape(-1,3) * unit_u
+    #t = xdict["t"] * unit_t
 
     num_sections = pdict["num_sections"]
     
@@ -600,7 +599,7 @@ def inequality_6DoF(xdict, pdict, unitdict, condition):
     unit_u = unitdict["u"]
     unit_t = unitdict["t"]
 
-    mass_ = xdict["mass"] * unit_mass
+    #mass_ = xdict["mass"] * unit_mass
     pos_ = xdict["position"].reshape(-1,3) * unit_pos
     vel_ = xdict["velocity"].reshape(-1,3) * unit_vel
     quat_ = xdict["quaternion"].reshape(-1,4)
@@ -616,7 +615,7 @@ def inequality_6DoF(xdict, pdict, unitdict, condition):
         a = pdict["ps_params"][i]["index_start"]
         n = pdict["ps_params"][i]["nodes"]
         b = a + n
-        mass_i_ = mass_[a+i:b+i+1]
+        #mass_i_ = mass_[a+i:b+i+1]
         pos_i_ = pos_[a+i:b+i+1]
         vel_i_ = vel_[a+i:b+i+1]
         quat_i_ = quat_[a+i:b+i+1]
