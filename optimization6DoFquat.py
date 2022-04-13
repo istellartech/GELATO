@@ -593,7 +593,7 @@ def inequality_6DoF(xdict, pdict, unitdict, condition):
     
     con = []
 
-    unit_mass= unitdict["mass"]
+    #unit_mass= unitdict["mass"]
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_u = unitdict["u"]
@@ -622,8 +622,9 @@ def inequality_6DoF(xdict, pdict, unitdict, condition):
         u_i_ = u_[a:b]
         to = t[i]
         tf = t[i+1]
-        t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
-        t_i_ = np.hstack((to, t_nodes))
+        t_i_ = np.zeros(n+1)
+        t_i_[0] = to
+        t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
 
         # kick turn
         if "kick" in pdict["params"][i]["attitude"]:
