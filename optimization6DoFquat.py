@@ -6,6 +6,7 @@ from utils import *
 from USStandardAtmosphere import *
 from coordinate import *
 from tools.plot_output import display_6DoF
+from tools.IIP import posLLH_IIP_FAA
 
 
 @jit(nopython=True)
@@ -832,6 +833,8 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
             "mass"       : mass_,
             "lat"        : np.zeros(N),
             "lon"        : np.zeros(N),
+            "lat_IIP"    : np.zeros(N),
+            "lon_IIP"    : np.zeros(N),
             "alt"        : np.zeros(N),
             "ha"         : np.zeros(N),
             "hp"         : np.zeros(N),
@@ -899,9 +902,7 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
 
         pos_llh = eci2geodetic(pos, t)
         altitude_m = geopotential_altitude(pos_llh[2])
-        out["lat"][i]  = pos_llh[0]
-        out["lon"][i]  = pos_llh[1]
-        out["alt"][i]  = pos_llh[2]
+        out["lat"][i], out["lon"][i], out["alt"][i]  = pos_llh
         
         elem = orbital_elements(pos, vel)
         out["ha"][i] = elem[0] * (1.0 + elem[1]) - 6378137
@@ -941,6 +942,7 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         
         #対気速度
         
+        pos_ecef = eci2ecef(pos, t)
         vel_ecef = vel_eci2ecef(vel, pos, t)
         vel_wind_ned = wind_ned(altitude_m, pdict["wind_table"])
         
@@ -964,6 +966,8 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         out["aero_X"][i] = aero_n_body[0]
         out["accel_X"][i] = (thrust_n + aero_n_body[0]) / mass
         
+        out["lat_IIP"][i], out["lon_IIP"][i], _ = posLLH_IIP_FAA(pos_ecef, vel_ecef)
+
         acc_eci = gravity_eci + (thrust_n_eci + aero_n_eci) / mass
         
         #####
