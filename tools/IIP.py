@@ -36,7 +36,7 @@ def posLLH_IIP_FAA(posECEF_, velECEF_, n_iter=5):
     a_t = r0 / (1 - eps_cos)
     
     # (v)-(G): The eccentricity of the trajectory ellipse multiplied by the sine of the eccentric anomaly at epoch
-    eps_sin = np.inner(posECI_init_, velECI_init_) / sqrt(mu * a_t)
+    eps_sin = np.dot(posECI_init_, velECI_init_) / sqrt(mu * a_t)
     
     # (v)-(H): The eccentricity of the trajectory ellipse squared 
     eps2 = eps_cos**2 + eps_sin**2
