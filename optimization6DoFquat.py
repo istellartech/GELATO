@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 import pandas as pd
+from scipy.interpolate import interp1d
 from numba import jit
 from utils import *
 from USStandardAtmosphere import *
@@ -754,8 +755,23 @@ def cost_6DoF(xdict, condition):
         return xdict["t"][-1] #到達時間を最小化(=余剰推進剤を最大化)
 
 
-def initialize_xdict_6DoF_2(x_init, pdict, condition, unitdict, mode='LGL', dt=0.005, flag_display=True):
-    
+def initialize_xdict_6DoF_2(x_init, pdict, condition, unitdict, mode='LGR', dt=0.005, flag_display=True):
+    """
+    Initialize and set xdict by solving equation of motion.
+
+    Args:
+        x_init (dict) : initial values of state(mass, position, velocity, quaternion)
+        pdict (dict) : calculation parameters
+        condition (dict) : flight condition parameters
+        unitdict (dict) : unit of the state (use for normalizing)
+        mode (str) : calculation mode (LG, LGR or LGL)
+        dt (double) : time step for integration
+        flag_display (bool) : plot and display initial state if true
+
+    Returns:
+        xdict (dict) : initial values of variables for NLP
+
+    """
     xdict = {}
     num_sections = pdict["num_sections"]
      
@@ -804,7 +820,56 @@ def initialize_xdict_6DoF_2(x_init, pdict, condition, unitdict, mode='LGL', dt=0
     if flag_display:
         display_6DoF(output_6DoF(xdict, unitdict, time_x_nodes, time_nodes, pdict))
     return xdict
+
+def initialize_xdict_6DoF_from_file(x_ref, pdict, condition, unitdict, mode='LGL', flag_display=True):
+    """
+    Initialize and set xdict by interpolating reference values.
+
+    Args:
+        x_ref (DataFrame) : time history of state(mass, position, velocity, quaternion)
+        pdict (dict) : calculation parameters
+        condition (dict) : flight condition parameters
+        unitdict (dict) : unit of the state (use for normalizing)
+        mode (str) : calculation mode (LG, LGR or LGL)
+        flag_display (bool) : plot and display initial state if true
+
+    Returns:
+        xdict (dict) : initial values of variables for NLP
+
+    """
+    xdict = {}
+    num_sections = pdict["num_sections"]
+     
+    time_nodes = np.array([])
+    time_x_nodes = np.array([])
     
+    for i in range(num_sections):
+        to = pdict["params"][i]["timeAt_sec"]
+        tf = pdict["params"][i]["timeFinishAt_sec"]
+        tau = pdict["ps_params"][i]["tau"]
+        
+        if mode=='LG' or mode=='LGR':
+            tau_x = np.hstack((-1.0, tau))
+        else:
+            tau_x = tau
+        
+        time_nodes = np.hstack((time_nodes, tau*(tf-to)/2.0 + (tf+to)/2.0))
+        time_x_nodes = np.hstack((time_x_nodes, tau_x*(tf-to)/2.0 + (tf+to)/2.0))
+
+
+    time_knots = np.array([e["timeAt_sec"] for e in pdict["params"]])
+    xdict["t"] = (time_knots / unitdict["t"]).ravel()    
+    
+    xdict["mass"] = (interp1d(x_ref["time"], x_ref["mass"], fill_value="extrapolate")(time_x_nodes) / unitdict["mass"]).ravel()
+    xdict["position"] = (interp1d(x_ref["time"], x_ref[["pos_ECI_X", "pos_ECI_Y", "pos_ECI_Z"]], axis=0, fill_value="extrapolate")(time_x_nodes) / unitdict["position"]).ravel()
+    xdict["velocity"] = (interp1d(x_ref["time"], x_ref[["vel_ECI_X", "vel_ECI_Y", "vel_ECI_Z"]], axis=0, fill_value="extrapolate")(time_x_nodes) / unitdict["velocity"]).ravel()
+    xdict["quaternion"] = (interp1d(x_ref["time"], x_ref[["quat_i2b_0", "quat_i2b_1", "quat_i2b_2", "quat_i2b_3"]], axis=0, fill_value="extrapolate")(time_x_nodes)).ravel()
+    xdict["u"] = (interp1d(x_ref["time"], x_ref[["rate_P", "rate_Q", "rate_R"]], axis=0, fill_value="extrapolate")(time_nodes) / unitdict["u"]).ravel()
+
+    if flag_display:
+        display_6DoF(output_6DoF(xdict, unitdict, time_x_nodes, time_nodes, pdict))
+    return xdict
+
 
 def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
     
