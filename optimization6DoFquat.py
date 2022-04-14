@@ -825,7 +825,8 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
     
     
     out = { "event"      : [""] * N,
-            "time"       : tx_res,
+            "time"       : tx_res.round(6),
+            "stage"      : [""] * N,
             "section"    : np.zeros(N,dtype="i4"),
             "thrust"     : np.zeros(N),
             "mass"       : mass_,
@@ -887,13 +888,14 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         t = tx_res[i]
         
         out["section"][i] = section
-        if i >= pdict["ps_params"][section]["index_start"] + pdict["ps_params"][section]["nodes"] + section:
-            out["event"][i] = pdict["params"][section+1]["name"]
-            section += 1
+        out["stage"][i] = pdict["params"][section]["rocketStage"]
         thrust_vac_n = pdict["params"][section]["thrust_n"]
         massflow_kgps = pdict["params"][section]["massflow_kgps"]
         airArea_m2 = pdict["params"][section]["airArea_m2"]
         nozzleArea_m2 = pdict["params"][section]["nozzleArea_m2"]
+        if i >= pdict["ps_params"][section]["index_start"] + pdict["ps_params"][section]["nodes"] + section:
+            out["event"][i] = pdict["params"][section+1]["name"]
+            section += 1
 
         pos_llh = eci2geodetic(pos, t)
         altitude_m = geopotential_altitude(pos_llh[2])
