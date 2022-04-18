@@ -181,7 +181,7 @@ def objfunc(xdict):
 
 optProb = Optimization("Rocket trajectory optimization", objfunc)
 
-optProb.addVarGroup("mass", len(xdict_init["mass"]), value=xdict_init["mass"], lower=0.0, upper=2.0)
+optProb.addVarGroup("mass", len(xdict_init["mass"]), value=xdict_init["mass"], lower=1.0e-9, upper=2.0)
 optProb.addVarGroup("position", len(xdict_init["position"]), value=xdict_init["position"], lower=-10.0, upper=10.0)
 optProb.addVarGroup("velocity", len(xdict_init["velocity"]), value=xdict_init["velocity"], lower=-20.0, upper=20.0)
 optProb.addVarGroup("quaternion", len(xdict_init["quaternion"]), value=xdict_init["quaternion"], lower=-1.0, upper=1.0)
