@@ -10,7 +10,7 @@ from optimization6DoFquat import *
 from user_constraints import *
 from PSfunctions import *
 from USStandardAtmosphere import *
-from pyoptsparse import IPOPT, Optimization
+from pyoptsparse import IPOPT, SNOPT, Optimization
 
 mission_name = sys.argv[1]
 
@@ -231,9 +231,19 @@ if ie_user is not None:
 
 optProb.addObj("obj")
 
-options_IPOPT = settings["IPOPT"]
-options_IPOPT["output_file"] = "output/{}-IPOPT.out".format(settings["name"])
-opt = IPOPT(options=options_IPOPT)
+
+if "IPOPT" in settings.keys():
+    options_IPOPT = settings["IPOPT"]
+    options_IPOPT["output_file"] = "output/{}-IPOPT.out".format(settings["name"])
+    opt = IPOPT(options=options_IPOPT)
+elif "SNOPT" in settings.keys():
+    options_SNOPT = settings["SNOPT"]
+    options_SNOPT["Print file"] = "output/{}-SNOPT-print.out".format(settings["name"])
+    options_SNOPT["Summary file"] = "output/{}-SNOPT-summary.out".format(settings["name"])
+    opt = SNOPT(options=options_SNOPT)
+else:
+    print("ERROR : UNRECOGNIZED OPTIMIZER. USE IPOPT OR SNOPT.")
+    sys.exit()
 
 sol = opt(optProb, sens="FD")
 
