@@ -247,7 +247,7 @@ else:
     print("ERROR : UNRECOGNIZED OPTIMIZER. USE IPOPT OR SNOPT.")
     sys.exit()
 
-sol = opt(optProb, sens="FD")
+sol = opt(optProb, sens="FD", sensMode="pgc")
 
 # Post processing
 
