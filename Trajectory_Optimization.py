@@ -179,13 +179,13 @@ def objfunc(xdict):
 
 optProb = Optimization("Rocket trajectory optimization", objfunc)
 
-optProb.addVarGroup("mass", len(xdict_init["mass"]), value=xdict_init["mass"], lower=0.0, upper=unit_m*2.0)
-optProb.addVarGroup("position", len(xdict_init["position"]), value=xdict_init["position"], lower=-unit_R*10, upper=unit_R*10)
-optProb.addVarGroup("velocity", len(xdict_init["velocity"]), value=xdict_init["velocity"], lower=-unit_V*20, upper=unit_V*20)
+optProb.addVarGroup("mass", len(xdict_init["mass"]), value=xdict_init["mass"], lower=0.0, upper=2.0)
+optProb.addVarGroup("position", len(xdict_init["position"]), value=xdict_init["position"], lower=-10.0, upper=10.0)
+optProb.addVarGroup("velocity", len(xdict_init["velocity"]), value=xdict_init["velocity"], lower=-20.0, upper=20.0)
 optProb.addVarGroup("quaternion", len(xdict_init["quaternion"]), value=xdict_init["quaternion"], lower=-1.0, upper=1.0)
 
 optProb.addVarGroup("u", len(xdict_init["u"]), value=xdict_init["u"], lower=-9.0, upper=9.0)
-optProb.addVarGroup("t", len(xdict_init["t"]), value=xdict_init["t"], lower=0.0,  upper=2.0)
+optProb.addVarGroup("t", len(xdict_init["t"]), value=xdict_init["t"], lower=0.0,  upper=1.5)
 
 
 e_init     = equality_init(xdict_init, unitdict, condition)
