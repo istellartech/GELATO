@@ -12,6 +12,8 @@ from PSfunctions import *
 from USStandardAtmosphere import *
 from pyoptsparse import IPOPT, SNOPT, Optimization
 
+version = "0.4.0"
+
 mission_name = sys.argv[1]
 
 fin = open(mission_name, 'r')
@@ -279,7 +281,7 @@ res_payload = "payload : {:.3f} kg\n".format(m_res[0] - m_init - sum([item["mass
 
 print("".join([res_initial, res_final, res_payload]))
 with open("output/{}-optResult.txt".format(settings["name"]), mode="w") as fout:
-    fout.write("".join([res_initial, res_final, res_payload]))
+    fout.write("".join([version, "\n", res_initial, res_final, res_payload]))
 
 out = output_6DoF(sol.xStar, unitdict, tx_res, tu_res, pdict)
 
