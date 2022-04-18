@@ -1,4 +1,5 @@
 import sys
+from copy import deepcopy
 import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
@@ -224,7 +225,7 @@ def runge_kutta_4d(function, x, t, dt):
     return x + (k1 + 2.0*k2 + 2.0*k3 + k4) / 6.0 * dt
 
 
-def equality_init(xdict, unitdict, condition):
+def equality_init(xdict, pdict, unitdict, condition):
     
     con = []
     mass_ = xdict["mass"] * unitdict["mass"]
@@ -241,6 +242,29 @@ def equality_init(xdict, unitdict, condition):
 
     return np.concatenate(con, axis=None)
 
+def jac_fd(con, xdict, pdict, unitdict, condition):
+    
+    jac = {}
+    dx = 1.0e-8
+    g_base = con(xdict, pdict, unitdict, condition)
+    if hasattr(g_base,"__len__"):
+        nRows = len(g_base)
+    else:
+        nRows = 1
+    for key,val in xdict.items():
+        jac[key] = np.zeros((nRows, val.size))
+        for i in range(val.size):
+            xdict_p = deepcopy(xdict)
+            xdict_p[key][i] += dx
+            g_p = con(xdict_p, pdict, unitdict, condition)
+            jac[key][:,i] = (g_p - g_base) / dx
+    for key in xdict:
+        jac[key] = to_sparse_simple(jac[key])
+
+    return jac
+
+
+
 def equality_time(xdict, pdict, unitdict, condition):
     con = []
     unit_t = unitdict["t"]
@@ -255,7 +279,7 @@ def equality_time(xdict, pdict, unitdict, condition):
     return np.concatenate(con, axis=None)
 
 
-def equality_dynamics_mass(xdict, pdict, unitdict):
+def equality_dynamics_mass(xdict, pdict, unitdict, condition):
     con = []
 
     unit_mass = unitdict["mass"]
@@ -288,7 +312,7 @@ def equality_dynamics_mass(xdict, pdict, unitdict):
     return np.concatenate(con, axis=None)
 
 
-def equality_dynamics_position(xdict, pdict, unitdict):
+def equality_dynamics_position(xdict, pdict, unitdict, condition):
     con = []
 
     unit_pos = unitdict["position"]
@@ -322,7 +346,7 @@ def equality_dynamics_position(xdict, pdict, unitdict):
                         
     return np.concatenate(con, axis=None)
 
-def equality_dynamics_velocity(xdict, pdict, unitdict):
+def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
     con = []
 
     unit_mass = unitdict["mass"]
@@ -364,7 +388,7 @@ def equality_dynamics_velocity(xdict, pdict, unitdict):
                         
     return np.concatenate(con, axis=None)
 
-def equality_dynamics_quaternion(xdict, pdict, unitdict):
+def equality_dynamics_quaternion(xdict, pdict, unitdict, condition):
     con = []
 
     quat_ = xdict["quaternion"].reshape(-1,4)
@@ -397,7 +421,7 @@ def equality_dynamics_quaternion(xdict, pdict, unitdict):
     return np.concatenate(con, axis=None)
 
 
-def equality_knot_LGR(xdict, pdict, unitdict):
+def equality_knot_LGR(xdict, pdict, unitdict, condition):
     con = []
 
     unit_mass= unitdict["mass"]
@@ -523,7 +547,7 @@ def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     return np.concatenate(con, axis=None)
 
 
-def equality_6DoF_rate(xdict, pdict, unitdict):
+def equality_6DoF_rate(xdict, pdict, unitdict, condition):
     con = []
 
     unit_pos = unitdict["position"]
@@ -581,7 +605,7 @@ def equality_6DoF_rate(xdict, pdict, unitdict):
     return np.concatenate(con, axis=None)
 
 
-def inequality_time(xdict, pdict):
+def inequality_time(xdict, pdict, unitdict, condition):
     con = []
     t_normal = xdict["t"]
 
@@ -754,6 +778,16 @@ def cost_6DoF(xdict, condition):
     else:
         return xdict["t"][-1] #到達時間を最小化(=余剰推進剤を最大化)
 
+def cost_jac(xdict, condition):
+
+    jac = {}
+    if condition["OptimizationMode"] == "Payload":
+        jac["mass"] = np.zeros(xdict["mass"].size)
+        jac["mass"][0] = -1.0
+    else:
+        jac["t"] = np.zeros(xdict["t"].size)
+        jac["t"][-1] = 1.0
+    return jac
 
 def initialize_xdict_6DoF_2(x_init, pdict, condition, unitdict, mode='LGR', dt=0.005, flag_display=True):
     """

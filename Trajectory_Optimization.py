@@ -159,25 +159,36 @@ else:
 def objfunc(xdict):
     funcs = {}
     funcs["obj"] = cost_6DoF(xdict, condition)
-    funcs["eqcon_init"] = equality_init(xdict, unitdict, condition)
+    funcs["eqcon_init"] = equality_init(xdict, pdict, unitdict, condition)
     funcs["eqcon_time"] = equality_time(xdict, pdict, unitdict, condition)
-    funcs["eqcon_dyn_mass"] = equality_dynamics_mass(xdict, pdict, unitdict)
-    funcs["eqcon_dyn_pos"]  = equality_dynamics_position(xdict, pdict, unitdict)
-    funcs["eqcon_dyn_vel"]  = equality_dynamics_velocity(xdict, pdict, unitdict)
-    funcs["eqcon_dyn_quat"] = equality_dynamics_quaternion(xdict, pdict, unitdict)
+    funcs["eqcon_dyn_mass"] = equality_dynamics_mass(xdict, pdict, unitdict, condition)
+    funcs["eqcon_dyn_pos"]  = equality_dynamics_position(xdict, pdict, unitdict, condition)
+    funcs["eqcon_dyn_vel"]  = equality_dynamics_velocity(xdict, pdict, unitdict, condition)
+    funcs["eqcon_dyn_quat"] = equality_dynamics_quaternion(xdict, pdict, unitdict, condition)
 
-    funcs["eqcon_knot"] = equality_knot_LGR(xdict, pdict, unitdict)
+    funcs["eqcon_knot"] = equality_knot_LGR(xdict, pdict, unitdict, condition)
     funcs["eqcon_terminal"] = equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition)
-    funcs["eqcon_rate"] = equality_6DoF_rate(xdict, pdict, unitdict)
+    funcs["eqcon_rate"] = equality_6DoF_rate(xdict, pdict, unitdict, condition)
     funcs["eqcon_user"] = equality_user(xdict, pdict, unitdict, condition)
 
     funcs["ineqcon"] = inequality_6DoF(xdict, pdict, unitdict, condition)
-    funcs["ineqcon_time"] = inequality_time(xdict, pdict)
+    funcs["ineqcon_time"] = inequality_time(xdict, pdict, unitdict, condition)
     funcs["ineqcon_user"] = inequality_user(xdict, pdict, unitdict, condition)
 
     fail = False
     
     return funcs, fail
+
+def sens(xdict, funcs):
+    funcsSens = {}
+    for key_f in funcs.keys():
+        if key_f == "obj":
+            funcsSens[key_f] = cost_jac(xdict, condition)
+        else:
+            funcsSens[key_f] = jac_fd((lambda xd,a,b,c:objfunc(xd)[0][key_f]), xdict, pdict, unitdict, condition)
+
+    fail = False
+    return funcsSens, fail
 
 optProb = Optimization("Rocket trajectory optimization", objfunc)
 
@@ -190,45 +201,45 @@ optProb.addVarGroup("u", len(xdict_init["u"]), value=xdict_init["u"], lower=-9.0
 optProb.addVarGroup("t", len(xdict_init["t"]), value=xdict_init["t"], lower=0.0,  upper=1.5)
 
 
-e_init     = equality_init(xdict_init, unitdict, condition)
+e_init     = equality_init(xdict_init, pdict, unitdict, condition)
 e_time     = equality_time(xdict_init, pdict, unitdict, condition)
-e_dyn_mass = equality_dynamics_mass(xdict_init, pdict, unitdict)
-e_dyn_pos  = equality_dynamics_position(xdict_init, pdict, unitdict)
-e_dyn_vel  = equality_dynamics_velocity(xdict_init, pdict, unitdict)
-e_dyn_quat = equality_dynamics_quaternion(xdict_init, pdict, unitdict)
+e_dyn_mass = equality_dynamics_mass(xdict_init, pdict, unitdict, condition)
+e_dyn_pos  = equality_dynamics_position(xdict_init, pdict, unitdict, condition)
+e_dyn_vel  = equality_dynamics_velocity(xdict_init, pdict, unitdict, condition)
+e_dyn_quat = equality_dynamics_quaternion(xdict_init, pdict, unitdict, condition)
 
-e_knot = equality_knot_LGR(xdict_init, pdict, unitdict)
+e_knot = equality_knot_LGR(xdict_init, pdict, unitdict, condition)
 e_terminal = equality_6DoF_LGR_terminal(xdict_init, pdict, unitdict, condition)
-e_rate = equality_6DoF_rate(xdict_init, pdict, unitdict)
+e_rate = equality_6DoF_rate(xdict_init, pdict, unitdict, condition)
 e_user = equality_user(xdict_init, pdict, unitdict, condition)
 
 ie = inequality_6DoF(xdict_init, pdict, unitdict, condition)
-ie_time = inequality_time(xdict_init, pdict)
+ie_time = inequality_time(xdict_init, pdict, unitdict, condition)
 ie_user = inequality_user(xdict_init, pdict, unitdict, condition)
 
-optProb.addConGroup("eqcon_init",     len(e_init),     lower=0.0, upper=0.0, wrt=["mass","position","velocity","quaternion"])
-optProb.addConGroup("eqcon_time",     len(e_time),     lower=0.0, upper=0.0, wrt=["t"])
-optProb.addConGroup("eqcon_dyn_mass", len(e_dyn_mass), lower=0.0, upper=0.0, wrt=["mass","t"])
-optProb.addConGroup("eqcon_dyn_pos",  len(e_dyn_pos),  lower=0.0, upper=0.0, wrt=["position","velocity","t"])
-optProb.addConGroup("eqcon_dyn_vel",  len(e_dyn_vel),  lower=0.0, upper=0.0, wrt=["mass","position","velocity","quaternion","t"])
-optProb.addConGroup("eqcon_dyn_quat", len(e_dyn_quat), lower=0.0, upper=0.0, wrt=["quaternion","u","t"])
-optProb.addConGroup("eqcon_knot",     len(e_knot),     lower=0.0, upper=0.0)
-optProb.addConGroup("eqcon_terminal", len(e_terminal), lower=0.0, upper=0.0)
-optProb.addConGroup("eqcon_rate",     len(e_rate),     lower=0.0, upper=0.0, wrt=["position","quaternion","u"])
-optProb.addConGroup("ineqcon",        len(ie),         lower=0.0, upper=None)
-optProb.addConGroup("ineqcon_time",   len(ie_time),    lower=0.0, upper=None)
+optProb.addConGroup("eqcon_init",     len(e_init),     lower=0.0, upper=0.0, wrt=["mass","position","velocity","quaternion"], linear=True, jac=jac_fd(equality_init, xdict_init, pdict, unitdict, condition))
+optProb.addConGroup("eqcon_time",     len(e_time),     lower=0.0, upper=0.0, wrt=["t"], linear=True, jac=jac_fd(equality_time, xdict_init, pdict, unitdict, condition))
+optProb.addConGroup("eqcon_dyn_mass", len(e_dyn_mass), lower=0.0, upper=0.0, wrt=["mass","t"], jac=jac_fd(equality_dynamics_mass, xdict_init, pdict, unitdict, condition))
+optProb.addConGroup("eqcon_dyn_pos",  len(e_dyn_pos),  lower=0.0, upper=0.0, wrt=["position","velocity","t"], jac=jac_fd(equality_dynamics_position, xdict_init, pdict, unitdict, condition))
+optProb.addConGroup("eqcon_dyn_vel",  len(e_dyn_vel),  lower=0.0, upper=0.0, wrt=["mass","position","velocity","quaternion","t"], jac=jac_fd(equality_dynamics_velocity, xdict_init, pdict, unitdict, condition))
+optProb.addConGroup("eqcon_dyn_quat", len(e_dyn_quat), lower=0.0, upper=0.0, wrt=["quaternion","u","t"], jac=jac_fd(equality_dynamics_quaternion, xdict_init, pdict, unitdict, condition))
+optProb.addConGroup("eqcon_knot",     len(e_knot),     lower=0.0, upper=0.0, linear=True, jac=jac_fd(equality_knot_LGR, xdict_init, pdict, unitdict, condition))
+optProb.addConGroup("eqcon_terminal", len(e_terminal), lower=0.0, upper=0.0, jac=jac_fd(equality_6DoF_LGR_terminal, xdict_init, pdict, unitdict, condition))
+optProb.addConGroup("eqcon_rate",     len(e_rate),     lower=0.0, upper=0.0, wrt=["position","quaternion","u"], jac=jac_fd(equality_6DoF_rate, xdict_init, pdict, unitdict, condition))
+optProb.addConGroup("ineqcon",        len(ie),         lower=0.0, upper=None, jac=jac_fd(inequality_6DoF, xdict_init, pdict, unitdict, condition))
+optProb.addConGroup("ineqcon_time",   len(ie_time),    lower=0.0, upper=None, linear=True, jac=jac_fd(inequality_time, xdict_init, pdict, unitdict, condition))
 
 if e_user is not None:
     if hasattr(e_user,"__len__"):
-        optProb.addConGroup("eqcon_user", len(e_user), lower=0.0, upper=0.0)
+        optProb.addConGroup("eqcon_user", len(e_user), lower=0.0, upper=0.0, jac=jac_fd(equality_user, xdict_init, pdict, unitdict, condition))
     else:
-        optProb.addConGroup("eqcon_user", 1, lower=0.0, upper=0.0)
+        optProb.addConGroup("eqcon_user", 1, lower=0.0, upper=0.0, jac=jac_fd(equality_user, xdict_init, pdict, unitdict, condition))
 
 if ie_user is not None:
     if hasattr(ie_user,"__len__"):
-        optProb.addConGroup("ineqcon_user", len(ie_user), lower=0.0, upper=None)
+        optProb.addConGroup("ineqcon_user", len(ie_user), lower=0.0, upper=None, jac=jac_fd(inequality_user, xdict_init, pdict, unitdict, condition))
     else:
-        optProb.addConGroup("ineqcon_user", 1, lower=0.0, upper=None)
+        optProb.addConGroup("ineqcon_user", 1, lower=0.0, upper=None, jac=jac_fd(inequality_user, xdict_init, pdict, unitdict, condition))
 
 
 optProb.addObj("obj")
@@ -247,7 +258,7 @@ else:
     print("ERROR : UNRECOGNIZED OPTIMIZER. USE IPOPT OR SNOPT.")
     sys.exit()
 
-sol = opt(optProb, sens="FD")
+sol = opt(optProb, sens=sens)
 
 # Post processing
 
