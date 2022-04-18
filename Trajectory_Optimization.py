@@ -146,7 +146,7 @@ condition["init"]["u"] = u_init
 condition["init_azimuth_deg"] = launch_conditions["init_azimuth_deg"]
 condition["OptimizationMode"] = settings["OptimizationMode"]
 
-if "Initial trajectory file" in settings.keys():
+if "Initial trajectory file" in settings.keys() and settings["Initial trajectory file"] is not None:
     x_ref = pd.read_csv(settings["Initial trajectory file"])
     xdict_init = initialize_xdict_6DoF_from_file(x_ref, pdict, condition, unitdict, 'LGR', False)
 
