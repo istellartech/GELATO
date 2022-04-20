@@ -576,6 +576,7 @@ def equality_6DoF_rate(xdict, pdict, unitdict, condition):
         if att == "hold" or att == "vertical":
             con.append(u_i_)
         
+        
         # kick-turn : pitch rate constant, roll/yaw rate is zero
         elif att == "kick-turn" or att == "pitch":
             con.append(u_i_[:,0])
