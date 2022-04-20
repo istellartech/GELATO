@@ -258,8 +258,6 @@ def jac_fd(con, xdict, pdict, unitdict, condition):
             xdict_p[key][i] += dx
             g_p = con(xdict_p, pdict, unitdict, condition)
             jac[key][:,i] = (g_p - g_base) / dx
-    for key in xdict:
-        jac[key] = to_sparse_simple(jac[key])
 
     return jac
 
@@ -573,33 +571,37 @@ def equality_6DoF_rate(xdict, pdict, unitdict, condition):
         #rate constraint
         
         att = pdict["params"][i]["attitude"]
-        if att == "zero-lift-turn" or att == "free":
-            #zero-lift-turn: pitch/yaw free, roll hold
+
+        # attitude hold : angular velocity is zero
+        if att == "hold" or att == "vertical":
+            con.append(u_i_)
+        
+        # kick-turn : pitch rate constant, roll/yaw rate is zero
+        elif att == "kick-turn" or att == "pitch":
+            con.append(u_i_[:,0])
+            con.append(u_i_[:,2])
+            con.append(u_i_[1:,1] - u_i_[0,1])
+
+        # pitch-yaw : pitch/yaw constant, roll ANGLE is zero
+        elif att == "pitch-yaw":
+            con.append(u_i_[1:,1] - u_i_[0,1])
+            con.append(u_i_[1:,2] - u_i_[0,2])
+            con.append(roll_direction_array(pos_i_[1:], quat_i_[1:]))
+        
+        # same-rate : pitch/yaw is the same as previous section, roll ANGLE is zero
+        elif att == "same-rate":
+            uf_prev = u_[a-1]
+            con.append(u_i_[:,1] - uf_prev[1])
+            con.append(u_i_[:,2] - uf_prev[2])
+            con.append(roll_direction_array(pos_i_[1:], quat_i_[1:]))
+
+        # zero-lift-turn or free : roll hold
+        elif att == "zero-lift-turn" or att == "free":
             con.append(u_i_[:,0])
         
-        else:    
-            # pitch/yaw rate constant
-            if att != "pitch-yaw-free":
-                con.append((u_i_[1:,1:] - u_i_[0,1:]).ravel())
-            
-            
-            if pdict["params"][i]["hold_yaw"]:
-                
-                # yaw hold
-                con.append(u_i_[0,2])
-                con.append(u_i_[:,0])
-                if pdict["params"][i]["hold_pitch"]:
-                    # total attitude hold
-                    con.append(u_i_[0,1])
-            else:
-                # roll constraint
-                con.append(roll_direction_array(pos_i_[1:], quat_i_[1:]))
-                
-                if att == "same-rate":
-                    # same pitch/yaw rate as previous section
-                    uf_prev = u_[a-1]
-                    con.append(u_i_[0,1:] - uf_prev[1:])
-
+        else:
+            print("ERROR: UNKNOWN ATTITUDE OPTION! ({})".format(att))
+            sys.exit()
             
             
     return np.concatenate(con, axis=None)
