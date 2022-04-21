@@ -7,7 +7,6 @@ import json
 from utils import *
 from coordinate import *
 from optimization6DoFquat import *
-from user_constraints import *
 from PSfunctions import *
 from USStandardAtmosphere import *
 from pyoptsparse import IPOPT, SNOPT, Optimization
@@ -97,7 +96,7 @@ pdict["ps_params"]= [{"index_start": index[i],"nodes": nodes[i], "D" : D[i], "ta
 pdict["wind_table"] = wind_table
 pdict["ca_table"] = ca_table
 pdict["N"] = N
-pdict["total_points"] = N + num_sections
+pdict["M"] = N + num_sections
 pdict["num_sections"] = num_sections
 
 r_init = launchsite_eci
