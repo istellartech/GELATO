@@ -167,11 +167,23 @@ def objfunc(xdict):
 
 def sens(xdict, funcs):
     funcsSens = {}
-    for key_f in funcs.keys():
-        if key_f == "obj":
-            funcsSens[key_f] = cost_jac(xdict, condition)
-        else:
-            funcsSens[key_f] = jac_fd((lambda xd,a,b,c:objfunc(xd)[0][key_f]), xdict, pdict, unitdict, condition)
+    funcsSens["obj"] = cost_jac(xdict, condition)
+    funcsSens["eqcon_init"] = equality_jac_init(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_time"] = equality_jac_time(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_dyn_mass"] = equality_jac_dynamics_mass(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_dyn_pos"]  = equality_jac_dynamics_position(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_dyn_vel"]  = equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_dyn_quat"] = equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition)
+
+    funcsSens["eqcon_knot"] = equality_jac_knot_LGR(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_terminal"] = equality_jac_6DoF_LGR_terminal(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_rate"] = equality_jac_6DoF_rate(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_user"] = equality_jac_user(xdict, pdict, unitdict, condition)
+
+    funcsSens["ineqcon"] = inequality_jac_6DoF(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_kick"] = inequality_jac_kickturn(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_time"] = inequality_jac_time(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_user"] = inequality_jac_user(xdict, pdict, unitdict, condition)
 
     fail = False
     return funcsSens, fail
@@ -187,6 +199,7 @@ optProb.addVarGroup("u", len(xdict_init["u"]), value=xdict_init["u"], lower=-9.0
 optProb.addVarGroup("t", len(xdict_init["t"]), value=xdict_init["t"], lower=0.0,  upper=1.5)
 
 f_init = objfunc(xdict_init)[0]
+jac_init = sens(xdict_init, f_init)[0]
 
 wrt = {
     "eqcon_init"     : ["mass", "position", "velocity", "quaternion"],
@@ -199,11 +212,14 @@ wrt = {
     "eqcon_terminal" : ["position", "velocity"],
     "eqcon_rate"     : ["position", "quaternion", "u"],
     "eqcon_user"     : ["mass", "position", "velocity", "quaternion", "u", "t"],
-    "ineqcon"        : ["mass", "position", "velocity", "quaternion", "t"],
+    "ineqcon"        : ["position", "velocity", "quaternion", "t"],
     "ineqcon_kick"   : ["u"],
     "ineqcon_time"   : ["t"],
     "ineqcon_user"   : ["mass", "position", "velocity", "quaternion", "u", "t"]
 }
+
+if condition["OptimizationMode"] == "Payload":
+    wrt["eqcon_init"] = ["position", "velocity", "quaternion"]
 
 for key, val in f_init.items():
     if key == "obj":
@@ -219,9 +235,9 @@ for key, val in f_init.items():
                 upper_bound = 0.0
 
             if hasattr(val, "__len__"):
-                optProb.addConGroup(key, len(val), lower=lower_bound, upper=upper_bound, wrt=wrt[key])
+                optProb.addConGroup(key, len(val), lower=lower_bound, upper=upper_bound, wrt=wrt[key], jac=jac_init[key])
             else:
-                optProb.addConGroup(key, 1, lower=lower_bound, upper=upper_bound, wrt=wrt[key])
+                optProb.addConGroup(key, 1, lower=lower_bound, upper=upper_bound, wrt=wrt[key], jac=jac_init[key])
 
 
 
@@ -238,7 +254,7 @@ else:
     print("ERROR : UNRECOGNIZED OPTIMIZER. USE IPOPT OR SNOPT.")
     sys.exit()
 
-sol = opt(optProb, sens="FD")
+sol = opt(optProb, sens=sens)
 
 # Post processing
 
