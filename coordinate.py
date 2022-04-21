@@ -252,10 +252,11 @@ def euler_from_dcm(C):
 def dcm_from_thrustvector(pos_eci, u):
 
     xb_dir = normalize(u)
-    if u.dot(normalize(pos_eci)) > 0.999999:
+    pos_dir = normalize(pos_eci)
+    if u[0]*pos_dir[0] + u[1]*pos_dir[1] + u[2]*pos_dir[2] >= 1.0:
         yb_dir = normalize(np.cross(np.array([0.0, 0.0, 1.0]), u))
     else:
-        yb_dir = normalize(np.cross(u, normalize(pos_eci)))
+        yb_dir = normalize(np.cross(u, pos_dir))
     zb_dir = np.cross(u, yb_dir)
 
     return np.vstack((xb_dir, yb_dir, zb_dir))  
@@ -271,20 +272,19 @@ def orbital_elements(r_eci, v_eci):
     GMe = 3.986004418e14
     
     nr = normalize(r_eci)
-    v_r = nr.dot(v_eci)
-    v_n = norm(v_eci - v_r * normalize(nr))
-    
+
     c_eci = np.cross(r_eci, v_eci) # orbit plane vector
-    f_eci = np.cross(v_eci, c_eci) - GMe * normalize(r_eci) # Laplace vector
+    f_eci = np.cross(v_eci, c_eci) - GMe * nr # Laplace vector
     
     c1_eci = normalize(c_eci)
+    f1_eci = normalize(f_eci)
     
     inclination_rad = acos(c1_eci[2])
     
     if inclination_rad > 1e-10:
         ascending_node_rad = atan2(c1_eci[0], -c1_eci[1])
         n_eci = np.array([cos(ascending_node_rad), sin(ascending_node_rad), 0.0]) # direction of ascending node
-        argument_perigee = acos(n_eci.dot(normalize(f_eci)))
+        argument_perigee = acos(n_eci[0]*f1_eci[0] + n_eci[1]*f1_eci[1])
         if f_eci[2] < 0:
             argument_perigee *= -1.0
     else:
@@ -295,8 +295,8 @@ def orbital_elements(r_eci, v_eci):
     e = norm(f_eci) / GMe # eccentricity
     a = p / (1.0 - e**2) # semi-major axis
     
-    true_anomaly_rad = acos(normalize(f_eci).dot(normalize(r_eci)))
-    if v_eci.dot(r_eci) < 0.0:
+    true_anomaly_rad = acos(f1_eci[0]*nr[0] + f1_eci[1]*nr[1] + f1_eci[2]*nr[2])
+    if v_eci[0]*r_eci[0] + v_eci[1]*r_eci[1] + v_eci[2]*r_eci[2] < 0.0:
         true_anomaly_rad = 2.0*np.pi - true_anomaly_rad
         
     return np.array([a, e, degrees(inclination_rad), degrees(ascending_node_rad), degrees(argument_perigee), degrees(true_anomaly_rad)])
