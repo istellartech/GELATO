@@ -282,14 +282,27 @@ for i in range(num_sections):
 
 m_res = sol.xStar["mass"] * unitdict["mass"]
 
-res_version = "IST Trajectory Optimizer version : {}\n".format(version)
-res_initial = "initial mass : {:.3f} kg\n".format(m_res[0])
-res_final   = "final mass : {:.3f} kg\n".format(m_res[-1])
-res_payload = "payload : {:.3f} kg\n".format(m_res[0] - m_init - sum([item["mass_kg"] for item in dropmass.values()]))
+res_info = []
+res_info.append("IST Trajectory Optimizer v{}\n\n".format(version))
+res_info.append("Input file name : {}\n\n".format(mission_name))
+res_info.append("initial mass    : {:10.3f} kg\n".format(m_res[0]))
+res_info.append("final mass      : {:10.3f} kg\n".format(m_res[-1]))
+res_info.append("payload         : {:10.3f} kg\n\n".format(m_res[0] - m_init - sum([item["mass_kg"] for item in dropmass.values()])))
 
-print("".join([res_initial, res_final, res_payload]))
+res_info.append("optTime         : {:11.6f}\n".format(sol.optTime))
+res_info.append("userObjTime     : {:11.6f}\n".format(sol.userObjTime))
+res_info.append("userSensTime    : {:11.6f}\n".format(sol.userSensTime))
+res_info.append("interfaceTime   : {:11.6f}\n".format(sol.interfaceTime))
+res_info.append("optCodeTime     : {:11.6f}\n".format(sol.optCodeTime))
+res_info.append("userObjCalls    : {:4d}\n".format(sol.userObjCalls))
+res_info.append("userSensCalls   : {:4d}\n\n".format(sol.userSensCalls))
+
+res_info.append("{} (code {})\n".format(sol.optInform["text"], str(sol.optInform["value"])))
+
+
+print("".join(res_info[1:]))
 with open("output/{}-optResult.txt".format(settings["name"]), mode="w") as fout:
-    fout.write("".join([res_version, res_initial, res_final, res_payload]))
+    fout.write("".join(res_info))
 
 out = output_6DoF(sol.xStar, unitdict, tx_res, tu_res, pdict)
 
