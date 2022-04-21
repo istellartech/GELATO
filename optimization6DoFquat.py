@@ -12,20 +12,12 @@ from tools.IIP import posLLH_IIP_FAA
 
 
 @jit(nopython=True)
-def dynamics_mass(param):
-
-    massflow_kgps = param[1]    
+def dynamics_velocity(mass_e, pos_eci_e, vel_eci_e, quat_eci2body, t, param, wind, ca, units):
     
-    return -massflow_kgps
-
-@jit(nopython=True)
-def dynamics_position(vel_eci):
-    return vel_eci
-
-@jit(nopython=True)
-def dynamics_velocity(mass, pos_eci, vel_eci, quat_eci2body, t, param, wind, ca):
-    
-    acc_eci = np.zeros(vel_eci.shape)
+    mass = mass_e * units[0]
+    pos_eci = pos_eci_e * units[1]
+    vel_eci = vel_eci_e * units[2]
+    acc_eci = np.zeros(vel_eci_e.shape)
 
     thrust_vac_n = param[0]
     airArea_m2 = param[2]
@@ -55,10 +47,12 @@ def dynamics_velocity(mass, pos_eci, vel_eci, quat_eci2body, t, param, wind, ca)
         
         acc_eci[i] = gravity_eci + (thrust_n_eci + aero_n_eci) / mass[i]
         
-    return acc_eci
+    return acc_eci / units[2]
 
 @jit(nopython=True)
-def dynamics_quaternion(quat_eci2body, u):
+def dynamics_quaternion(quat_eci2body, u_e, unit_u):
+
+    u = u_e * unit_u
 
     d_quat = np.zeros(quat_eci2body.shape)
     for i in range(len(u)):
@@ -228,16 +222,16 @@ def runge_kutta_4d(function, x, t, dt):
 def equality_init(xdict, pdict, unitdict, condition):
     
     con = []
-    mass_ = xdict["mass"] * unitdict["mass"]
-    pos_ = xdict["position"].reshape(-1,3) * unitdict["position"]
-    vel_ = xdict["velocity"].reshape(-1,3) * unitdict["velocity"]
+    mass_ = xdict["mass"]
+    pos_ = xdict["position"].reshape(-1,3)
+    vel_ = xdict["velocity"].reshape(-1,3)
     quat_ = xdict["quaternion"].reshape(-1,4)
 
     #initial condition
     if condition["OptimizationMode"] != "Payload":
-        con.append((mass_[0] - condition["init"]["mass"]) / unitdict["mass"])
-    con.append((pos_[0] - condition["init"]["position"]) / unitdict["position"])
-    con.append((vel_[0] - condition["init"]["velocity"]) / unitdict["velocity"])
+        con.append(mass_[0] - condition["init"]["mass"] / unitdict["mass"])
+    con.append(pos_[0] - condition["init"]["position"] / unitdict["position"])
+    con.append(vel_[0] - condition["init"]["velocity"] / unitdict["velocity"])
     con.append(quat_[0] - condition["init"]["quaternion"])
 
     return np.concatenate(con, axis=None)
@@ -267,12 +261,12 @@ def equality_time(xdict, pdict, unitdict, condition):
     con = []
     unit_t = unitdict["t"]
     
-    t = xdict["t"] * unit_t
+    t_ = xdict["t"]
 
     num_sections = pdict["num_sections"]
     
     #knotting time
-    con.append([(t[i] - pdict["params"][i]["timeAt_sec"]) / unit_t for i in range(num_sections+1) if pdict["params"][i]["timeFixed"]])
+    con.append([t_[i] - pdict["params"][i]["timeAt_sec"] / unit_t for i in range(num_sections+1) if pdict["params"][i]["timeFixed"]])
     
     return np.concatenate(con, axis=None)
 
@@ -281,7 +275,7 @@ def equality_dynamics_mass(xdict, pdict, unitdict, condition):
     con = []
 
     unit_mass = unitdict["mass"]
-    mass_ = xdict["mass"] * unit_mass
+    mass_ = xdict["mass"]
     t = xdict["t"] * unitdict["t"]
 
     num_sections = pdict["num_sections"]
@@ -297,14 +291,12 @@ def equality_dynamics_mass(xdict, pdict, unitdict, condition):
         tf = t[i+1]
         # t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
         
-        param[0] = pdict["params"][i]["thrust_n"]
-        param[1] = pdict["params"][i]["massflow_kgps"]
-        param[2] = pdict["params"][i]["airArea_m2"]
-        param[4] = pdict["params"][i]["nozzleArea_m2"]
-
-        lh = pdict["ps_params"][i]["D"].dot(mass_i_ / unit_mass)
-        rh = np.full(n, -param[1] * (tf-to) / 2.0 / unit_mass) #dynamics_mass
-        con.append(lh - rh)
+        if pdict["params"][i]["engineOn"]:    
+            lh = pdict["ps_params"][i]["D"].dot(mass_i_)
+            rh = np.full(n, -pdict["params"][i]["massflow_kgps"] / unit_mass * (tf-to) / 2.0 ) #dynamics_mass
+            con.append(lh - rh)
+        else:
+            con.append(mass_i_[1:] - mass_i_[0])
             
             
     return np.concatenate(con, axis=None)
@@ -315,8 +307,8 @@ def equality_dynamics_position(xdict, pdict, unitdict, condition):
 
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
-    pos_ = xdict["position"].reshape(-1,3) * unit_pos
-    vel_ = xdict["velocity"].reshape(-1,3) * unit_vel
+    pos_ = xdict["position"].reshape(-1,3)
+    vel_ = xdict["velocity"].reshape(-1,3)
     t = xdict["t"] * unitdict["t"]
 
     num_sections = pdict["num_sections"]
@@ -338,8 +330,8 @@ def equality_dynamics_position(xdict, pdict, unitdict, condition):
         param[2] = pdict["params"][i]["airArea_m2"]
         param[4] = pdict["params"][i]["nozzleArea_m2"]
 
-        lh = pdict["ps_params"][i]["D"].dot(pos_i_ / unit_pos)
-        rh = vel_i_[1:] * (tf-to) / 2.0 / unit_pos #dynamics_position
+        lh = pdict["ps_params"][i]["D"].dot(pos_i_)
+        rh = vel_i_[1:] * unit_vel * (tf-to) / 2.0 / unit_pos #dynamics_position
         con.append((lh - rh).ravel())
                         
     return np.concatenate(con, axis=None)
@@ -350,11 +342,13 @@ def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
     unit_mass = unitdict["mass"]
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
-    mass_ = xdict["mass"] * unit_mass 
-    pos_ = xdict["position"].reshape(-1,3) * unit_pos
-    vel_ = xdict["velocity"].reshape(-1,3) * unit_vel
+    mass_ = xdict["mass"]
+    pos_ = xdict["position"].reshape(-1,3)
+    vel_ = xdict["velocity"].reshape(-1,3)
     quat_ = xdict["quaternion"].reshape(-1,4)
     t = xdict["t"] * unitdict["t"]
+
+    units = np.array([unit_mass, unit_pos, unit_vel])
 
     num_sections = pdict["num_sections"]
     
@@ -380,8 +374,8 @@ def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
         wind = pdict["wind_table"]
         ca = pdict["ca_table"]
 
-        lh = pdict["ps_params"][i]["D"].dot(vel_i_ / unit_vel)
-        rh = dynamics_velocity(mass_i_[1:], pos_i_[1:], vel_i_[1:], quat_i_[1:], t_nodes, param, wind, ca) * (tf-to) / 2.0 / unit_vel
+        lh = pdict["ps_params"][i]["D"].dot(vel_i_)
+        rh = dynamics_velocity(mass_i_[1:], pos_i_[1:], vel_i_[1:], quat_i_[1:], t_nodes, param, wind, ca, units) * (tf-to) / 2.0
         con.append((lh - rh).ravel())
                         
     return np.concatenate(con, axis=None)
@@ -389,14 +383,13 @@ def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
 def equality_dynamics_quaternion(xdict, pdict, unitdict, condition):
     con = []
 
+    unit_u = unitdict["u"]
     quat_ = xdict["quaternion"].reshape(-1,4)
-    u_ = xdict["u"].reshape(-1,3) * unitdict["u"]
+    u_ = xdict["u"].reshape(-1,3)
     t = xdict["t"] * unitdict["t"]
 
     num_sections = pdict["num_sections"]
-    
-    param = np.zeros(5)
-    
+
     for i in range(num_sections):
         a = pdict["ps_params"][i]["index_start"]
         n = pdict["ps_params"][i]["nodes"]
@@ -406,15 +399,13 @@ def equality_dynamics_quaternion(xdict, pdict, unitdict, condition):
         to = t[i]
         tf = t[i+1]
         # t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
-        
-        param[0] = pdict["params"][i]["thrust_n"]
-        param[1] = pdict["params"][i]["massflow_kgps"]
-        param[2] = pdict["params"][i]["airArea_m2"]
-        param[4] = pdict["params"][i]["nozzleArea_m2"]
 
-        lh = pdict["ps_params"][i]["D"].dot(quat_i_)
-        rh = dynamics_quaternion(quat_i_[1:], u_i_) * (tf-to) / 2.0
-        con.append((lh - rh).ravel())
+        if pdict["params"][i]["attitude"] in ["hold", "vertical"]:
+            con.append((quat_i_[1:] - quat_i_[0]).ravel())
+        else:
+            lh = pdict["ps_params"][i]["D"].dot(quat_i_)
+            rh = dynamics_quaternion(quat_i_[1:], u_i_, unit_u) * (tf-to) / 2.0
+            con.append((lh - rh).ravel())
                         
     return np.concatenate(con, axis=None)
 
@@ -422,13 +413,9 @@ def equality_dynamics_quaternion(xdict, pdict, unitdict, condition):
 def equality_knot_LGR(xdict, pdict, unitdict, condition):
     con = []
 
-    unit_mass= unitdict["mass"]
-    unit_pos = unitdict["position"]
-    unit_vel = unitdict["velocity"]
-
-    mass_ = xdict["mass"] * unit_mass
-    pos_ = xdict["position"].reshape(-1,3) * unit_pos
-    vel_ = xdict["velocity"].reshape(-1,3) * unit_vel
+    mass_ = xdict["mass"]
+    pos_ = xdict["position"].reshape(-1,3)
+    vel_ = xdict["velocity"].reshape(-1,3)
     quat_ = xdict["quaternion"].reshape(-1,4)
     
     num_sections = pdict["num_sections"]
@@ -453,19 +440,19 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
         # knotting constraints: 現在のsectionの末尾と次のsectionの先頭の連続性
         mass_next_ = mass_[b+i+1]
         mass_final_ = mass_i_[-1]
-        con.append((mass_next_ - mass_final_ + pdict["params"][i+1]["mass_jettison_kg"]) / unit_mass)
+        con.append(mass_next_ - mass_final_ + pdict["params"][i+1]["mass_jettison_kg"] / unitdict["mass"])
 
         pos_next_ = pos_[b+i+1]
         pos_final_ = pos_i_[-1]
-        con.append((pos_next_ - pos_final_) / unit_pos)
+        con.append(pos_next_ - pos_final_)
 
         vel_next_ = vel_[b+i+1]
         vel_final_ = vel_i_[-1]
-        con.append((vel_next_ - vel_final_) / unit_vel)
+        con.append(vel_next_ - vel_final_)
 
         quat_next_ = quat_[b+i+1]
         quat_final_ = quat_i_[-1]
-        con.append((quat_next_ - quat_final_))
+        con.append(quat_next_ - quat_final_)
 
     return np.concatenate(con, axis=None)
 
@@ -473,43 +460,16 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
 def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     con = []
 
-    #unit_mass= unitdict["mass"]
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
-    #unit_u = unitdict["u"]
-    #unit_t = unitdict["t"]
 
-    #mass_ = xdict["mass"] * unit_mass
-    pos_ = xdict["position"].reshape(-1,3) * unit_pos
-    vel_ = xdict["velocity"].reshape(-1,3) * unit_vel
-    #quat_ = xdict["quaternion"].reshape(-1,4)
-    
-    #u_ = xdict["u"].reshape(-1,3) * unit_u
-    #t = xdict["t"] * unit_t
-
-    num_sections = pdict["num_sections"]
-    
-    
-    param = np.zeros(5)
-    
-    i = num_sections - 1
-
-    a = pdict["ps_params"][i]["index_start"]
-    n = pdict["ps_params"][i]["nodes"]
-    b = a + n
-    pos_i_ = pos_[a+i:b+i+1]
-    vel_i_ = vel_[a+i:b+i+1]
-            
-    param[0] = pdict["params"][i]["thrust_n"]
-    param[1] = pdict["params"][i]["massflow_kgps"]
-    param[2] = pdict["params"][i]["airArea_m2"]
-    param[4] = pdict["params"][i]["nozzleArea_m2"]
-            
+    pos_ = xdict["position"].reshape(-1,3)
+    vel_ = xdict["velocity"].reshape(-1,3)
 
     # terminal conditions
 
-    pos_f = pos_i_[-1]
-    vel_f = vel_i_[-1]
+    pos_f = pos_[-1] * unit_pos
+    vel_f = vel_[-1] * unit_vel
 
     elem = orbital_elements(pos_f, vel_f)
     
@@ -549,12 +509,11 @@ def equality_6DoF_rate(xdict, pdict, unitdict, condition):
     con = []
 
     unit_pos = unitdict["position"]
-    unit_u = unitdict["u"]
 
-    pos_ = xdict["position"].reshape(-1,3) * unit_pos
+    pos_ = xdict["position"].reshape(-1,3)
     quat_ = xdict["quaternion"].reshape(-1,4)
     
-    u_ = xdict["u"].reshape(-1,3) * unit_u
+    u_ = xdict["u"].reshape(-1,3)
 
     num_sections = pdict["num_sections"]
     
@@ -573,7 +532,7 @@ def equality_6DoF_rate(xdict, pdict, unitdict, condition):
         att = pdict["params"][i]["attitude"]
 
         # attitude hold : angular velocity is zero
-        if att == "hold" or att == "vertical":
+        if att in ["hold", "vertical"]:
             con.append(u_i_)
         
         
@@ -587,14 +546,14 @@ def equality_6DoF_rate(xdict, pdict, unitdict, condition):
         elif att == "pitch-yaw":
             con.append(u_i_[1:,1] - u_i_[0,1])
             con.append(u_i_[1:,2] - u_i_[0,2])
-            con.append(roll_direction_array(pos_i_[1:], quat_i_[1:]))
+            con.append(roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:]))
         
         # same-rate : pitch/yaw is the same as previous section, roll ANGLE is zero
         elif att == "same-rate":
             uf_prev = u_[a-1]
             con.append(u_i_[:,1] - uf_prev[1])
             con.append(u_i_[:,2] - uf_prev[2])
-            con.append(roll_direction_array(pos_i_[1:], quat_i_[1:]))
+            con.append(roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:]))
 
         # zero-lift-turn or free : roll hold
         elif att == "zero-lift-turn" or att == "free":
