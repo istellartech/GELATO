@@ -823,16 +823,30 @@ def equality_jac_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
         nRow = len(f_center)
     else:
         nRow = 1
+    
+    jac_base = {
+        "position" : np.zeros((nRow, pdict["M"]*3)),
+        "velocity" : np.zeros((nRow, pdict["M"]*3))
+    }
 
-    jac["position"] = sparse.lil_matrix((nRow, pdict["M"]*3))
-    jac["velocity"] = sparse.lil_matrix((nRow, pdict["M"]*3))
 
     for key in ["position", "velocity"]:
+
+        jac_base[key][:,-3:] = 1.0
+        jac_base_coo = sparse.coo_matrix(jac_base[key])
+        jac[key] = {
+            "coo" : [jac_base_coo.row, jac_base_coo.col, jac_base_coo.data],
+            "shape" : jac_base[key].shape
+        }
+
         for j in range(-3,0):
             xdict_p = deepcopy(xdict)
             xdict_p[key][j] += dx
             f_p = equality_6DoF_LGR_terminal(xdict_p, pdict, unitdict, condition)
-            jac[key][:, j] = (f_p - f_center) / dx
+            jac_base[key][:, j] = (f_p - f_center) / dx
+        
+        for i in range(len(jac[key]["coo"][0])):
+            jac[key]["coo"][2][i] = jac_base[key][jac[key]["coo"][0][i], jac[key]["coo"][1][i]]
 
     return jac
 
