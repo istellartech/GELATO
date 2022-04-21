@@ -155,14 +155,13 @@ def rocket_simulation(x_init, u_table, pdict, t_init, t_out, dt=0.1):
                 param[1] = pdict["params"][event_index]["massflow_kgps"]
                 param[2] = pdict["params"][event_index]["airArea_m2"]
                 param[4] = pdict["params"][event_index]["nozzleArea_m2"]
-                zlt = pdict["params"][event_index]["do_zeroliftturn"]
                 x[0] -= pdict["params"][event_index]["mass_jettison_kg"]
         
         u = np.array([np.interp(t, u_table[:,0], u_table[:,i+1]) for i in range(3)])
         x = runge_kutta_4d(lambda xa,ta:dynamics(xa, u, ta, param, zlt, wind, ca), x, t, dt)
         t = t + dt
             
-        if zlt:
+        if pdict["params"][event_index]["attitude"] == "zero-lift-turn":
             x[7:11] = zerolift_turn_correct(x, t, wind)
         x[7:11] = normalize(x[7:11])
         
