@@ -158,6 +158,7 @@ def objfunc(xdict):
     funcs["eqcon_user"] = equality_user(xdict, pdict, unitdict, condition)
 
     funcs["ineqcon"] = inequality_6DoF(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_kick"] = inequality_kickturn(xdict, pdict, unitdict, condition)
     funcs["ineqcon_time"] = inequality_time(xdict, pdict, unitdict, condition)
     funcs["ineqcon_user"] = inequality_user(xdict, pdict, unitdict, condition)
 
@@ -199,7 +200,8 @@ wrt = {
     "eqcon_terminal" : ["position", "velocity"],
     "eqcon_rate"     : ["position", "quaternion", "u"],
     "eqcon_user"     : ["mass", "position", "velocity", "quaternion", "u", "t"],
-    "ineqcon"        : ["mass", "position", "velocity", "quaternion", "u", "t"],
+    "ineqcon"        : ["mass", "position", "velocity", "quaternion", "t"],
+    "ineqcon_kick"   : ["u"],
     "ineqcon_time"   : ["t"],
     "ineqcon_user"   : ["mass", "position", "velocity", "quaternion", "u", "t"]
 }
