@@ -75,20 +75,6 @@ for i in events.index:
         events.at[i, "massflow_kgps"] = events.at[i, "thrust_n"] / stage["Isp_vac"] / 9.80665
 
     att = events.at[i, "attitude"]
-    
-    if att == "zero-lift-turn":
-        events.at[i, "do_zeroliftturn"] = True
-    else:
-        events.at[i, "do_zeroliftturn"] = False
-        
-        if att == "kick-turn":
-            events.at[i, "hold_yaw"] = True
-        elif att == "hold" or att == "vertical":
-            events.at[i, "hold_yaw"] = True
-            events.at[i, "hold_pitch"] = True
-        elif att == "pitch":
-            events.at[i, "hold_yaw"] = True
-            
 
 pdict = {"params": events.to_dict('records')}
 nodes = events["num_nodes"][:-1]
