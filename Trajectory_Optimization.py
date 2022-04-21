@@ -186,49 +186,42 @@ optProb.addVarGroup("quaternion", len(xdict_init["quaternion"]), value=xdict_ini
 optProb.addVarGroup("u", len(xdict_init["u"]), value=xdict_init["u"], lower=-9.0, upper=9.0)
 optProb.addVarGroup("t", len(xdict_init["t"]), value=xdict_init["t"], lower=0.0,  upper=1.5)
 
+f_init = objfunc(xdict_init)[0]
 
-e_init     = equality_init(xdict_init, pdict, unitdict, condition)
-e_time     = equality_time(xdict_init, pdict, unitdict, condition)
-e_dyn_mass = equality_dynamics_mass(xdict_init, pdict, unitdict, condition)
-e_dyn_pos  = equality_dynamics_position(xdict_init, pdict, unitdict, condition)
-e_dyn_vel  = equality_dynamics_velocity(xdict_init, pdict, unitdict, condition)
-e_dyn_quat = equality_dynamics_quaternion(xdict_init, pdict, unitdict, condition)
+wrt = {
+    "eqcon_init"     : ["mass", "position", "velocity", "quaternion"],
+    "eqcon_time"     : ["t"],
+    "eqcon_dyn_mass" : ["mass", "t"],
+    "eqcon_dyn_pos"  : ["position", "velocity", "t"],
+    "eqcon_dyn_vel"  : ["mass", "position", "velocity", "quaternion", "t"],
+    "eqcon_dyn_quat" : ["quaternion", "u", "t"],
+    "eqcon_knot"     : ["mass", "position", "velocity", "quaternion"],
+    "eqcon_terminal" : ["position", "velocity"],
+    "eqcon_rate"     : ["position", "quaternion", "u"],
+    "eqcon_user"     : ["mass", "position", "velocity", "quaternion", "u", "t"],
+    "ineqcon"        : ["mass", "position", "velocity", "quaternion", "u", "t"],
+    "ineqcon_time"   : ["t"],
+    "ineqcon_user"   : ["mass", "position", "velocity", "quaternion", "u", "t"]
+}
 
-e_knot = equality_knot_LGR(xdict_init, pdict, unitdict, condition)
-e_terminal = equality_6DoF_LGR_terminal(xdict_init, pdict, unitdict, condition)
-e_rate = equality_6DoF_rate(xdict_init, pdict, unitdict, condition)
-e_user = equality_user(xdict_init, pdict, unitdict, condition)
-
-ie = inequality_6DoF(xdict_init, pdict, unitdict, condition)
-ie_time = inequality_time(xdict_init, pdict, unitdict, condition)
-ie_user = inequality_user(xdict_init, pdict, unitdict, condition)
-
-optProb.addConGroup("eqcon_init",     len(e_init),     lower=0.0, upper=0.0, wrt=["mass","position","velocity","quaternion"])#, linear=True, jac=jac_fd(equality_init, xdict_init, pdict, unitdict, condition))
-optProb.addConGroup("eqcon_time",     len(e_time),     lower=0.0, upper=0.0, wrt=["t"])#, linear=True, jac=jac_fd(equality_time, xdict_init, pdict, unitdict, condition))
-optProb.addConGroup("eqcon_dyn_mass", len(e_dyn_mass), lower=0.0, upper=0.0, wrt=["mass","t"])#, jac=jac_fd(equality_dynamics_mass, xdict_init, pdict, unitdict, condition))
-optProb.addConGroup("eqcon_dyn_pos",  len(e_dyn_pos),  lower=0.0, upper=0.0, wrt=["position","velocity","t"])#, jac=jac_fd(equality_dynamics_position, xdict_init, pdict, unitdict, condition))
-optProb.addConGroup("eqcon_dyn_vel",  len(e_dyn_vel),  lower=0.0, upper=0.0, wrt=["mass","position","velocity","quaternion","t"])#, jac=jac_fd(equality_dynamics_velocity, xdict_init, pdict, unitdict, condition))
-optProb.addConGroup("eqcon_dyn_quat", len(e_dyn_quat), lower=0.0, upper=0.0, wrt=["quaternion","u","t"])#, jac=jac_fd(equality_dynamics_quaternion, xdict_init, pdict, unitdict, condition))
-optProb.addConGroup("eqcon_knot",     len(e_knot),     lower=0.0, upper=0.0)#, linear=True, jac=jac_fd(equality_knot_LGR, xdict_init, pdict, unitdict, condition))
-optProb.addConGroup("eqcon_terminal", len(e_terminal), lower=0.0, upper=0.0)#, jac=jac_fd(equality_6DoF_LGR_terminal, xdict_init, pdict, unitdict, condition))
-optProb.addConGroup("eqcon_rate",     len(e_rate),     lower=0.0, upper=0.0, wrt=["position","quaternion","u"])#, jac=jac_fd(equality_6DoF_rate, xdict_init, pdict, unitdict, condition))
-optProb.addConGroup("ineqcon",        len(ie),         lower=0.0, upper=None)#, jac=jac_fd(inequality_6DoF, xdict_init, pdict, unitdict, condition))
-optProb.addConGroup("ineqcon_time",   len(ie_time),    lower=0.0, upper=None)#, linear=True, jac=jac_fd(inequality_time, xdict_init, pdict, unitdict, condition))
-
-if e_user is not None:
-    if hasattr(e_user,"__len__"):
-        optProb.addConGroup("eqcon_user", len(e_user), lower=0.0, upper=0.0)#, jac=jac_fd(equality_user, xdict_init, pdict, unitdict, condition))
+for key, val in f_init.items():
+    if key == "obj":
+        optProb.addObj("obj")
     else:
-        optProb.addConGroup("eqcon_user", 1, lower=0.0, upper=0.0)#, jac=jac_fd(equality_user, xdict_init, pdict, unitdict, condition))
+        if val is None:
+            pass
+        else:
+            lower_bound = 0.0
+            if "ineqcon" in key:
+                upper_bound = None
+            else:
+                upper_bound = 0.0
 
-if ie_user is not None:
-    if hasattr(ie_user,"__len__"):
-        optProb.addConGroup("ineqcon_user", len(ie_user), lower=0.0, upper=None)#, jac=jac_fd(inequality_user, xdict_init, pdict, unitdict, condition))
-    else:
-        optProb.addConGroup("ineqcon_user", 1, lower=0.0, upper=None)#, jac=jac_fd(inequality_user, xdict_init, pdict, unitdict, condition))
+            if hasattr(val, "__len__"):
+                optProb.addConGroup(key, len(val), lower=lower_bound, upper=upper_bound, wrt=wrt[key])
+            else:
+                optProb.addConGroup(key, 1, lower=lower_bound, upper=upper_bound, wrt=wrt[key])
 
-
-optProb.addObj("obj")
 
 
 if "IPOPT" in settings.keys():
