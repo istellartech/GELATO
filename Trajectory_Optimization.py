@@ -190,7 +190,7 @@ def sens(xdict, funcs):
 
 optProb = Optimization("Rocket trajectory optimization", objfunc)
 
-optProb.addVarGroup("mass", len(xdict_init["mass"]), value=xdict_init["mass"], lower=0.0, upper=2.0)
+optProb.addVarGroup("mass", len(xdict_init["mass"]), value=xdict_init["mass"], lower=1.0e-5, upper=2.0)
 optProb.addVarGroup("position", len(xdict_init["position"]), value=xdict_init["position"], lower=-10.0, upper=10.0)
 optProb.addVarGroup("velocity", len(xdict_init["velocity"]), value=xdict_init["velocity"], lower=-20.0, upper=20.0)
 optProb.addVarGroup("quaternion", len(xdict_init["quaternion"]), value=xdict_init["quaternion"], lower=-1.0, upper=1.0)
@@ -241,15 +241,15 @@ for key, val in f_init.items():
 
 
 
-if "IPOPT" in settings.keys():
-    options_IPOPT = settings["IPOPT"]
-    options_IPOPT["output_file"] = "output/{}-IPOPT.out".format(settings["name"])
-    opt = IPOPT(options=options_IPOPT)
-elif "SNOPT" in settings.keys():
+if "SNOPT" in settings.keys():
     options_SNOPT = settings["SNOPT"]
     options_SNOPT["Print file"] = "output/{}-SNOPT-print.out".format(settings["name"])
     options_SNOPT["Summary file"] = "output/{}-SNOPT-summary.out".format(settings["name"])
     opt = SNOPT(options=options_SNOPT)
+elif "IPOPT" in settings.keys():
+    options_IPOPT = settings["IPOPT"]
+    options_IPOPT["output_file"] = "output/{}-IPOPT.out".format(settings["name"])
+    opt = IPOPT(options=options_IPOPT)
 else:
     print("ERROR : UNRECOGNIZED OPTIMIZER. USE IPOPT OR SNOPT.")
     sys.exit()
