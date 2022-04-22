@@ -6,7 +6,8 @@ import json
 
 from utils import *
 from coordinate import *
-from optimization6DoFquat import *
+from initialize_output import *
+from constraints import *
 from PSfunctions import *
 from USStandardAtmosphere import *
 from pyoptsparse import IPOPT, SNOPT, Optimization
