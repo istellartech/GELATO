@@ -2,6 +2,7 @@ import numpy as np
 from numpy.linalg import norm
 from scipy import sparse
 from math import sin,cos,asin,atan2,sqrt,radians,degrees
+from copy import deepcopy
 from numba import jit
 
 @jit('f8[:](f8,f8,f8)',nopython=True)
@@ -90,10 +91,38 @@ def wind_ned(altitude_m, wind_data):
     wind[2] = 0.0
     return wind
 
-def to_sparse_simple(mat):
-    smat = sparse.coo_matrix(mat)
-    smat_simple = {
-        "coo": [smat.row, smat.col, smat.data],
-        "shape": list(smat.shape)
-    }
-    return smat_simple
+
+def jac_fd(con, xdict, pdict, unitdict, condition):
+    """
+    Calculate jacobian by finite-difference method(forward difference).
+
+    Note that this function is slow, because this function do not use sparse matrix.
+
+    Args:
+        con(function) : object function
+        xdict : variable arg for con
+        pdict : parameter arg for con
+        unitdict : unit arg for con
+        conditiondict : condition arg for con
+
+    Returns:
+        jac(dict(ndarray)) : dict of jacobian matrix
+
+    """
+
+    jac = {}
+    dx = 1.0e-8
+    g_base = con(xdict, pdict, unitdict, condition)
+    if hasattr(g_base,"__len__"):
+        nRows = len(g_base)
+    else:
+        nRows = 1
+    for key,val in xdict.items():
+        jac[key] = np.zeros((nRows, val.size))
+        for i in range(val.size):
+            xdict_p = deepcopy(xdict)
+            xdict_p[key][i] += dx
+            g_p = con(xdict_p, pdict, unitdict, condition)
+            jac[key][:,i] = (g_p - g_base) / dx
+
+    return jac
