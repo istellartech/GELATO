@@ -1,5 +1,5 @@
 import sys
-from copy import deepcopy
+from copy import copy, deepcopy
 import numpy as np
 from scipy import sparse
 from numba import jit
@@ -926,7 +926,10 @@ def inequality_jac_kickturn(xdict, pdict, unitdict, condition):
             data.extend([-1.0] * n)
             nRow += n
 
-    jac["u"] = sparse.coo_matrix((data, (row, col)), shape=[nRow, len(xdict["u"])])
+    jac["u"] = {
+        "coo": [np.array(row,dtype="i4"), np.array(col,dtype="i4"), np.array(data,dtype="f8")],
+        "shape": (nRow, len(xdict["u"]))
+    }
 
     return jac
 
@@ -937,7 +940,7 @@ def inequality_max_alpha(xdict, pdict, unitdict, condition):
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_t = unitdict["t"]
-    units = np.array([unit_pos, unit_vel, unit_t])
+    units = np.array([unit_pos, unit_vel, unit_t, 1.0])
 
     pos_ = xdict["position"].reshape(-1,3)
     vel_ = xdict["velocity"].reshape(-1,3)
@@ -968,10 +971,11 @@ def inequality_max_alpha(xdict, pdict, unitdict, condition):
         # angle of attack
         if section_name in condition["aoa_max_deg"]:
             aoa_max = condition["aoa_max_deg"][section_name]["value"] * np.pi / 180.0
+            units[3] = aoa_max
             if condition["aoa_max_deg"][section_name]["range"] == "all":
-                con.append(1.0 - aoa_zerolift_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units) / aoa_max)
+                con.append(1.0 - aoa_zerolift_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units))
             elif condition["aoa_max_deg"][section_name]["range"] == "initial":
-                con.append(1.0 - angle_of_attack_all_rad_dimless(pos_i_[0], vel_i_[0], quat_i_[0], to, wind, units) / aoa_max)
+                con.append(1.0 - angle_of_attack_all_dimless(pos_i_[0], vel_i_[0], quat_i_[0], to, wind, units))
 
     if len(con) == 0:
         return None
@@ -985,7 +989,7 @@ def inequality_max_q(xdict, pdict, unitdict, condition):
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_t = unitdict["t"]
-    units = np.array([unit_pos, unit_vel, unit_t])
+    units = np.array([unit_pos, unit_vel, unit_t, 1.0])
 
     pos_ = xdict["position"].reshape(-1,3)
     vel_ = xdict["velocity"].reshape(-1,3)
@@ -1016,10 +1020,11 @@ def inequality_max_q(xdict, pdict, unitdict, condition):
         # max-Q
         if section_name in condition["q_max_pa"]:
             q_max = condition["q_max_pa"][section_name]["value"]
+            units[3] = q_max
             if condition["q_max_pa"][section_name]["range"] == "all":
-                con.append(1.0 - dynamic_pressure_array_dimless(pos_i_, vel_i_, t_i_, wind, units) / q_max)
+                con.append(1.0 - dynamic_pressure_array_dimless(pos_i_, vel_i_, t_i_, wind, units))
             elif condition["q_max_pa"][section_name]["range"] == "initial":
-                con.append(1.0 - dynamic_pressure_pa_dimless(pos_i_[0], vel_i_[0], to, wind, units) / q_max)
+                con.append(1.0 - dynamic_pressure_dimless(pos_i_[0], vel_i_[0], to, wind, units))
 
     if len(con) == 0:
         return None
@@ -1034,7 +1039,7 @@ def inequality_max_qalpha(xdict, pdict, unitdict, condition):
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_t = unitdict["t"]
-    units = np.array([unit_pos, unit_vel, unit_t])
+    units = np.array([unit_pos, unit_vel, unit_t, 1.0])
 
     pos_ = xdict["position"].reshape(-1,3)
     vel_ = xdict["velocity"].reshape(-1,3)
@@ -1065,10 +1070,11 @@ def inequality_max_qalpha(xdict, pdict, unitdict, condition):
         # max-Qalpha
         if section_name in condition["q-alpha_max_pa-deg"]:
             qalpha_max = condition["q-alpha_max_pa-deg"][section_name]["value"] * np.pi / 180.0
+            units[3] = qalpha_max
             if condition["q-alpha_max_pa-deg"][section_name]["range"] == "all":
-                con.append(1.0 - q_alpha_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units) / qalpha_max)
+                con.append(1.0 - q_alpha_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units))
             elif condition["q-alpha_max_pa-deg"][section_name]["range"] == "initial":
-                con.append(1.0 - q_alpha_pa_rad_dimless(pos_i_[0], vel_i_[0], quat_i_[0], to, wind, units) / qalpha_max)
+                con.append(1.0 - q_alpha_dimless(pos_i_[0], vel_i_[0], quat_i_[0], to, wind, units))
 
     if len(con) == 0:
         return None
@@ -1084,7 +1090,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_t = unitdict["t"]
-    units = np.array([unit_pos, unit_vel, unit_t])
+    units = np.array([unit_pos, unit_vel, unit_t, 1.0])
 
     pos_ = xdict["position"].reshape(-1,3)
     vel_ = xdict["velocity"].reshape(-1,3)
@@ -1102,10 +1108,10 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
     else:
         nRow = 1
 
-    jac["position"] = np.zeros((nRow, pdict["M"]*3))
-    jac["velocity"] = np.zeros((nRow, pdict["M"]*3))
-    jac["quaternion"] = np.zeros((nRow, pdict["M"]*4))
-    jac["t"] = np.zeros((nRow, num_sections+1))
+    jac["position"] = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*3)}
+    jac["velocity"] = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*3)}
+    jac["quaternion"] = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*4)}
+    jac["t"] = {"coo": [[], [], []], "shape":(nRow, num_sections+1)}
 
     iRow = 0
     
@@ -1130,77 +1136,76 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
         # angle of attack
         if section_name in condition["aoa_max_deg"]:
             aoa_max = condition["aoa_max_deg"][section_name]["value"] * np.pi / 180.0
+            units[3] = aoa_max
+
             if condition["aoa_max_deg"][section_name]["range"] == "all":
-                f_c = aoa_zerolift_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units)
-                for k in range(n+1):
-                    for j in range(3):
-                        pos_i_p_ = deepcopy(pos_i_[k])
-                        pos_i_p_[j] += dx
-                        f_p = angle_of_attack_all_rad_dimless(pos_i_p_, vel_i_[k], quat_i_[k], t_i_[k], wind, units)
-                        jac["position"][iRow+k, (a+i+k)*3+j] = -(f_p - f_c[k]) / dx / aoa_max
-                    for j in range(3):
-                        vel_i_p_ = deepcopy(vel_i_[k])
-                        vel_i_p_[j] += dx
-                        f_p = angle_of_attack_all_rad_dimless(pos_i_[k], vel_i_p_, quat_i_[k], t_i_[k], wind, units)
-                        jac["velocity"][iRow+k, (a+i+k)*3+j] = -(f_p - f_c[k]) / dx / aoa_max
-                    for j in range(4):
-                        quat_i_p_ = deepcopy(quat_i_[k])
-                        quat_i_p_[j] += dx
-                        f_p = angle_of_attack_all_rad_dimless(pos_i_[k], vel_i_[k], quat_i_p_, t_i_[k], wind, units)
-                        jac["quaternion"][iRow+k, (a+i+k)*4+j] = -(f_p - f_c[k]) / dx / aoa_max
+                nk = range(n+1)
+            elif condition["aoa_max_deg"][section_name]["range"] == "initial":
+                nk = [0]
+
+            f_c = aoa_zerolift_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units)
+
+            for k in nk:
+                for j in range(3):
+                    pos_i_p_ = copy(pos_i_[k])
+                    pos_i_p_[j] += dx
+                    f_p = angle_of_attack_all_dimless(pos_i_p_, vel_i_[k], quat_i_[k], t_i_[k], wind, units)
+                    jac["position"]["coo"][0].append(iRow+k)
+                    jac["position"]["coo"][1].append((a+i+k)*3+j)
+                    jac["position"]["coo"][2].append(-(f_p - f_c[k]) / dx)
+                    
+                for j in range(3):
+                    vel_i_p_ = copy(vel_i_[k])
+                    vel_i_p_[j] += dx
+                    f_p = angle_of_attack_all_dimless(pos_i_[k], vel_i_p_, quat_i_[k], t_i_[k], wind, units)
+                    jac["velocity"]["coo"][0].append(iRow+k)
+                    jac["velocity"]["coo"][1].append((a+i+k)*3+j)
+                    jac["velocity"]["coo"][2].append(-(f_p - f_c[k]) / dx)
+
+                for j in range(4):
+                    quat_i_p_ = copy(quat_i_[k])
+                    quat_i_p_[j] += dx
+                    f_p = angle_of_attack_all_dimless(pos_i_[k], vel_i_[k], quat_i_p_, t_i_[k], wind, units)
+                    jac["quaternion"]["coo"][0].append(iRow+k)
+                    jac["quaternion"]["coo"][1].append((a+i+k)*4+j)
+                    jac["quaternion"]["coo"][2].append(-(f_p - f_c[k]) / dx)
+
                 to_p = to + dx
                 t_i_p_[0] = to_p
                 t_i_p_[1:] = pdict["ps_params"][i]["tau"] * (tf-to_p) / 2.0 + (tf+to_p) / 2.0
                 f_p = aoa_zerolift_array_dimless(pos_i_, vel_i_, quat_i_, t_i_p_, wind, units)
-                jac["t"][iRow:iRow+n+1, i] = -(f_p - f_c) / dx / aoa_max
+                jac["t"]["coo"][0].extend(list(range(iRow, iRow+n+1)))
+                jac["t"]["coo"][1].extend([i] * (n+1))
+                jac["t"]["coo"][2].extend((-(f_p - f_c) / dx).tolist())
 
                 tf_p = tf + dx
                 t_i_p_[0] = to
                 t_i_p_[1:] = pdict["ps_params"][i]["tau"] * (tf_p-to) / 2.0 + (tf_p+to) / 2.0
                 f_p = aoa_zerolift_array_dimless(pos_i_, vel_i_, quat_i_, t_i_p_, wind, units)
-                jac["t"][iRow:iRow+n+1, i+1] = -(f_p - f_c) / dx / aoa_max
+                jac["t"]["coo"][0].extend(list(range(iRow, iRow+n+1)))
+                jac["t"]["coo"][1].extend([i+1] * (n+1))
+                jac["t"]["coo"][2].extend((-(f_p - f_c) / dx).tolist())
 
-                iRow += n+1
+            iRow += len(nk)
 
-            elif condition["aoa_max_deg"][section_name]["range"] == "initial":
-
-                f_c = angle_of_attack_all_rad_dimless(pos_i_[0], vel_i_[0], quat_i_[0], to, wind, units)
-                for j in range(3):
-                    pos_i_p_ = deepcopy(pos_i_[0])
-                    pos_i_p_[j] += dx
-                    f_p = angle_of_attack_all_rad_dimless(pos_i_p_, vel_i_[0], quat_i_[0], to, wind, units)
-                    jac["position"][iRow, (a+i)*3+j] = -(f_p - f_c) / dx / aoa_max
-                for j in range(3):
-                    vel_i_p_ = deepcopy(vel_i_[0])
-                    vel_i_p_[j] += dx
-                    f_p = angle_of_attack_all_rad_dimless(pos_i_[0], vel_i_p_, quat_i_[0], to, wind, units)
-                    jac["velocity"][iRow, (a+i)*3+j] = -(f_p - f_c) / dx / aoa_max
-                for j in range(4):
-                    quat_i_p_ = deepcopy(quat_i_[0])
-                    quat_i_p_[j] += dx
-                    f_p = angle_of_attack_all_rad_dimless(pos_i_[0], vel_i_[0], quat_i_p_, to, wind, units)
-                    jac["quaternion"][iRow, (a+i)*4+j] = -(f_p - f_c) / dx / aoa_max
-                to_p = to + dx
-                f_p = angle_of_attack_all_rad_dimless(pos_i_[0], vel_i_[0], quat_i_[0], to_p, wind, units)
-                jac["t"][iRow, i] = -(f_p - f_c) / dx / aoa_max
-
-                iRow += 1
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
 
     return jac
 
 def inequality_jac_max_q(xdict, pdict, unitdict, condition):
-
     jac = {}
     dx = 1.0e-8
 
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_t = unitdict["t"]
-    units = np.array([unit_pos, unit_vel, unit_t])
+    units = np.array([unit_pos, unit_vel, unit_t, 1.0])
 
     pos_ = xdict["position"].reshape(-1,3)
     vel_ = xdict["velocity"].reshape(-1,3)
-    quat_ = xdict["quaternion"].reshape(-1,4)
 
     t = xdict["t"]
 
@@ -1213,10 +1218,11 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
         return None
     else:
         nRow = 1
-    jac["position"] = np.zeros((nRow, pdict["M"]*3))
-    jac["velocity"] = np.zeros((nRow, pdict["M"]*3))
-    jac["quaternion"] = np.zeros((nRow, pdict["M"]*4))
-    jac["t"] = np.zeros((nRow, num_sections+1))
+
+    jac["position"] = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*3)}
+    jac["velocity"] = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*3)}
+    jac["quaternion"] = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*4)}
+    jac["t"] = {"coo": [[], [], []], "shape":(nRow, num_sections+1)}
 
     iRow = 0
     
@@ -1227,7 +1233,6 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
 
         pos_i_ = pos_[a+i:b+i+1]
         vel_i_ = vel_[a+i:b+i+1]
-        quat_i_ = quat_[a+i:b+i+1]
         to = t[i]
         tf = t[i+1]
         t_i_ = np.zeros(n+1)
@@ -1238,56 +1243,60 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
         section_name = pdict["params"][i]["name"]
         wind = pdict["wind_table"]
 
-        # max-Q
+        # angle of attack
         if section_name in condition["q_max_pa"]:
             q_max = condition["q_max_pa"][section_name]["value"]
+            units[3] = q_max
+
             if condition["q_max_pa"][section_name]["range"] == "all":
-                f_c = dynamic_pressure_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units)
-                for k in range(n+1):
-                    for j in range(3):
-                        pos_i_p_ = deepcopy(pos_i_[k])
-                        pos_i_p_[j] += dx
-                        f_p = dynamic_pressure_pa_dimless(pos_i_p_, vel_i_[k], quat_i_[k], t_i_[k], wind, units)
-                        jac["position"][iRow+k, (a+i+k)*3+j] = -(f_p - f_c[k]) / dx / q_max
-                    for j in range(3):
-                        vel_i_p_ = deepcopy(vel_i_[k])
-                        vel_i_p_[j] += dx
-                        f_p = dynamic_pressure_pa_dimless(pos_i_[k], vel_i_p_, quat_i_[k], t_i_[k], wind, units)
-                        jac["velocity"][iRow+k, (a+i+k)*3+j] = -(f_p - f_c[k]) / dx / q_max
+                nk = range(n+1)
+            elif condition["q_max_pa"][section_name]["range"] == "initial":
+                nk = [0]
+
+            f_c = dynamic_pressure_array_dimless(pos_i_, vel_i_, t_i_, wind, units)
+
+            for k in nk:
+                for j in range(3):
+                    pos_i_p_ = copy(pos_i_[k])
+                    pos_i_p_[j] += dx
+                    f_p = dynamic_pressure_dimless(pos_i_p_, vel_i_[k], t_i_[k], wind, units)
+                    jac["position"]["coo"][0].append(iRow+k)
+                    jac["position"]["coo"][1].append((a+i+k)*3+j)
+                    jac["position"]["coo"][2].append(-(f_p - f_c[k]) / dx)
+                    
+                for j in range(3):
+                    vel_i_p_ = copy(vel_i_[k])
+                    vel_i_p_[j] += dx
+                    f_p = dynamic_pressure_dimless(pos_i_[k], vel_i_p_, t_i_[k], wind, units)
+                    jac["velocity"]["coo"][0].append(iRow+k)
+                    jac["velocity"]["coo"][1].append((a+i+k)*3+j)
+                    jac["velocity"]["coo"][2].append(-(f_p - f_c[k]) / dx)
+
                 to_p = to + dx
                 t_i_p_[0] = to_p
                 t_i_p_[1:] = pdict["ps_params"][i]["tau"] * (tf-to_p) / 2.0 + (tf+to_p) / 2.0
-                f_p = dynamic_pressure_array_dimless(pos_i_, vel_i_, quat_i_, t_i_p_, wind, units)
-                jac["t"][iRow:iRow+n+1, i] = -(f_p - f_c) / dx / q_max
+                f_p = dynamic_pressure_array_dimless(pos_i_, vel_i_, t_i_p_, wind, units)
+                jac["t"]["coo"][0].extend(list(range(iRow, iRow+n+1)))
+                jac["t"]["coo"][1].extend([i] * (n+1))
+                jac["t"]["coo"][2].extend((-(f_p - f_c) / dx).tolist())
 
                 tf_p = tf + dx
                 t_i_p_[0] = to
                 t_i_p_[1:] = pdict["ps_params"][i]["tau"] * (tf_p-to) / 2.0 + (tf_p+to) / 2.0
-                f_p = dynamic_pressure_array_dimless(pos_i_, vel_i_, quat_i_, t_i_p_, wind, units)
-                jac["t"][iRow:iRow+n+1, i+1] = -(f_p - f_c) / dx / q_max
+                f_p = dynamic_pressure_array_dimless(pos_i_, vel_i_, t_i_p_, wind, units)
+                jac["t"]["coo"][0].extend(list(range(iRow, iRow+n+1)))
+                jac["t"]["coo"][1].extend([i+1] * (n+1))
+                jac["t"]["coo"][2].extend((-(f_p - f_c) / dx).tolist())
 
-                iRow += n+1
+            iRow += len(nk)
 
-            elif condition["q_max_pa"][section_name]["range"] == "initial":
-
-                f_c = dynamic_pressure_pa_dimless(pos_i_[0], vel_i_[0], to, wind, units)
-                for j in range(3):
-                    pos_i_p_ = deepcopy(pos_i_[0])
-                    pos_i_p_[j] += dx
-                    f_p = dynamic_pressure_pa_dimless(pos_i_p_, vel_i_[0], to, wind, units)
-                    jac["position"][iRow, (a+i)*3+j] = -(f_p - f_c) / dx / q_max
-                for j in range(3):
-                    vel_i_p_ = deepcopy(vel_i_[0])
-                    vel_i_p_[j] += dx
-                    f_p = dynamic_pressure_pa_dimless(pos_i_[0], vel_i_p_, to, wind, units)
-                    jac["velocity"][iRow, (a+i)*3+j] = -(f_p - f_c) / dx / q_max
-                to_p = to + dx
-                f_p = dynamic_pressure_pa_dimless(pos_i_[0], vel_i_[0], to_p, wind, units)
-                jac["t"][iRow, i] = -(f_p - f_c) / dx / q_max
-
-                iRow += 1
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
 
     return jac
+
 
 def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
 
@@ -1297,7 +1306,7 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_t = unitdict["t"]
-    units = np.array([unit_pos, unit_vel, unit_t])
+    units = np.array([unit_pos, unit_vel, unit_t, 1.0])
 
     pos_ = xdict["position"].reshape(-1,3)
     vel_ = xdict["velocity"].reshape(-1,3)
@@ -1315,10 +1324,10 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
     else:
         nRow = 1
 
-    jac["position"] = np.zeros((nRow, pdict["M"]*3))
-    jac["velocity"] = np.zeros((nRow, pdict["M"]*3))
-    jac["quaternion"] = np.zeros((nRow, pdict["M"]*4))
-    jac["t"] = np.zeros((nRow, num_sections+1))
+    jac["position"] = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*3)}
+    jac["velocity"] = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*3)}
+    jac["quaternion"] = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*4)}
+    jac["t"] = {"coo": [[], [], []], "shape":(nRow, num_sections+1)}
 
     iRow = 0
     
@@ -1340,79 +1349,80 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
         section_name = pdict["params"][i]["name"]
         wind = pdict["wind_table"]
 
-        # max-Qalpha
+        # angle of attack
         if section_name in condition["q-alpha_max_pa-deg"]:
             qalpha_max = condition["q-alpha_max_pa-deg"][section_name]["value"] * np.pi / 180.0
+            units[3] = qalpha_max
+
             if condition["q-alpha_max_pa-deg"][section_name]["range"] == "all":
-                f_c = q_alpha_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units)
-                for k in range(n+1):
-                    for j in range(3):
-                        pos_i_p_ = deepcopy(pos_i_[k])
-                        pos_i_p_[j] += dx
-                        f_p = q_alpha_pa_rad_dimless(pos_i_p_, vel_i_[k], quat_i_[k], t_i_[k], wind, units)
-                        jac["position"][iRow+k, (a+i+k)*3+j] = -(f_p - f_c[k]) / dx / qalpha_max
-                    for j in range(3):
-                        vel_i_p_ = deepcopy(vel_i_[k])
-                        vel_i_p_[j] += dx
-                        f_p = q_alpha_pa_rad_dimless(pos_i_[k], vel_i_p_, quat_i_[k], t_i_[k], wind, units)
-                        jac["velocity"][iRow+k, (a+i+k)*3+j] = -(f_p - f_c[k]) / dx / qalpha_max
-                    for j in range(4):
-                        quat_i_p_ = deepcopy(quat_i_[k])
-                        quat_i_p_[j] += dx
-                        f_p = q_alpha_pa_rad_dimless(pos_i_[k], vel_i_[k], quat_i_p_, t_i_[k], wind, units)
-                        jac["quaternion"][iRow+k, (a+i+k)*4+j] = -(f_p - f_c[k]) / dx / qalpha_max
+                nk = range(n+1)
+            elif condition["q-alpha_max_pa-deg"][section_name]["range"] == "initial":
+                nk = [0]
+
+            f_c = q_alpha_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units)
+
+            for k in nk:
+                for j in range(3):
+                    pos_i_p_ = copy(pos_i_[k])
+                    pos_i_p_[j] += dx
+                    f_p = q_alpha_dimless(pos_i_p_, vel_i_[k], quat_i_[k], t_i_[k], wind, units)
+                    jac["position"]["coo"][0].append(iRow+k)
+                    jac["position"]["coo"][1].append((a+i+k)*3+j)
+                    jac["position"]["coo"][2].append(-(f_p - f_c[k]) / dx)
+                    
+                for j in range(3):
+                    vel_i_p_ = copy(vel_i_[k])
+                    vel_i_p_[j] += dx
+                    f_p = q_alpha_dimless(pos_i_[k], vel_i_p_, quat_i_[k], t_i_[k], wind, units)
+                    jac["velocity"]["coo"][0].append(iRow+k)
+                    jac["velocity"]["coo"][1].append((a+i+k)*3+j)
+                    jac["velocity"]["coo"][2].append(-(f_p - f_c[k]) / dx)
+
+                for j in range(4):
+                    quat_i_p_ = copy(quat_i_[k])
+                    quat_i_p_[j] += dx
+                    f_p = q_alpha_dimless(pos_i_[k], vel_i_[k], quat_i_p_, t_i_[k], wind, units)
+                    jac["quaternion"]["coo"][0].append(iRow+k)
+                    jac["quaternion"]["coo"][1].append((a+i+k)*4+j)
+                    jac["quaternion"]["coo"][2].append(-(f_p - f_c[k]) / dx)
+
                 to_p = to + dx
                 t_i_p_[0] = to_p
                 t_i_p_[1:] = pdict["ps_params"][i]["tau"] * (tf-to_p) / 2.0 + (tf+to_p) / 2.0
                 f_p = q_alpha_array_dimless(pos_i_, vel_i_, quat_i_, t_i_p_, wind, units)
-                jac["t"][iRow:iRow+n+1, i] = -(f_p - f_c) / dx / qalpha_max
+                jac["t"]["coo"][0].extend(list(range(iRow, iRow+n+1)))
+                jac["t"]["coo"][1].extend([i] * (n+1))
+                jac["t"]["coo"][2].extend((-(f_p - f_c) / dx).tolist())
 
                 tf_p = tf + dx
                 t_i_p_[0] = to
                 t_i_p_[1:] = pdict["ps_params"][i]["tau"] * (tf_p-to) / 2.0 + (tf_p+to) / 2.0
                 f_p = q_alpha_array_dimless(pos_i_, vel_i_, quat_i_, t_i_p_, wind, units)
-                jac["t"][iRow:iRow+n+1, i+1] = -(f_p - f_c) / dx / qalpha_max
+                jac["t"]["coo"][0].extend(list(range(iRow, iRow+n+1)))
+                jac["t"]["coo"][1].extend([i+1] * (n+1))
+                jac["t"]["coo"][2].extend((-(f_p - f_c) / dx).tolist())
 
-                iRow += n+1
+            iRow += len(nk)
 
-            elif condition["q-alpha_max_pa-deg"][section_name]["range"] == "initial":
-                
-                f_c = q_alpha_pa_rad_dimless(pos_i_[0], vel_i_[0], quat_i_[0], to, wind, units)
-                for j in range(3):
-                    pos_i_p_ = deepcopy(pos_i_[0])
-                    pos_i_p_[j] += dx
-                    f_p = q_alpha_pa_rad_dimless(pos_i_p_, vel_i_[0], quat_i_[0], to, wind, units)
-                    jac["position"][iRow, (a+i)*3+j] = -(f_p - f_c) / dx / qalpha_max
-                for j in range(3):
-                    vel_i_p_ = deepcopy(vel_i_[0])
-                    vel_i_p_[j] += dx
-                    f_p = q_alpha_pa_rad_dimless(pos_i_[0], vel_i_p_, quat_i_[0], to, wind, units)
-                    jac["velocity"][iRow, (a+i)*3+j] = -(f_p - f_c) / dx / qalpha_max
-                for j in range(4):
-                    quat_i_p_ = deepcopy(quat_i_[0])
-                    quat_i_p_[j] += dx
-                    f_p = q_alpha_pa_rad_dimless(pos_i_[0], vel_i_[0], quat_i_p_, to, wind, units)
-                    jac["quaternion"][iRow, (a+i)*4+j] = -(f_p - f_c) / dx / qalpha_max
-                to_p = to + dx
-                f_p = q_alpha_pa_rad_dimless(pos_i_[0], vel_i_[0], quat_i_[0], to_p, wind, units)
-                jac["t"][iRow, i] = -(f_p - f_c) / dx / qalpha_max
-
-                iRow += 1
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
 
     return jac
 
 
 @jit(nopython=True)
 def dynamic_pressure_array_dimless(pos, vel, t, wind, units):
-    return np.array([dynamic_pressure_pa_dimless(pos[i], vel[i], t[i], wind, units) for i in range(len(t))])
+    return np.array([dynamic_pressure_dimless(pos[i], vel[i], t[i], wind, units) for i in range(len(t))])
 
 @jit(nopython=True)
 def aoa_zerolift_array_dimless(pos, vel, quat, t, wind, units):
-    return np.array([angle_of_attack_all_rad_dimless(pos[i], vel[i], quat[i], t[i], wind, units) for i in range(len(t))])
+    return np.array([angle_of_attack_all_dimless(pos[i], vel[i], quat[i], t[i], wind, units) for i in range(len(t))])
 
 @jit(nopython=True)
 def q_alpha_array_dimless(pos, vel, quat, t, wind, units):
-    return np.array([q_alpha_pa_rad_dimless(pos[i], vel[i], quat[i], t[i], wind, units) for i in range(len(t))])
+    return np.array([q_alpha_dimless(pos[i], vel[i], quat[i], t[i], wind, units) for i in range(len(t))])
 
 @jit(nopython=True)
 def roll_direction_array(pos, quat):
@@ -1424,34 +1434,34 @@ def yb_r_dot(pos_eci, quat_eci2body):
     return yb_dir_eci.dot(normalize(pos_eci))
 
 @jit(nopython=True)
-def q_alpha_pa_rad_dimless(pos_eci, vel_eci, quat, t, wind, units):
-    return angle_of_attack_all_rad_dimless(pos_eci, vel_eci, quat, t, wind, units) * dynamic_pressure_pa_dimless(pos_eci, vel_eci, t, wind, units)
+def q_alpha_dimless(pos_eci, vel_eci, quat, t, wind, units):
+    return angle_of_attack_all_dimless(pos_eci, vel_eci, quat, t, wind, units) * dynamic_pressure_dimless(pos_eci, vel_eci, t, wind, units)
 
 @jit(nopython=True)
-def angle_of_attack_all_rad_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
+def angle_of_attack_all_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
 
     pos_eci = pos_eci_e * units[0]
     vel_eci = vel_eci_e * units[1]
     t = t_e * units[2]
-    return angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind)
+    return angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind) / units[3]
 
 
 @jit(nopython=True)
-def angle_of_attack_ab_rad_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
+def angle_of_attack_ab_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
 
     pos_eci = pos_eci_e * units[0]
     vel_eci = vel_eci_e * units[1]
     t = t_e * units[2]
-    return angle_of_attack_ab_rad(pos_eci, vel_eci, quat, t, wind)
+    return angle_of_attack_ab_rad(pos_eci, vel_eci, quat, t, wind) / units[3]
 
 
 @jit(nopython=True)
-def dynamic_pressure_pa_dimless(pos_eci_e, vel_eci_e, t_e, wind, units):
+def dynamic_pressure_dimless(pos_eci_e, vel_eci_e, t_e, wind, units):
 
     pos_eci = pos_eci_e * units[0]
     vel_eci = vel_eci_e * units[1]
     t = t_e * units[2]
-    return dynamic_pressure_pa(pos_eci, vel_eci, t, wind) 
+    return dynamic_pressure_pa(pos_eci, vel_eci, t, wind) / units[3]
 
     
 def equality_jac_user(xdict, pdict, unitdict, condition):
