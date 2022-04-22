@@ -878,8 +878,10 @@ def inequality_jac_time(xdict, pdict, unitdict, condition):
             col.extend([i, i+1])
             counter += 1
 
-    jac["t"] = sparse.coo_matrix((data, (row, col)), shape=[counter, len(xdict["t"])])
-
+    jac["t"] = {
+        "coo": [np.array(row,dtype="i4"), np.array(col,dtype="i4"), np.array(data,dtype="f8")],
+        "shape" : (counter, len(xdict["t"]))
+    }
     return jac
 
 
