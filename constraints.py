@@ -930,9 +930,7 @@ def inequality_jac_kickturn(xdict, pdict, unitdict, condition):
 
     return jac
 
-
-
-def inequality_6DoF(xdict, pdict, unitdict, condition):
+def inequality_max_alpha(xdict, pdict, unitdict, condition):
 
     con = []
 
@@ -975,6 +973,46 @@ def inequality_6DoF(xdict, pdict, unitdict, condition):
             elif condition["aoa_max_deg"][section_name]["range"] == "initial":
                 con.append(1.0 - angle_of_attack_all_rad_dimless(pos_i_[0], vel_i_[0], quat_i_[0], to, wind, units) / aoa_max)
 
+    if len(con) == 0:
+        return None
+    else:
+        return np.concatenate(con, axis=None)    
+
+def inequality_max_q(xdict, pdict, unitdict, condition):
+
+    con = []
+
+    unit_pos = unitdict["position"]
+    unit_vel = unitdict["velocity"]
+    unit_t = unitdict["t"]
+    units = np.array([unit_pos, unit_vel, unit_t])
+
+    pos_ = xdict["position"].reshape(-1,3)
+    vel_ = xdict["velocity"].reshape(-1,3)
+    quat_ = xdict["quaternion"].reshape(-1,4)
+    
+    t = xdict["t"]
+
+    num_sections = pdict["num_sections"]
+    
+    wind = pdict["wind_table"]
+    
+    for i in range(num_sections-1):
+        a = pdict["ps_params"][i]["index_start"]
+        n = pdict["ps_params"][i]["nodes"]
+        b = a + n
+
+        pos_i_ = pos_[a+i:b+i+1]
+        vel_i_ = vel_[a+i:b+i+1]
+        quat_i_ = quat_[a+i:b+i+1]
+        to = t[i]
+        tf = t[i+1]
+        t_i_ = np.zeros(n+1)
+        t_i_[0] = to
+        t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
+
+        section_name = pdict["params"][i]["name"]
+
         # max-Q
         if section_name in condition["q_max_pa"]:
             q_max = condition["q_max_pa"][section_name]["value"]
@@ -982,6 +1020,47 @@ def inequality_6DoF(xdict, pdict, unitdict, condition):
                 con.append(1.0 - dynamic_pressure_array_dimless(pos_i_, vel_i_, t_i_, wind, units) / q_max)
             elif condition["q_max_pa"][section_name]["range"] == "initial":
                 con.append(1.0 - dynamic_pressure_pa_dimless(pos_i_[0], vel_i_[0], to, wind, units) / q_max)
+
+    if len(con) == 0:
+        return None
+    else:
+        return np.concatenate(con, axis=None)    
+
+
+def inequality_max_qalpha(xdict, pdict, unitdict, condition):
+
+    con = []
+
+    unit_pos = unitdict["position"]
+    unit_vel = unitdict["velocity"]
+    unit_t = unitdict["t"]
+    units = np.array([unit_pos, unit_vel, unit_t])
+
+    pos_ = xdict["position"].reshape(-1,3)
+    vel_ = xdict["velocity"].reshape(-1,3)
+    quat_ = xdict["quaternion"].reshape(-1,4)
+    
+    t = xdict["t"]
+
+    num_sections = pdict["num_sections"]
+    
+    wind = pdict["wind_table"]
+    
+    for i in range(num_sections-1):
+        a = pdict["ps_params"][i]["index_start"]
+        n = pdict["ps_params"][i]["nodes"]
+        b = a + n
+
+        pos_i_ = pos_[a+i:b+i+1]
+        vel_i_ = vel_[a+i:b+i+1]
+        quat_i_ = quat_[a+i:b+i+1]
+        to = t[i]
+        tf = t[i+1]
+        t_i_ = np.zeros(n+1)
+        t_i_[0] = to
+        t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
+
+        section_name = pdict["params"][i]["name"]
 
         # max-Qalpha
         if section_name in condition["q-alpha_max_pa-deg"]:
@@ -991,9 +1070,13 @@ def inequality_6DoF(xdict, pdict, unitdict, condition):
             elif condition["q-alpha_max_pa-deg"][section_name]["range"] == "initial":
                 con.append(1.0 - q_alpha_pa_rad_dimless(pos_i_[0], vel_i_[0], quat_i_[0], to, wind, units) / qalpha_max)
 
-    return np.concatenate(con, axis=None)    
+    if len(con) == 0:
+        return None
+    else:
+        return np.concatenate(con, axis=None)    
 
-def inequality_jac_6DoF(xdict, pdict, unitdict, condition):
+
+def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
 
     jac = {}
     dx = 1.0e-8
@@ -1011,8 +1094,13 @@ def inequality_jac_6DoF(xdict, pdict, unitdict, condition):
 
     num_sections = pdict["num_sections"]
 
-    f_center = inequality_6DoF(xdict, pdict, unitdict, condition)
-    nRow = len(f_center)
+    f_center = inequality_max_alpha(xdict, pdict, unitdict, condition)
+    if hasattr(f_center, "__len__"):
+        nRow = len(f_center)
+    elif f_center is None:
+        return None
+    else:
+        nRow = 1
 
     jac["position"] = np.zeros((nRow, pdict["M"]*3))
     jac["velocity"] = np.zeros((nRow, pdict["M"]*3))
@@ -1098,6 +1186,58 @@ def inequality_jac_6DoF(xdict, pdict, unitdict, condition):
 
                 iRow += 1
 
+    return jac
+
+def inequality_jac_max_q(xdict, pdict, unitdict, condition):
+
+    jac = {}
+    dx = 1.0e-8
+
+    unit_pos = unitdict["position"]
+    unit_vel = unitdict["velocity"]
+    unit_t = unitdict["t"]
+    units = np.array([unit_pos, unit_vel, unit_t])
+
+    pos_ = xdict["position"].reshape(-1,3)
+    vel_ = xdict["velocity"].reshape(-1,3)
+    quat_ = xdict["quaternion"].reshape(-1,4)
+
+    t = xdict["t"]
+
+    num_sections = pdict["num_sections"]
+
+    f_center = inequality_max_q(xdict, pdict, unitdict, condition)
+    if hasattr(f_center, "__len__"):
+        nRow = len(f_center)
+    elif f_center is None:
+        return None
+    else:
+        nRow = 1
+    jac["position"] = np.zeros((nRow, pdict["M"]*3))
+    jac["velocity"] = np.zeros((nRow, pdict["M"]*3))
+    jac["quaternion"] = np.zeros((nRow, pdict["M"]*4))
+    jac["t"] = np.zeros((nRow, num_sections+1))
+
+    iRow = 0
+    
+    for i in range(num_sections-1):
+        a = pdict["ps_params"][i]["index_start"]
+        n = pdict["ps_params"][i]["nodes"]
+        b = a + n
+
+        pos_i_ = pos_[a+i:b+i+1]
+        vel_i_ = vel_[a+i:b+i+1]
+        quat_i_ = quat_[a+i:b+i+1]
+        to = t[i]
+        tf = t[i+1]
+        t_i_ = np.zeros(n+1)
+        t_i_[0] = to
+        t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
+        t_i_p_ = np.zeros(n+1)
+
+        section_name = pdict["params"][i]["name"]
+        wind = pdict["wind_table"]
+
         # max-Q
         if section_name in condition["q_max_pa"]:
             q_max = condition["q_max_pa"][section_name]["value"]
@@ -1147,6 +1287,58 @@ def inequality_jac_6DoF(xdict, pdict, unitdict, condition):
 
                 iRow += 1
 
+    return jac
+
+def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
+
+    jac = {}
+    dx = 1.0e-8
+
+    unit_pos = unitdict["position"]
+    unit_vel = unitdict["velocity"]
+    unit_t = unitdict["t"]
+    units = np.array([unit_pos, unit_vel, unit_t])
+
+    pos_ = xdict["position"].reshape(-1,3)
+    vel_ = xdict["velocity"].reshape(-1,3)
+    quat_ = xdict["quaternion"].reshape(-1,4)
+
+    t = xdict["t"]
+
+    num_sections = pdict["num_sections"]
+
+    f_center = inequality_max_qalpha(xdict, pdict, unitdict, condition)
+    if hasattr(f_center, "__len__"):
+        nRow = len(f_center)
+    elif f_center is None:
+        return None
+    else:
+        nRow = 1
+
+    jac["position"] = np.zeros((nRow, pdict["M"]*3))
+    jac["velocity"] = np.zeros((nRow, pdict["M"]*3))
+    jac["quaternion"] = np.zeros((nRow, pdict["M"]*4))
+    jac["t"] = np.zeros((nRow, num_sections+1))
+
+    iRow = 0
+    
+    for i in range(num_sections-1):
+        a = pdict["ps_params"][i]["index_start"]
+        n = pdict["ps_params"][i]["nodes"]
+        b = a + n
+
+        pos_i_ = pos_[a+i:b+i+1]
+        vel_i_ = vel_[a+i:b+i+1]
+        quat_i_ = quat_[a+i:b+i+1]
+        to = t[i]
+        tf = t[i+1]
+        t_i_ = np.zeros(n+1)
+        t_i_[0] = to
+        t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
+        t_i_p_ = np.zeros(n+1)
+
+        section_name = pdict["params"][i]["name"]
+        wind = pdict["wind_table"]
 
         # max-Qalpha
         if section_name in condition["q-alpha_max_pa-deg"]:
