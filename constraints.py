@@ -242,7 +242,8 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
 
     jac["position"] = np.zeros((pdict["N"]*3, pdict["M"]*3))
     jac["velocity"] = np.zeros((pdict["N"]*3, pdict["M"]*3))
-    jac["t"] = np.zeros((pdict["N"]*3, num_sections+1))
+    jac["t"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, num_sections+1)}
+
 
     for i in range(num_sections):
         a = pdict["ps_params"][i]["index_start"]
@@ -258,8 +259,17 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
         jac["position"][a*3+2: b*3+2: 3, (a+i)*3+2: (b+i+1)*3+2: 3] = pdict["ps_params"][i]["D"] # lh z
 
         jac["velocity"][a*3:b*3, (a+i+1)*3:(b+i+1)*3] = np.eye(n*3) * (-unit_vel * (tf-to) * unit_t / 2.0 / unit_pos) # rh vel
-        jac["t"][a*3:b*3, i]   =  vel_i_[1:].ravel() * unit_vel * unit_t / 2.0 / unit_pos # rh to
-        jac["t"][a*3:b*3, i+1] = -vel_i_[1:].ravel() * unit_vel * unit_t / 2.0 / unit_pos # rh tf
+
+        rh_to = vel_i_[1:].ravel() * unit_vel * unit_t / 2.0 / unit_pos # rh to
+        rh_tf = -rh_to  # rh tf
+        jac["t"]["coo"][0].extend(sum([[k]*2 for k in range(a*3,b*3)], []))
+        jac["t"]["coo"][1].extend([i, i+1] * n*3)
+        jac["t"]["coo"][2].extend(sum([[rh_to[k], rh_tf[k]] for k in range(3*n)], []))
+
+    jac["t"]["coo"][0] = np.array(jac["t"]["coo"][0], dtype="i4")
+    jac["t"]["coo"][1] = np.array(jac["t"]["coo"][1], dtype="i4")
+    jac["t"]["coo"][2] = np.array(jac["t"]["coo"][2], dtype="f8")
+
 
     return jac
 
@@ -332,7 +342,7 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
     jac["position"] = np.zeros((pdict["N"]*3, pdict["M"]*3))
     jac["velocity"] = np.zeros((pdict["N"]*3, pdict["M"]*3))
     jac["quaternion"] = np.zeros((pdict["N"]*3, pdict["M"]*4))
-    jac["t"] = np.zeros((pdict["N"]*3, num_sections+1))
+    jac["t"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, num_sections+1)}
 
     for i in range(num_sections):
         a = pdict["ps_params"][i]["index_start"]
@@ -393,8 +403,15 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                 jac["quaternion"][(a+j)*3+2, (a+i+j+1)*4+k] = -(f_p[j,2] - f_center[j,2]) / dx * (tf-to) * unit_t / 2.0 # rh acc_z quat
 
 
-        jac["t"][a*3:b*3, i]   =  f_center.ravel() * unit_t / 2.0  # rh to
-        jac["t"][a*3:b*3, i+1] = -f_center.ravel() * unit_t / 2.0  # rh tf
+        rh_to =  f_center.ravel() * unit_t / 2.0  # rh to
+        rh_tf = -rh_to  # rh tf
+        jac["t"]["coo"][0].extend(sum([[k]*2 for k in range(a*3,b*3)], []))
+        jac["t"]["coo"][1].extend([i, i+1] * n*3)
+        jac["t"]["coo"][2].extend(sum([[rh_to[k], rh_tf[k]] for k in range(3*n)], []))
+
+    jac["t"]["coo"][0] = np.array(jac["t"]["coo"][0], dtype="i4")
+    jac["t"]["coo"][1] = np.array(jac["t"]["coo"][1], dtype="i4")
+    jac["t"]["coo"][2] = np.array(jac["t"]["coo"][2], dtype="f8")
 
     return jac
 
@@ -444,7 +461,7 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
 
     jac["quaternion"] = np.zeros((pdict["N"]*4, pdict["M"]*4))
     jac["u"] = np.zeros((pdict["N"]*4, pdict["N"]*3))
-    jac["t"] = np.zeros((pdict["N"]*4, num_sections+1))
+    jac["t"] = {"coo": [[], [], []], "shape":(pdict["N"]*4, num_sections+1)}
 
 
     for i in range(num_sections):
@@ -491,8 +508,15 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
                     jac["u"][(a+j)*4+2, (a+j)*3+k] = -(f_p[j,2] - f_center[j,2]) / dx * (tf-to) * unit_t / 2.0 # rh q2 quat
                     jac["u"][(a+j)*4+3, (a+j)*3+k] = -(f_p[j,3] - f_center[j,3]) / dx * (tf-to) * unit_t / 2.0 # rh q3 quat
 
-            jac["t"][a*4:b*4, i]   =  f_center.ravel() * unit_t / 2.0  # rh to
-            jac["t"][a*4:b*4, i+1] = -f_center.ravel() * unit_t / 2.0  # rh tf
+            rh_to =  f_center.ravel() * unit_t / 2.0  # rh to
+            rh_tf = -rh_to  # rh tf
+            jac["t"]["coo"][0].extend(sum([[k]*2 for k in range(a*4,b*4)], []))
+            jac["t"]["coo"][1].extend([i, i+1] * n*4)
+            jac["t"]["coo"][2].extend(sum([[rh_to[k], rh_tf[k]] for k in range(4*n)], []))
+
+    jac["t"]["coo"][0] = np.array(jac["t"]["coo"][0], dtype="i4")
+    jac["t"]["coo"][1] = np.array(jac["t"]["coo"][1], dtype="i4")
+    jac["t"]["coo"][2] = np.array(jac["t"]["coo"][2], dtype="f8")
                         
     return jac
 
