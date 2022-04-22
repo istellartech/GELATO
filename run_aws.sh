@@ -17,7 +17,10 @@ cp _user_constraints_empty.py user_constraints.py
 aws s3 cp $1 . --recursive --exclude "output*"
 
 mkdir output
-ls *.json | xargs python3 Trajectory_Optimization.py
+for file in `\find . -maxdepth 1 -name '*.json'`; do
+    echo $file
+    python3 Trajectory_Optimization.py $file
+done
 
 aws s3 cp output $1/output --recursive
 
