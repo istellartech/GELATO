@@ -240,7 +240,7 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
 
     num_sections = pdict["num_sections"]
 
-    jac["position"] = np.zeros((pdict["N"]*3, pdict["M"]*3))
+    jac["position"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, pdict["M"]*3)}
     jac["velocity"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, pdict["M"]*3)}
     jac["t"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, num_sections+1)}
 
@@ -254,9 +254,10 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
         to = t[i]
         tf = t[i+1]
 
-        jac["position"][a*3  : b*3  : 3, (a+i)*3  : (b+i+1)*3  : 3] = pdict["ps_params"][i]["D"] # lh x
-        jac["position"][a*3+1: b*3+1: 3, (a+i)*3+1: (b+i+1)*3+1: 3] = pdict["ps_params"][i]["D"] # lh y
-        jac["position"][a*3+2: b*3+2: 3, (a+i)*3+2: (b+i+1)*3+2: 3] = pdict["ps_params"][i]["D"] # lh z
+        submat_pos = np.zeros((n*3, (n+1)*3)) # jac["position"][a*3:b*3, (a+i)*3:(b+i+1)*3]
+        submat_pos[::3, ::3] = pdict["ps_params"][i]["D"]
+        submat_pos[1::3, 1::3] = pdict["ps_params"][i]["D"]
+        submat_pos[2::3, 2::3] = pdict["ps_params"][i]["D"]
 
         rh_vel = (-unit_vel * (tf-to) * unit_t / 2.0 / unit_pos) # rh vel
         jac["velocity"]["coo"][0].extend(list(range(a*3,b*3)))
@@ -267,9 +268,13 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
         rh_tf = -rh_to  # rh tf
         jac["t"]["coo"][0].extend(sum([[k]*2 for k in range(a*3,b*3)], []))
         jac["t"]["coo"][1].extend([i, i+1] * n*3)
-        jac["t"]["coo"][2].extend(sum([[rh_to[k], rh_tf[k]] for k in range(3*n)], []))
+        jac["t"]["coo"][2].extend(sum([[rh_to[k], rh_tf[k]] for k in range(n*3)], []))
 
-    for key in ["velocity", "t"]:
+        jac["position"]["coo"][0].extend(sum([[k]*((n+1)*3) for k in range(a*3, b*3)], []))
+        jac["position"]["coo"][1].extend(list(range((a+i)*3, (b+i+1)*3)) * (n*3))
+        jac["position"]["coo"][2].extend(submat_pos.ravel().tolist())
+
+    for key in jac.keys():
         jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
         jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
         jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
@@ -344,7 +349,7 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
 
     jac["mass"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, pdict["M"])}
     jac["position"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, pdict["M"]*3)}
-    jac["velocity"] = np.zeros((pdict["N"]*3, pdict["M"]*3))
+    jac["velocity"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, pdict["M"]*3)}
     jac["quaternion"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, pdict["M"]*4)}
     jac["t"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, num_sections+1)}
 
@@ -368,9 +373,10 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
         wind = pdict["wind_table"]
         ca = pdict["ca_table"]
 
-        jac["velocity"][a*3  : b*3  : 3, (a+i)*3  : (b+i+1)*3  : 3] = pdict["ps_params"][i]["D"] # lh x
-        jac["velocity"][a*3+1: b*3+1: 3, (a+i)*3+1: (b+i+1)*3+1: 3] = pdict["ps_params"][i]["D"] # lh y
-        jac["velocity"][a*3+2: b*3+2: 3, (a+i)*3+2: (b+i+1)*3+2: 3] = pdict["ps_params"][i]["D"] # lh z
+        submat_vel = np.zeros((n*3, (n+1)*3)) # jac["velocity"][a*3:b*3, (a+i)*3:(b+i+1)*3]
+        submat_vel[::3, ::3] = pdict["ps_params"][i]["D"]
+        submat_vel[1::3, 1::3] = pdict["ps_params"][i]["D"]
+        submat_vel[2::3, 2::3] = pdict["ps_params"][i]["D"]
 
         f_center = dynamics_velocity(mass_i_[1:], pos_i_[1:], vel_i_[1:], quat_i_[1:], t_nodes, param, wind, ca, units)
 
@@ -396,9 +402,9 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                 vel_i_p_ = deepcopy(vel_i_)
                 vel_i_p_[j+1, k] += dx
                 f_p = dynamics_velocity(mass_i_[1:], pos_i_[1:], vel_i_p_[1:], quat_i_[1:], t_nodes, param, wind, ca, units)
-                jac["velocity"][(a+j)*3,   (a+i+j+1)*3+k] += -(f_p[j,0] - f_center[j,0]) / dx * (tf-to) * unit_t / 2.0 # rh acc_x vel
-                jac["velocity"][(a+j)*3+1, (a+i+j+1)*3+k] += -(f_p[j,1] - f_center[j,1]) / dx * (tf-to) * unit_t / 2.0 # rh acc_y vel
-                jac["velocity"][(a+j)*3+2, (a+i+j+1)*3+k] += -(f_p[j,2] - f_center[j,2]) / dx * (tf-to) * unit_t / 2.0 # rh acc_z vel
+                submat_vel[j*3,   (j+1)*3+k] += -(f_p[j,0] - f_center[j,0]) / dx * (tf-to) * unit_t / 2.0 # rh acc_x vel
+                submat_vel[j*3+1, (j+1)*3+k] += -(f_p[j,1] - f_center[j,1]) / dx * (tf-to) * unit_t / 2.0 # rh acc_x vel
+                submat_vel[j*3+2, (j+1)*3+k] += -(f_p[j,2] - f_center[j,2]) / dx * (tf-to) * unit_t / 2.0 # rh acc_x vel
 
             for k in range(4):
                 quat_i_p_ = deepcopy(quat_i_)
@@ -416,7 +422,12 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
         jac["t"]["coo"][1].extend([i, i+1] * n*3)
         jac["t"]["coo"][2].extend(sum([[rh_to[k], rh_tf[k]] for k in range(3*n)], []))
 
-    for key in ["mass", "position", "quaternion", "t"]:
+        jac["velocity"]["coo"][0].extend(sum([[k]*((n+1)*3) for k in range(a*3, b*3)], []))
+        jac["velocity"]["coo"][1].extend(list(range((a+i)*3, (b+i+1)*3)) * (n*3))
+        jac["velocity"]["coo"][2].extend(submat_vel.ravel().tolist())
+
+
+    for key in jac.keys():
         jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
         jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
         jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
@@ -467,8 +478,8 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
 
     num_sections = pdict["num_sections"]
 
-    jac["quaternion"] = np.zeros((pdict["N"]*4, pdict["M"]*4))
-    jac["u"] = np.zeros((pdict["N"]*4, pdict["N"]*3))
+    jac["quaternion"] = {"coo": [[], [], []], "shape":(pdict["N"]*4, pdict["M"]*4)}
+    jac["u"] = {"coo": [[], [], []], "shape":(pdict["N"]*4, pdict["N"]*3)}
     jac["t"] = {"coo": [[], [], []], "shape":(pdict["N"]*4, num_sections+1)}
 
 
@@ -483,16 +494,20 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
 
         if pdict["params"][i]["attitude"] in ["hold", "vertical"]:
 
-            for j in range(n):
-                jac["quaternion"][(a+j)*4:(a+j+1)*4, (a+i)*4:(a+i+1)*4] = -np.eye(4)
-                jac["quaternion"][(a+j)*4:(a+j+1)*4, (a+i+j+1)*4:(a+i+j+2)*4] = np.eye(4)
+            jac["quaternion"]["coo"][0].extend(list(range(a*4, b*4)))
+            jac["quaternion"]["coo"][1].extend(list(range((a+i)*4, (a+i+1)*4)) * n)
+            jac["quaternion"]["coo"][2].extend([-1.0] * (4*n))
 
+            jac["quaternion"]["coo"][0].extend(list(range(a*4, b*4)))
+            jac["quaternion"]["coo"][1].extend(list(range((a+i+1)*4, (b+i+1)*4)))
+            jac["quaternion"]["coo"][2].extend([1.0] * (4*n))
 
         else:
-            jac["quaternion"][a*4  : b*4  : 4, (a+i)*4  : (b+i+1)*4  : 4] = pdict["ps_params"][i]["D"] # lh q0
-            jac["quaternion"][a*4+1: b*4+1: 4, (a+i)*4+1: (b+i+1)*4+1: 4] = pdict["ps_params"][i]["D"] # lh q1
-            jac["quaternion"][a*4+2: b*4+2: 4, (a+i)*4+2: (b+i+1)*4+2: 4] = pdict["ps_params"][i]["D"] # lh q2
-            jac["quaternion"][a*4+3: b*4+3: 4, (a+i)*4+3: (b+i+1)*4+3: 4] = pdict["ps_params"][i]["D"] # lh q3
+            submat_quat = np.zeros((n*4, (n+1)*4)) # jac["quaternion"][a*4:b*4, (a+i)*4:(b+i+1)*4]
+            submat_quat[::4, ::4] = pdict["ps_params"][i]["D"]
+            submat_quat[1::4, 1::4] = pdict["ps_params"][i]["D"]
+            submat_quat[2::4, 2::4] = pdict["ps_params"][i]["D"]
+            submat_quat[3::4, 3::4] = pdict["ps_params"][i]["D"]
 
             f_center = dynamics_quaternion(quat_i_[1:], u_i_, unit_u)
 
@@ -502,19 +517,20 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
                     quat_i_p_ = deepcopy(quat_i_)
                     quat_i_p_[j+1, k] += dx
                     f_p = dynamics_quaternion(quat_i_p_[1:], u_i_, unit_u)
-                    jac["quaternion"][(a+j)*4,   (a+i+j+1)*4+k] += -(f_p[j,0] - f_center[j,0]) / dx * (tf-to) * unit_t / 2.0 # rh q0 quat
-                    jac["quaternion"][(a+j)*4+1, (a+i+j+1)*4+k] += -(f_p[j,1] - f_center[j,1]) / dx * (tf-to) * unit_t / 2.0 # rh q1 quat
-                    jac["quaternion"][(a+j)*4+2, (a+i+j+1)*4+k] += -(f_p[j,2] - f_center[j,2]) / dx * (tf-to) * unit_t / 2.0 # rh q2 quat
-                    jac["quaternion"][(a+j)*4+3, (a+i+j+1)*4+k] += -(f_p[j,3] - f_center[j,3]) / dx * (tf-to) * unit_t / 2.0 # rh q3 quat
+                    submat_quat[j*4,   (j+1)*4+k] += -(f_p[j,0] - f_center[j,0]) / dx * (tf-to) * unit_t / 2.0 # rh q0 quat
+                    submat_quat[j*4+1, (j+1)*4+k] += -(f_p[j,1] - f_center[j,1]) / dx * (tf-to) * unit_t / 2.0 # rh q1 quat
+                    submat_quat[j*4+2, (j+1)*4+k] += -(f_p[j,2] - f_center[j,2]) / dx * (tf-to) * unit_t / 2.0 # rh q2 quat
+                    submat_quat[j*4+3, (j+1)*4+k] += -(f_p[j,3] - f_center[j,3]) / dx * (tf-to) * unit_t / 2.0 # rh q3 quat
 
                 for k in range(3):
                     u_i_p_ = deepcopy(u_i_)
                     u_i_p_[j, k] += dx
                     f_p = dynamics_quaternion(quat_i_[1:], u_i_p_, unit_u)
-                    jac["u"][(a+j)*4,   (a+j)*3+k] = -(f_p[j,0] - f_center[j,0]) / dx * (tf-to) * unit_t / 2.0 # rh q0 quat
-                    jac["u"][(a+j)*4+1, (a+j)*3+k] = -(f_p[j,1] - f_center[j,1]) / dx * (tf-to) * unit_t / 2.0 # rh q1 quat
-                    jac["u"][(a+j)*4+2, (a+j)*3+k] = -(f_p[j,2] - f_center[j,2]) / dx * (tf-to) * unit_t / 2.0 # rh q2 quat
-                    jac["u"][(a+j)*4+3, (a+j)*3+k] = -(f_p[j,3] - f_center[j,3]) / dx * (tf-to) * unit_t / 2.0 # rh q3 quat
+
+                    rh_pos = -(f_p[j] - f_center[j]) / dx * (tf-to) * unit_t / 2.0 # rh q0 quat
+                    jac["u"]["coo"][0].extend(list(range((a+j)*4, (a+j+1)*4)))
+                    jac["u"]["coo"][1].extend([(a+j)*3+k] * 4)
+                    jac["u"]["coo"][2].extend(rh_pos.tolist())
 
             rh_to =  f_center.ravel() * unit_t / 2.0  # rh to
             rh_tf = -rh_to  # rh tf
@@ -522,9 +538,14 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
             jac["t"]["coo"][1].extend([i, i+1] * n*4)
             jac["t"]["coo"][2].extend(sum([[rh_to[k], rh_tf[k]] for k in range(4*n)], []))
 
-    jac["t"]["coo"][0] = np.array(jac["t"]["coo"][0], dtype="i4")
-    jac["t"]["coo"][1] = np.array(jac["t"]["coo"][1], dtype="i4")
-    jac["t"]["coo"][2] = np.array(jac["t"]["coo"][2], dtype="f8")
+            jac["quaternion"]["coo"][0].extend(sum([[k]*((n+1)*4) for k in range(a*4, b*4)], []))
+            jac["quaternion"]["coo"][1].extend(list(range((a+i)*4, (b+i+1)*4)) * (n*4))
+            jac["quaternion"]["coo"][2].extend(submat_quat.ravel().tolist())
+
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
                         
     return jac
 
