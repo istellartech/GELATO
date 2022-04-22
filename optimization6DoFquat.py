@@ -312,25 +312,6 @@ def equality_jac_time(xdict, pdict, unitdict, condition):
 
     return jac
 
-def jac_fd(con, xdict, pdict, unitdict, condition):
-    
-    jac = {}
-    dx = 1.0e-8
-    g_base = con(xdict, pdict, unitdict, condition)
-    if hasattr(g_base,"__len__"):
-        nRows = len(g_base)
-    else:
-        nRows = 1
-    for key,val in xdict.items():
-        jac[key] = np.zeros((nRows, val.size))
-        for i in range(val.size):
-            xdict_p = deepcopy(xdict)
-            xdict_p[key][i] += dx
-            g_p = con(xdict_p, pdict, unitdict, condition)
-            jac[key][:,i] = (g_p - g_base) / dx
-
-    return jac
-
 def equality_dynamics_mass(xdict, pdict, unitdict, condition):
     con = []
 
