@@ -241,7 +241,7 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
     num_sections = pdict["num_sections"]
 
     jac["position"] = np.zeros((pdict["N"]*3, pdict["M"]*3))
-    jac["velocity"] = np.zeros((pdict["N"]*3, pdict["M"]*3))
+    jac["velocity"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, pdict["M"]*3)}
     jac["t"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, num_sections+1)}
 
 
@@ -258,7 +258,10 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
         jac["position"][a*3+1: b*3+1: 3, (a+i)*3+1: (b+i+1)*3+1: 3] = pdict["ps_params"][i]["D"] # lh y
         jac["position"][a*3+2: b*3+2: 3, (a+i)*3+2: (b+i+1)*3+2: 3] = pdict["ps_params"][i]["D"] # lh z
 
-        jac["velocity"][a*3:b*3, (a+i+1)*3:(b+i+1)*3] = np.eye(n*3) * (-unit_vel * (tf-to) * unit_t / 2.0 / unit_pos) # rh vel
+        rh_vel = (-unit_vel * (tf-to) * unit_t / 2.0 / unit_pos) # rh vel
+        jac["velocity"]["coo"][0].extend(list(range(a*3,b*3)))
+        jac["velocity"]["coo"][1].extend(list(range((a+i+1)*3,(b+i+1)*3)))
+        jac["velocity"]["coo"][2].extend([rh_vel] * (n*3))
 
         rh_to = vel_i_[1:].ravel() * unit_vel * unit_t / 2.0 / unit_pos # rh to
         rh_tf = -rh_to  # rh tf
@@ -266,9 +269,10 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
         jac["t"]["coo"][1].extend([i, i+1] * n*3)
         jac["t"]["coo"][2].extend(sum([[rh_to[k], rh_tf[k]] for k in range(3*n)], []))
 
-    jac["t"]["coo"][0] = np.array(jac["t"]["coo"][0], dtype="i4")
-    jac["t"]["coo"][1] = np.array(jac["t"]["coo"][1], dtype="i4")
-    jac["t"]["coo"][2] = np.array(jac["t"]["coo"][2], dtype="f8")
+    for key in ["velocity", "t"]:
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
 
 
     return jac
@@ -338,10 +342,10 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
 
     param = np.zeros(5)
 
-    jac["mass"] = np.zeros((pdict["N"]*3, pdict["M"]))
-    jac["position"] = np.zeros((pdict["N"]*3, pdict["M"]*3))
+    jac["mass"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, pdict["M"])}
+    jac["position"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, pdict["M"]*3)}
     jac["velocity"] = np.zeros((pdict["N"]*3, pdict["M"]*3))
-    jac["quaternion"] = np.zeros((pdict["N"]*3, pdict["M"]*4))
+    jac["quaternion"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, pdict["M"]*4)}
     jac["t"] = {"coo": [[], [], []], "shape":(pdict["N"]*3, num_sections+1)}
 
     for i in range(num_sections):
@@ -374,18 +378,20 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
             mass_i_p_ = deepcopy(mass_i_)
             mass_i_p_[j+1] += dx
             f_p = dynamics_velocity(mass_i_p_[1:], pos_i_[1:], vel_i_[1:], quat_i_[1:], t_nodes, param, wind, ca, units)
-            jac["mass"][(a+j)*3,   a+i+j+1] = -(f_p[j,0] - f_center[j,0]) / dx * (tf-to) * unit_t / 2.0 # rh acc_x mass
-            jac["mass"][(a+j)*3+1, a+i+j+1] = -(f_p[j,1] - f_center[j,1]) / dx * (tf-to) * unit_t / 2.0 # rh acc_y mass
-            jac["mass"][(a+j)*3+2, a+i+j+1] = -(f_p[j,2] - f_center[j,2]) / dx * (tf-to) * unit_t / 2.0 # rh acc_z mass
+            rh_mass = -(f_p[j] - f_center[j]) / dx * (tf-to) * unit_t / 2.0 # rh acc mass
+            jac["mass"]["coo"][0].extend(list(range((a+j)*3, (a+j+1)*3)))
+            jac["mass"]["coo"][1].extend([(a+i+j+1)] * 3)
+            jac["mass"]["coo"][2].extend(rh_mass.tolist())
 
             for k in range(3):
                 pos_i_p_ = deepcopy(pos_i_)
                 pos_i_p_[j+1, k] += dx
                 f_p = dynamics_velocity(mass_i_[1:], pos_i_p_[1:], vel_i_[1:], quat_i_[1:], t_nodes, param, wind, ca, units)
-                jac["position"][(a+j)*3,   (a+i+j+1)*3+k] = -(f_p[j,0] - f_center[j,0]) / dx * (tf-to) * unit_t / 2.0 # rh acc_x pos
-                jac["position"][(a+j)*3+1, (a+i+j+1)*3+k] = -(f_p[j,1] - f_center[j,1]) / dx * (tf-to) * unit_t / 2.0 # rh acc_y pos
-                jac["position"][(a+j)*3+2, (a+i+j+1)*3+k] = -(f_p[j,2] - f_center[j,2]) / dx * (tf-to) * unit_t / 2.0 # rh acc_z pos
-
+                rh_pos = -(f_p[j] - f_center[j]) / dx * (tf-to) * unit_t / 2.0 # rh acc pos
+                jac["position"]["coo"][0].extend(list(range((a+j)*3, (a+j+1)*3)))
+                jac["position"]["coo"][1].extend([(a+i+j+1)*3+k] * 3)
+                jac["position"]["coo"][2].extend(rh_pos.tolist())
+            
             for k in range(3):
                 vel_i_p_ = deepcopy(vel_i_)
                 vel_i_p_[j+1, k] += dx
@@ -398,9 +404,10 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                 quat_i_p_ = deepcopy(quat_i_)
                 quat_i_p_[j+1, k] += dx
                 f_p = dynamics_velocity(mass_i_[1:], pos_i_[1:], vel_i_[1:], quat_i_p_[1:], t_nodes, param, wind, ca, units)
-                jac["quaternion"][(a+j)*3,   (a+i+j+1)*4+k] = -(f_p[j,0] - f_center[j,0]) / dx * (tf-to) * unit_t / 2.0 # rh acc_x quat
-                jac["quaternion"][(a+j)*3+1, (a+i+j+1)*4+k] = -(f_p[j,1] - f_center[j,1]) / dx * (tf-to) * unit_t / 2.0 # rh acc_y quat
-                jac["quaternion"][(a+j)*3+2, (a+i+j+1)*4+k] = -(f_p[j,2] - f_center[j,2]) / dx * (tf-to) * unit_t / 2.0 # rh acc_z quat
+                rh_quat = -(f_p[j] - f_center[j]) / dx * (tf-to) * unit_t / 2.0 # rh acc quat
+                jac["quaternion"]["coo"][0].extend(list(range((a+j)*3, (a+j+1)*3)))
+                jac["quaternion"]["coo"][1].extend([(a+i+j+1)*4+k] * 3)
+                jac["quaternion"]["coo"][2].extend(rh_quat.tolist())
 
 
         rh_to =  f_center.ravel() * unit_t / 2.0  # rh to
@@ -409,9 +416,10 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
         jac["t"]["coo"][1].extend([i, i+1] * n*3)
         jac["t"]["coo"][2].extend(sum([[rh_to[k], rh_tf[k]] for k in range(3*n)], []))
 
-    jac["t"]["coo"][0] = np.array(jac["t"]["coo"][0], dtype="i4")
-    jac["t"]["coo"][1] = np.array(jac["t"]["coo"][1], dtype="i4")
-    jac["t"]["coo"][2] = np.array(jac["t"]["coo"][2], dtype="f8")
+    for key in ["mass", "position", "quaternion", "t"]:
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
 
     return jac
 
