@@ -6,8 +6,8 @@ import json
 
 from utils import *
 from coordinate import *
-from optimization6DoFquat import *
-from user_constraints import *
+from initialize_output import *
+from constraints import *
 from PSfunctions import *
 from USStandardAtmosphere import *
 from pyoptsparse import IPOPT, SNOPT, Optimization
@@ -97,7 +97,7 @@ pdict["ps_params"]= [{"index_start": index[i],"nodes": nodes[i], "D" : D[i], "ta
 pdict["wind_table"] = wind_table
 pdict["ca_table"] = ca_table
 pdict["N"] = N
-pdict["total_points"] = N + num_sections
+pdict["M"] = N + num_sections
 pdict["num_sections"] = num_sections
 
 r_init = launchsite_eci
@@ -157,7 +157,9 @@ def objfunc(xdict):
     funcs["eqcon_rate"] = equality_6DoF_rate(xdict, pdict, unitdict, condition)
     funcs["eqcon_user"] = equality_user(xdict, pdict, unitdict, condition)
 
-    funcs["ineqcon"] = inequality_6DoF(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_alpha"] = inequality_max_alpha(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_q"] = inequality_max_q(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_qalpha"] = inequality_max_qalpha(xdict, pdict, unitdict, condition)
     funcs["ineqcon_kick"] = inequality_kickturn(xdict, pdict, unitdict, condition)
     funcs["ineqcon_time"] = inequality_time(xdict, pdict, unitdict, condition)
     funcs["ineqcon_user"] = inequality_user(xdict, pdict, unitdict, condition)
@@ -168,16 +170,31 @@ def objfunc(xdict):
 
 def sens(xdict, funcs):
     funcsSens = {}
-    for key_f in funcs.keys():
-        if key_f == "obj":
-            funcsSens[key_f] = cost_jac(xdict, condition)
-        else:
-            funcsSens[key_f] = jac_fd((lambda xd,a,b,c:objfunc(xd)[0][key_f]), xdict, pdict, unitdict, condition)
+    funcsSens["obj"] = cost_jac(xdict, condition)
+    funcsSens["eqcon_init"] = equality_jac_init(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_time"] = equality_jac_time(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_dyn_mass"] = equality_jac_dynamics_mass(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_dyn_pos"]  = equality_jac_dynamics_position(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_dyn_vel"]  = equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_dyn_quat"] = equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition)
+
+    funcsSens["eqcon_knot"] = equality_jac_knot_LGR(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_terminal"] = equality_jac_6DoF_LGR_terminal(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_rate"] = equality_jac_6DoF_rate(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_user"] = equality_jac_user(xdict, pdict, unitdict, condition)
+
+    funcsSens["ineqcon_alpha"] = inequality_jac_max_alpha(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_q"] = inequality_jac_max_q(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_qalpha"] = inequality_jac_max_qalpha(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_kick"] = inequality_jac_kickturn(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_time"] = inequality_jac_time(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_user"] = inequality_jac_user(xdict, pdict, unitdict, condition)
 
     fail = False
     return funcsSens, fail
 
 optProb = Optimization("Rocket trajectory optimization", objfunc)
+
 
 optProb.addVarGroup("mass", len(xdict_init["mass"]), value=xdict_init["mass"], lower=1.0e-9, upper=2.0)
 optProb.addVarGroup("position", len(xdict_init["position"]), value=xdict_init["position"], lower=-10.0, upper=10.0)
@@ -188,6 +205,24 @@ optProb.addVarGroup("u", len(xdict_init["u"]), value=xdict_init["u"], lower=-9.0
 optProb.addVarGroup("t", len(xdict_init["t"]), value=xdict_init["t"], lower=0.0,  upper=1.5)
 
 f_init = objfunc(xdict_init)[0]
+jac_init = sens(xdict_init, f_init)[0]
+
+for key_con, val_con in jac_init.items():
+    for key_var, val_var in val_con.items():
+        print("\n",key_con, key_var)
+        if sparse.issparse(val_var):
+            print("scipy format")
+        elif isinstance(val_var,np.ndarray):
+            print("dense")
+        elif "coo" in val_var:
+            print("pyoptsparse format")
+            row = val_var["coo"][0]
+            col = val_var["coo"][1]
+            rowcol = [(r, c) for r,c in zip (row, col)]
+            set_rowcol = set(rowcol)
+            print(len(row), len(col), len(set_rowcol))
+        else:
+            print("UNDEFINED")
 
 wrt = {
     "eqcon_init"     : ["mass", "position", "velocity", "quaternion"],
@@ -200,11 +235,16 @@ wrt = {
     "eqcon_terminal" : ["position", "velocity"],
     "eqcon_rate"     : ["position", "quaternion", "u"],
     "eqcon_user"     : ["mass", "position", "velocity", "quaternion", "u", "t"],
-    "ineqcon"        : ["mass", "position", "velocity", "quaternion", "t"],
+    "ineqcon_alpha"  : ["position", "velocity", "quaternion", "t"],
+    "ineqcon_q"      : ["position", "velocity", "quaternion", "t"],
+    "ineqcon_qalpha" : ["position", "velocity", "quaternion", "t"],
     "ineqcon_kick"   : ["u"],
     "ineqcon_time"   : ["t"],
     "ineqcon_user"   : ["mass", "position", "velocity", "quaternion", "u", "t"]
 }
+
+if condition["OptimizationMode"] == "Payload":
+    wrt["eqcon_init"] = ["position", "velocity", "quaternion"]
 
 for key, val in f_init.items():
     if key == "obj":
@@ -220,26 +260,26 @@ for key, val in f_init.items():
                 upper_bound = 0.0
 
             if hasattr(val, "__len__"):
-                optProb.addConGroup(key, len(val), lower=lower_bound, upper=upper_bound, wrt=wrt[key])
+                optProb.addConGroup(key, len(val), lower=lower_bound, upper=upper_bound, wrt=wrt[key], jac=jac_init[key])
             else:
-                optProb.addConGroup(key, 1, lower=lower_bound, upper=upper_bound, wrt=wrt[key])
+                optProb.addConGroup(key, 1, lower=lower_bound, upper=upper_bound, wrt=wrt[key], jac=jac_init[key])
 
 
 
-if "IPOPT" in settings.keys():
-    options_IPOPT = settings["IPOPT"]
-    options_IPOPT["output_file"] = "output/{}-IPOPT.out".format(settings["name"])
-    opt = IPOPT(options=options_IPOPT)
-elif "SNOPT" in settings.keys():
+if "SNOPT" in settings.keys():
     options_SNOPT = settings["SNOPT"]
     options_SNOPT["Print file"] = "output/{}-SNOPT-print.out".format(settings["name"])
     options_SNOPT["Summary file"] = "output/{}-SNOPT-summary.out".format(settings["name"])
     opt = SNOPT(options=options_SNOPT)
+elif "IPOPT" in settings.keys():
+    options_IPOPT = settings["IPOPT"]
+    options_IPOPT["output_file"] = "output/{}-IPOPT.out".format(settings["name"])
+    opt = IPOPT(options=options_IPOPT)
 else:
     print("ERROR : UNRECOGNIZED OPTIMIZER. USE IPOPT OR SNOPT.")
     sys.exit()
 
-sol = opt(optProb, sens="FD", sensMode="pgc")
+sol = opt(optProb, sens=sens)
 
 # Post processing
 
@@ -267,14 +307,27 @@ for i in range(num_sections):
 
 m_res = sol.xStar["mass"] * unitdict["mass"]
 
-res_version = "IST Trajectory Optimizer version : {}\n".format(version)
-res_initial = "initial mass : {:.3f} kg\n".format(m_res[0])
-res_final   = "final mass : {:.3f} kg\n".format(m_res[-1])
-res_payload = "payload : {:.3f} kg\n".format(m_res[0] - m_init - sum([item["mass_kg"] for item in dropmass.values()]))
+res_info = []
+res_info.append("IST Trajectory Optimizer v{}\n\n".format(version))
+res_info.append("Input file name : {}\n\n".format(mission_name))
+res_info.append("initial mass    : {:10.3f} kg\n".format(m_res[0]))
+res_info.append("final mass      : {:10.3f} kg\n".format(m_res[-1]))
+res_info.append("payload         : {:10.3f} kg\n\n".format(m_res[0] - m_init - sum([item["mass_kg"] for item in dropmass.values()])))
 
-print("".join([res_initial, res_final, res_payload]))
+res_info.append("optTime         : {:11.6f}\n".format(sol.optTime))
+res_info.append("userObjTime     : {:11.6f}\n".format(sol.userObjTime))
+res_info.append("userSensTime    : {:11.6f}\n".format(sol.userSensTime))
+res_info.append("interfaceTime   : {:11.6f}\n".format(sol.interfaceTime))
+res_info.append("optCodeTime     : {:11.6f}\n".format(sol.optCodeTime))
+res_info.append("userObjCalls    : {:4d}\n".format(sol.userObjCalls))
+res_info.append("userSensCalls   : {:4d}\n\n".format(sol.userSensCalls))
+
+res_info.append("{} (code {})\n".format(sol.optInform["text"], str(sol.optInform["value"])))
+
+
+print("".join(res_info[1:]))
 with open("output/{}-optResult.txt".format(settings["name"]), mode="w") as fout:
-    fout.write("".join([res_version, res_initial, res_final, res_payload]))
+    fout.write("".join(res_info))
 
 out = output_6DoF(sol.xStar, unitdict, tx_res, tu_res, pdict)
 
