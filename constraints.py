@@ -1121,6 +1121,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
 
     t = xdict["t"]
 
+    wind = pdict["wind_table"]
     num_sections = pdict["num_sections"]
 
     f_center = inequality_max_alpha(xdict, pdict, unitdict, condition)
@@ -1139,27 +1140,26 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
     iRow = 0
     
     for i in range(num_sections-1):
-        a = pdict["ps_params"][i]["index_start"]
-        n = pdict["ps_params"][i]["nodes"]
-        b = a + n
-
-        pos_i_ = pos_[a+i:b+i+1]
-        vel_i_ = vel_[a+i:b+i+1]
-        quat_i_ = quat_[a+i:b+i+1]
-        to = t[i]
-        tf = t[i+1]
-        t_i_ = np.zeros(n+1)
-        t_i_[0] = to
-        t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
-        t_i_p1_ = np.zeros(n+1)
-        t_i_p2_ = np.zeros(n+1)
-
 
         section_name = pdict["params"][i]["name"]
-        wind = pdict["wind_table"]
 
         # angle of attack
         if section_name in condition["aoa_max_deg"]:
+            a = pdict["ps_params"][i]["index_start"]
+            n = pdict["ps_params"][i]["nodes"]
+            b = a + n
+
+            pos_i_ = pos_[a+i:b+i+1]
+            vel_i_ = vel_[a+i:b+i+1]
+            quat_i_ = quat_[a+i:b+i+1]
+            to = t[i]
+            tf = t[i+1]
+            t_i_ = np.zeros(n+1)
+            t_i_[0] = to
+            t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
+            t_i_p1_ = np.zeros(n+1)
+            t_i_p2_ = np.zeros(n+1)
+
             aoa_max = condition["aoa_max_deg"][section_name]["value"] * np.pi / 180.0
             units[3] = aoa_max
 
@@ -1236,6 +1236,7 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
 
     t = xdict["t"]
 
+    wind = pdict["wind_table"]
     num_sections = pdict["num_sections"]
 
     f_center = inequality_max_q(xdict, pdict, unitdict, condition)
@@ -1254,25 +1255,25 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
     iRow = 0
     
     for i in range(num_sections-1):
-        a = pdict["ps_params"][i]["index_start"]
-        n = pdict["ps_params"][i]["nodes"]
-        b = a + n
-
-        pos_i_ = pos_[a+i:b+i+1]
-        vel_i_ = vel_[a+i:b+i+1]
-        to = t[i]
-        tf = t[i+1]
-        t_i_ = np.zeros(n+1)
-        t_i_[0] = to
-        t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
-        t_i_p1_ = np.zeros(n+1)
-        t_i_p2_ = np.zeros(n+1)
 
         section_name = pdict["params"][i]["name"]
-        wind = pdict["wind_table"]
 
         # angle of attack
         if section_name in condition["q_max_pa"]:
+            a = pdict["ps_params"][i]["index_start"]
+            n = pdict["ps_params"][i]["nodes"]
+            b = a + n
+
+            pos_i_ = pos_[a+i:b+i+1]
+            vel_i_ = vel_[a+i:b+i+1]
+            to = t[i]
+            tf = t[i+1]
+            t_i_ = np.zeros(n+1)
+            t_i_[0] = to
+            t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
+            t_i_p1_ = np.zeros(n+1)
+            t_i_p2_ = np.zeros(n+1)
+
             q_max = condition["q_max_pa"][section_name]["value"]
             units[3] = q_max
 
@@ -1343,6 +1344,7 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
 
     t = xdict["t"]
 
+    wind = pdict["wind_table"]
     num_sections = pdict["num_sections"]
 
     f_center = inequality_max_qalpha(xdict, pdict, unitdict, condition)
@@ -1361,33 +1363,32 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
     iRow = 0
     
     for i in range(num_sections-1):
-        a = pdict["ps_params"][i]["index_start"]
-        n = pdict["ps_params"][i]["nodes"]
-        b = a + n
-
-        pos_i_ = pos_[a+i:b+i+1]
-        vel_i_ = vel_[a+i:b+i+1]
-        quat_i_ = quat_[a+i:b+i+1]
-        to = t[i]
-        tf = t[i+1]
-        t_i_ = np.zeros(n+1)
-        t_i_[0] = to
-        t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
-        t_i_p1_ = np.zeros(n+1)
-        t_i_p2_ = np.zeros(n+1)
 
         section_name = pdict["params"][i]["name"]
-        wind = pdict["wind_table"]
-
-        to_p = to + dx
-        t_i_p1_[0] = to_p
-        t_i_p1_[1:] = pdict["ps_params"][i]["tau"] * (tf-to_p) / 2.0 + (tf+to_p) / 2.0
-        tf_p = tf + dx
-        t_i_p2_[0] = to
-        t_i_p2_[1:] = pdict["ps_params"][i]["tau"] * (tf_p-to) / 2.0 + (tf_p+to) / 2.0
 
         # angle of attack
         if section_name in condition["q-alpha_max_pa-deg"]:
+            a = pdict["ps_params"][i]["index_start"]
+            n = pdict["ps_params"][i]["nodes"]
+            b = a + n
+
+            pos_i_ = pos_[a+i:b+i+1]
+            vel_i_ = vel_[a+i:b+i+1]
+            quat_i_ = quat_[a+i:b+i+1]
+            to = t[i]
+            tf = t[i+1]
+            t_i_ = np.zeros(n+1)
+            t_i_[0] = to
+            t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
+            t_i_p1_ = np.zeros(n+1)
+            t_i_p2_ = np.zeros(n+1)
+            to_p = to + dx
+            t_i_p1_[0] = to_p
+            t_i_p1_[1:] = pdict["ps_params"][i]["tau"] * (tf-to_p) / 2.0 + (tf+to_p) / 2.0
+            tf_p = tf + dx
+            t_i_p2_[0] = to
+            t_i_p2_[1:] = pdict["ps_params"][i]["tau"] * (tf_p-to) / 2.0 + (tf_p+to) / 2.0
+
             qalpha_max = condition["q-alpha_max_pa-deg"][section_name]["value"] * np.pi / 180.0
             units[3] = qalpha_max
 
@@ -1465,10 +1466,6 @@ def yb_r_dot(pos_eci, quat_eci2body):
     return yb_dir_eci.dot(normalize(pos_eci))
 
 @jit(nopython=True)
-def q_alpha_dimless(pos_eci, vel_eci, quat, t, wind, units):
-    return angle_of_attack_all_dimless(pos_eci, vel_eci, quat, t, wind, units) * dynamic_pressure_dimless(pos_eci, vel_eci, t, wind, units)
-
-@jit(nopython=True)
 def angle_of_attack_all_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
 
     pos_eci = pos_eci_e * units[0]
@@ -1493,6 +1490,14 @@ def dynamic_pressure_dimless(pos_eci_e, vel_eci_e, t_e, wind, units):
     vel_eci = vel_eci_e * units[1]
     t = t_e * units[2]
     return dynamic_pressure_pa(pos_eci, vel_eci, t, wind) / units[3]
+
+@jit(nopython=True)
+def q_alpha_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
+
+    pos_eci = pos_eci_e * units[0]
+    vel_eci = vel_eci_e * units[1]
+    t = t_e * units[2]
+    return dynamic_pressure_pa(pos_eci, vel_eci, t, wind) * angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind) / units[3]
 
     
 def equality_jac_user(xdict, pdict, unitdict, condition):

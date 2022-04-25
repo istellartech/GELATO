@@ -207,22 +207,6 @@ optProb.addVarGroup("t", len(xdict_init["t"]), value=xdict_init["t"], lower=0.0,
 f_init = objfunc(xdict_init)[0]
 jac_init = sens(xdict_init, f_init)[0]
 
-for key_con, val_con in jac_init.items():
-    for key_var, val_var in val_con.items():
-        print("\n",key_con, key_var)
-        if sparse.issparse(val_var):
-            print("scipy format")
-        elif isinstance(val_var,np.ndarray):
-            print("dense")
-        elif "coo" in val_var:
-            print("pyoptsparse format")
-            row = val_var["coo"][0]
-            col = val_var["coo"][1]
-            rowcol = [(r, c) for r,c in zip (row, col)]
-            set_rowcol = set(rowcol)
-            print(len(row), len(col), len(set_rowcol))
-        else:
-            print("UNDEFINED")
 
 wrt = {
     "eqcon_init"     : ["mass", "position", "velocity", "quaternion"],
