@@ -157,7 +157,9 @@ def objfunc(xdict):
     funcs["eqcon_rate"] = equality_6DoF_rate(xdict, pdict, unitdict, condition)
     funcs["eqcon_user"] = equality_user(xdict, pdict, unitdict, condition)
 
-    funcs["ineqcon"] = inequality_6DoF(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_alpha"] = inequality_max_alpha(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_q"] = inequality_max_q(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_qalpha"] = inequality_max_qalpha(xdict, pdict, unitdict, condition)
     funcs["ineqcon_kick"] = inequality_kickturn(xdict, pdict, unitdict, condition)
     funcs["ineqcon_time"] = inequality_time(xdict, pdict, unitdict, condition)
     funcs["ineqcon_user"] = inequality_user(xdict, pdict, unitdict, condition)
@@ -181,7 +183,9 @@ def sens(xdict, funcs):
     funcsSens["eqcon_rate"] = equality_jac_6DoF_rate(xdict, pdict, unitdict, condition)
     funcsSens["eqcon_user"] = equality_jac_user(xdict, pdict, unitdict, condition)
 
-    funcsSens["ineqcon"] = inequality_jac_6DoF(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_alpha"] = inequality_jac_max_alpha(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_q"] = inequality_jac_max_q(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_qalpha"] = inequality_jac_max_qalpha(xdict, pdict, unitdict, condition)
     funcsSens["ineqcon_kick"] = inequality_jac_kickturn(xdict, pdict, unitdict, condition)
     funcsSens["ineqcon_time"] = inequality_jac_time(xdict, pdict, unitdict, condition)
     funcsSens["ineqcon_user"] = inequality_jac_user(xdict, pdict, unitdict, condition)
@@ -202,6 +206,23 @@ optProb.addVarGroup("t", len(xdict_init["t"]), value=xdict_init["t"], lower=0.0,
 f_init = objfunc(xdict_init)[0]
 jac_init = sens(xdict_init, f_init)[0]
 
+for key_con, val_con in jac_init.items():
+    for key_var, val_var in val_con.items():
+        print("\n",key_con, key_var)
+        if sparse.issparse(val_var):
+            print("scipy format")
+        elif isinstance(val_var,np.ndarray):
+            print("dense")
+        elif "coo" in val_var:
+            print("pyoptsparse format")
+            row = val_var["coo"][0]
+            col = val_var["coo"][1]
+            rowcol = [(r, c) for r,c in zip (row, col)]
+            set_rowcol = set(rowcol)
+            print(len(row), len(col), len(set_rowcol))
+        else:
+            print("UNDEFINED")
+
 wrt = {
     "eqcon_init"     : ["mass", "position", "velocity", "quaternion"],
     "eqcon_time"     : ["t"],
@@ -213,7 +234,9 @@ wrt = {
     "eqcon_terminal" : ["position", "velocity"],
     "eqcon_rate"     : ["position", "quaternion", "u"],
     "eqcon_user"     : ["mass", "position", "velocity", "quaternion", "u", "t"],
-    "ineqcon"        : ["position", "velocity", "quaternion", "t"],
+    "ineqcon_alpha"  : ["position", "velocity", "quaternion", "t"],
+    "ineqcon_q"      : ["position", "velocity", "quaternion", "t"],
+    "ineqcon_qalpha" : ["position", "velocity", "quaternion", "t"],
     "ineqcon_kick"   : ["u"],
     "ineqcon_time"   : ["t"],
     "ineqcon_user"   : ["mass", "position", "velocity", "quaternion", "u", "t"]
