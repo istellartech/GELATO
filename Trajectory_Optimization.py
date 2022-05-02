@@ -12,7 +12,7 @@ from PSfunctions import *
 from USStandardAtmosphere import *
 from pyoptsparse import IPOPT, SNOPT, Optimization
 
-version = "0.5.0"
+version = "0.5.1"
 
 mission_name = sys.argv[1]
 
