@@ -1,5 +1,8 @@
 __pycache__/*
+examples/*
 figures/*
+input/*
+output/*
 *.png
 *.json
 *.csv
