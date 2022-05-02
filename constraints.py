@@ -563,6 +563,20 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
 
     param = np.zeros(5)
 
+    section_sep_list = []
+    for key, stage in pdict["RocketStage"].items():
+        if stage["separation_at"] is not None:
+            section_ig = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["ignition_at"]][0]
+            section_sep = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["separation_at"]][0]
+            section_sep_list.append(section_sep)
+
+            # mass after separation
+            mass_stage = stage["dryMass_kg"] + stage["propellantMass_kg"] + sum([item["mass_kg"] for item in stage["dropMass"]])
+            index_ig = pdict["ps_params"][section_ig]["index_start"] + section_ig
+            index_sep = pdict["ps_params"][section_sep]["index_start"] + section_sep
+            con.append(mass_[index_ig] - mass_[index_sep] - mass_stage / unitdict["mass"])
+
+
     for i in range(1, num_sections):
         a = pdict["ps_params"][i]["index_start"]
         n = pdict["ps_params"][i]["nodes"]
@@ -580,7 +594,8 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
         # knotting constraints: 現在のsectionの先頭と前のsectionの末尾の連続性
         mass_init_ = mass_[a+i]
         mass_prev_ = mass_[a+i-1]
-        con.append(mass_init_ - mass_prev_ + pdict["params"][i]["mass_jettison_kg"] / unitdict["mass"])
+        if not (i in section_sep_list):
+            con.append(mass_init_ - mass_prev_ + pdict["params"][i]["mass_jettison_kg"] / unitdict["mass"])
 
         pos_init_ = pos_[a+i]
         pos_prev_ = pos_[a+i-1]
@@ -611,15 +626,32 @@ def equality_jac_knot_LGR(xdict, pdict, unitdict, condition):
 
     iRow = 0
 
+    section_sep_list = []
+    for key, stage in pdict["RocketStage"].items():
+        if stage["separation_at"] is not None:
+            section_ig = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["ignition_at"]][0]
+            section_sep = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["separation_at"]][0]
+            section_sep_list.append(section_sep)
+
+            # mass after separation
+            mass_stage = stage["dryMass_kg"] + stage["propellantMass_kg"] + sum([item["mass_kg"] for item in stage["dropMass"]])
+            index_ig = pdict["ps_params"][section_ig]["index_start"] + section_ig
+            index_sep = pdict["ps_params"][section_sep]["index_start"] + section_sep
+            jac["mass"]["coo"][0].extend([iRow, iRow])
+            jac["mass"]["coo"][1].extend([index_ig, index_sep])
+            jac["mass"]["coo"][2].extend([1.0, -1.0])
+            iRow += 1
+
     for i in range(1, num_sections):
         a = pdict["ps_params"][i]["index_start"]
         n = pdict["ps_params"][i]["nodes"]
         b = a + n
 
-        jac["mass"]["coo"][0].extend([iRow, iRow])
-        jac["mass"]["coo"][1].extend([a+i-1, a+i])
-        jac["mass"]["coo"][2].extend([-1.0, 1.0])        
-        iRow += 1
+        if not (i in section_sep_list):
+            jac["mass"]["coo"][0].extend([iRow, iRow])
+            jac["mass"]["coo"][1].extend([a+i-1, a+i])
+            jac["mass"]["coo"][2].extend([-1.0, 1.0])        
+            iRow += 1
 
         jac["position"]["coo"][0].extend(list(range(iRow, iRow+3)))
         jac["position"]["coo"][1].extend(list(range((a+i-1)*3, (a+i)*3)))
