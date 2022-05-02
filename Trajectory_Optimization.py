@@ -30,7 +30,6 @@ ca = pd.read_csv(settings["CA file"])
 ca_table = ca.to_numpy()
 
 stages = settings["RocketStage"]
-dropmass = settings["dropMass"]
 launch_conditions = settings["LaunchCondition"]
 terminal_conditions = settings["TerminalCondition"]
 
@@ -53,11 +52,12 @@ for key, stage in stages.items():
     elif stage["separation_at"] is not None:
         print("WARNING: separation time is invalid : stage {}".format(key))
 
-for key, item in settings["dropMass"].items():
-    if item["separation_at"] in events.index:
-        events.at[item["separation_at"], "mass_jettison_kg"] = item["mass_kg"]
-    else:
-        print("WARNING: separation time is invalid : {}".format(key))
+    if stage["dropMass"] is not None:
+        for key, item in stage["dropMass"].items():
+            if item["separation_at"] in events.index:
+                events.at[item["separation_at"], "mass_jettison_kg"] = item["mass_kg"]
+            else:
+                print("WARNING: separation time is invalid : {}".format(key))
 
 events["massflow_kgps"] = 0.0
 events["airArea_m2"] = 0.0
@@ -76,7 +76,8 @@ for i in events.index:
 
     att = events.at[i, "attitude"]
 
-pdict = {"params": events.to_dict('records')}
+pdict = settings
+pdict["params"] = events.to_dict('records')
 nodes = events["num_nodes"][:-1]
 for i,event_name in enumerate(events.index):
     pdict["params"][i]["name"] = event_name
@@ -296,7 +297,12 @@ res_info.append("IST Trajectory Optimizer v{}\n\n".format(version))
 res_info.append("Input file name : {}\n\n".format(mission_name))
 res_info.append("initial mass    : {:10.3f} kg\n".format(m_res[0]))
 res_info.append("final mass      : {:10.3f} kg\n".format(m_res[-1]))
-res_info.append("payload         : {:10.3f} kg\n\n".format(m_res[0] - m_init - sum([item["mass_kg"] for item in dropmass.values()])))
+
+mass_drop = 0.0
+for i,stage in settings["RocketStage"].items():
+    if stage["dropMass"] is not None:
+        mass_drop += sum([item["mass_kg"] for item in stage["dropMass"].values()])
+res_info.append("payload         : {:10.3f} kg\n\n".format(m_res[0] - m_init - mass_drop))
 
 res_info.append("optTime         : {:11.6f}\n".format(sol.optTime))
 res_info.append("userObjTime     : {:11.6f}\n".format(sol.userObjTime))
