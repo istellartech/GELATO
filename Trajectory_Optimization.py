@@ -161,6 +161,7 @@ def objfunc(xdict):
     funcs["ineqcon_alpha"] = inequality_max_alpha(xdict, pdict, unitdict, condition)
     funcs["ineqcon_q"] = inequality_max_q(xdict, pdict, unitdict, condition)
     funcs["ineqcon_qalpha"] = inequality_max_qalpha(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_mass"] = inequality_mass(xdict, pdict, unitdict, condition)
     funcs["ineqcon_kick"] = inequality_kickturn(xdict, pdict, unitdict, condition)
     funcs["ineqcon_time"] = inequality_time(xdict, pdict, unitdict, condition)
     funcs["ineqcon_user"] = inequality_user(xdict, pdict, unitdict, condition)
@@ -187,6 +188,7 @@ def sens(xdict, funcs):
     funcsSens["ineqcon_alpha"] = inequality_jac_max_alpha(xdict, pdict, unitdict, condition)
     funcsSens["ineqcon_q"] = inequality_jac_max_q(xdict, pdict, unitdict, condition)
     funcsSens["ineqcon_qalpha"] = inequality_jac_max_qalpha(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_mass"] = inequality_jac_mass(xdict, pdict, unitdict, condition)
     funcsSens["ineqcon_kick"] = inequality_jac_kickturn(xdict, pdict, unitdict, condition)
     funcsSens["ineqcon_time"] = inequality_jac_time(xdict, pdict, unitdict, condition)
     funcsSens["ineqcon_user"] = inequality_jac_user(xdict, pdict, unitdict, condition)
@@ -223,6 +225,7 @@ wrt = {
     "ineqcon_alpha"  : ["position", "velocity", "quaternion", "t"],
     "ineqcon_q"      : ["position", "velocity", "quaternion", "t"],
     "ineqcon_qalpha" : ["position", "velocity", "quaternion", "t"],
+    "ineqcon_mass"   : ["mass"],
     "ineqcon_kick"   : ["u"],
     "ineqcon_time"   : ["t"],
     "ineqcon_user"   : ["mass", "position", "velocity", "quaternion", "u", "t"]

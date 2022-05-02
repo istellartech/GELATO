@@ -905,6 +905,47 @@ def inequality_jac_time(xdict, pdict, unitdict, condition):
     }
     return jac
 
+def inequality_mass(xdict, pdict, unitdict, condition):
+    con = []
+
+    mass_ = xdict["mass"]
+    for index, stage in pdict["RocketStage"].items():
+
+        # read index number
+        section_ig = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["ignition_at"]][0]
+        section_co = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["cutoff_at"]][0]
+
+        mass_ig = mass_[pdict["ps_params"][section_ig]["index_start"] + section_ig]
+        mass_co = mass_[pdict["ps_params"][section_co]["index_start"] + section_co]
+
+        d_mass = stage["propellantMass_kg"]
+        if stage["dropMass"] is not None:
+            d_mass += sum([item["mass_kg"] for item in stage["dropMass"].values()])
+        con.append( -mass_ig + mass_co + d_mass / unitdict["mass"])
+
+    return con
+
+def inequality_jac_mass(xdict, pdict, unitdict, condition):
+    jac = {}
+
+    data = []
+    row = []
+    col = []
+
+    counter = 0
+    for index, stage in pdict["RocketStage"].items():
+        section_ig = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["ignition_at"]][0]
+        section_co = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["cutoff_at"]][0]
+        data.extend([-1.0, 1.0])
+        row.extend([counter, counter])
+        col.extend([pdict["ps_params"][section_ig]["index_start"] + section_ig, pdict["ps_params"][section_co]["index_start"] + section_co])
+        counter += 1
+
+    jac["mass"] = {
+        "coo": [np.array(row,dtype="i4"), np.array(col,dtype="i4"), np.array(data,dtype="f8")],
+        "shape" : (counter, len(xdict["mass"]))
+    }
+    return jac
 
 def inequality_kickturn(xdict, pdict, unitdict, condition):
     con = []
