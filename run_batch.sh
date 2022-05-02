@@ -9,12 +9,16 @@ if [ $# -lt 1 ]; then
 fi
 
 echo $1
-rm -r output
 rm *.json
 rm *.csv
 
 cp _user_constraints_empty.py user_constraints.py
-aws s3 cp $1 . --recursive --exclude "output*"
+if [[ $1 =~ ^s3:// ]]; then
+    rm -r output
+    aws s3 cp $1 . --recursive --exclude "output*"
+else
+    cp $1/* .
+fi
 
 mkdir output
 for file in `\find . -maxdepth 1 -name '*.json'`; do
@@ -22,9 +26,13 @@ for file in `\find . -maxdepth 1 -name '*.json'`; do
     python3 Trajectory_Optimization.py $file
 done
 
-aws s3 cp output $1/output --recursive
+if [[ $1 =~ ^s3:// ]]; then
+    aws s3 cp output $1/output --recursive
+    rm -r output
+else
+    mv output $1
+fi
 
-rm -r output
-rm *.json
-rm *.csv
-rm user_constraints.py
+rm ./*.json
+rm ./*.csv
+rm ./user_constraints.py
