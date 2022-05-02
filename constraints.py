@@ -601,27 +601,54 @@ def equality_jac_knot_LGR(xdict, pdict, unitdict, condition):
 
     num_sections = pdict["num_sections"]
 
-    jac["mass"]       = sparse.lil_matrix(((num_sections-1)*11, pdict["M"]))
-    jac["position"]   = sparse.lil_matrix(((num_sections-1)*11, pdict["M"]*3))
-    jac["velocity"]   = sparse.lil_matrix(((num_sections-1)*11, pdict["M"]*3))
-    jac["quaternion"] = sparse.lil_matrix(((num_sections-1)*11, pdict["M"]*4))
+    f_center = equality_knot_LGR(xdict, pdict, unitdict, condition)
+    nRow = len(f_center)
+
+    jac["mass"]       = {"coo": [[], [], []], "shape":(nRow, pdict["M"])}
+    jac["position"]   = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*3)}
+    jac["velocity"]   = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*3)}
+    jac["quaternion"] = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*4)}
+
+    iRow = 0
 
     for i in range(num_sections-1):
         a = pdict["ps_params"][i]["index_start"]
         n = pdict["ps_params"][i]["nodes"]
         b = a + n
 
-        jac["mass"][i*11, b+i]   = -1.0
-        jac["mass"][i*11, b+i+1] = 1.0
+        jac["mass"]["coo"][0].extend([i*11, i*11])
+        jac["mass"]["coo"][1].extend([b+i, b+i+1])
+        jac["mass"]["coo"][2].extend([-1.0, 1.0])        
+        iRow += 1
 
-        jac["position"][i*11+1:i*11+4, (b+i)*3:(b+i+1)*3] = -np.eye(3)
-        jac["position"][i*11+1:i*11+4, (b+i+1)*3:(b+i+2)*3] = np.eye(3)
+        jac["position"]["coo"][0].extend(list(range(i*11+1, i*11+4)))
+        jac["position"]["coo"][1].extend(list(range((b+i)*3, (b+i+1)*3)))
+        jac["position"]["coo"][2].extend([-1.0]*3)
+        jac["position"]["coo"][0].extend(list(range(i*11+1, i*11+4)))
+        jac["position"]["coo"][1].extend(list(range((b+i+1)*3, (b+i+2)*3)))
+        jac["position"]["coo"][2].extend([1.0]*3)
+        iRow += 3
 
-        jac["velocity"][i*11+4:i*11+7, (b+i)*3:(b+i+1)*3] = -np.eye(3)
-        jac["velocity"][i*11+4:i*11+7, (b+i+1)*3:(b+i+2)*3] = np.eye(3)
+        jac["velocity"]["coo"][0].extend(list(range(i*11+4, i*11+7)))
+        jac["velocity"]["coo"][1].extend(list(range((b+i)*3, (b+i+1)*3)))
+        jac["velocity"]["coo"][2].extend([-1.0]*3)
+        jac["velocity"]["coo"][0].extend(list(range(i*11+4, i*11+7)))
+        jac["velocity"]["coo"][1].extend(list(range((b+i+1)*3, (b+i+2)*3)))
+        jac["velocity"]["coo"][2].extend([1.0]*3)
+        iRow += 3
 
-        jac["quaternion"][i*11+7:i*11+11, (b+i)*4:(b+i+1)*4] = -np.eye(4)
-        jac["quaternion"][i*11+7:i*11+11, (b+i+1)*4:(b+i+2)*4] = np.eye(4)
+        jac["quaternion"]["coo"][0].extend(list(range(i*11+7, i*11+11)))
+        jac["quaternion"]["coo"][1].extend(list(range((b+i)*4, (b+i+1)*4)))
+        jac["quaternion"]["coo"][2].extend([-1.0]*4)
+        jac["quaternion"]["coo"][0].extend(list(range(i*11+7, i*11+11)))
+        jac["quaternion"]["coo"][1].extend(list(range((b+i+1)*4, (b+i+2)*4)))
+        jac["quaternion"]["coo"][2].extend([1.0]*4)
+        iRow += 4
+
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
 
     return jac
 
