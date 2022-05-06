@@ -113,27 +113,32 @@ def equality_time(xdict, pdict, unitdict, condition):
 
     num_sections = pdict["num_sections"]
 
-    #knotting time
-    con.append([t_[i] - pdict["params"][i]["timeAt_sec"] / unit_t for i in range(num_sections+1) if pdict["params"][i]["timeFixed"]])
+    # force to fix initial time
+    con.append(t_[0] - pdict["params"][0]["timeAt_sec"] / unit_t)
+    for i in range(1, num_sections+1):
+        if pdict["params"][i]["time_ref"] in pdict["event_index"].keys():
+            i_ref = pdict["event_index"][pdict["params"][i]["time_ref"]]
+            con.append(t_[i] - t_[i_ref] - (pdict["params"][i]["timeAt_sec"] - pdict["params"][i_ref]["timeAt_sec"]) / unit_t)
 
     return np.concatenate(con, axis=None)
 
 def equality_jac_time(xdict, pdict, unitdict, condition):
     jac = {}
 
-    data = []
-    row = []
-    col = []
+    data = [1.0]
+    row = [0]
+    col = [0]
 
-    counter = 0
-    for i in range(pdict["num_sections"]+1):
-        if pdict["params"][i]["timeFixed"]:
-            data.append(1.0)
-            row.append(counter)
-            col.append(i)
-            counter += 1
+    iRow = 1
+    for i in range(1, pdict["num_sections"]+1):
+        if pdict["params"][i]["time_ref"] in pdict["event_index"].keys():
+            i_ref = pdict["event_index"][pdict["params"][i]["time_ref"]]
+            data.extend([1.0, -1.0])
+            row.extend([iRow, iRow])
+            col.extend([i, i_ref])
+            iRow += 1
 
-    jac["t"] = sparse.coo_matrix((data, (row, col)), shape=[len(data), len(xdict["t"])])
+    jac["t"] = sparse.coo_matrix((data, (row, col)), shape=[iRow, len(xdict["t"])])
 
     return jac
 

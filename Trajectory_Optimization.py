@@ -81,7 +81,7 @@ pdict["params"] = events.to_dict('records')
 nodes = events["num_nodes"][:-1]
 for i,event_name in enumerate(events.index):
     pdict["params"][i]["name"] = event_name
-pdict["event_index"] = {}
+pdict["event_index"] = {val["name"]: i for i,val in enumerate(pdict["params"])}
 assert(len(nodes) == len(pdict["params"])-1)
 
 N = sum(nodes)
