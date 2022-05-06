@@ -272,8 +272,7 @@ sol = opt(optProb, sens=sens)
 # Post processing
 
 for i,p in enumerate(pdict["params"]):
-    if not p["timeFixed"]:
-        p["timeAt_sec"] = sol.xStar["t"][i] * unitdict["t"]
+    p["timeAt_sec"] = sol.xStar["t"][i] * unitdict["t"]
         
 flag_savefig = False
 # ========================
