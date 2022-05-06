@@ -943,7 +943,7 @@ def inequality_time(xdict, pdict, unitdict, condition):
     t_normal = xdict["t"]
 
     for i in range(pdict["num_sections"]):
-        if not (pdict["params"][i]["timeFixed"] and pdict["params"][i+1]["timeFixed"]):
+        if not (pdict["params"][i]["time_ref"] in pdict["event_index"].keys() and pdict["params"][i+1]["time_ref"] in pdict["event_index"].keys()):
             con.append(t_normal[i+1] - t_normal[i])
 
     return np.array(con)
@@ -957,7 +957,7 @@ def inequality_jac_time(xdict, pdict, unitdict, condition):
 
     counter = 0
     for i in range(pdict["num_sections"]):
-        if not (pdict["params"][i]["timeFixed"] and pdict["params"][i+1]["timeFixed"]):
+        if not (pdict["params"][i]["time_ref"] in pdict["event_index"].keys() and pdict["params"][i+1]["time_ref"] in pdict["event_index"].keys()):
             data.extend([-1.0, 1.0])
             row.extend([counter, counter])
             col.extend([i, i+1])
