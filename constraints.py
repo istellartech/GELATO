@@ -113,27 +113,32 @@ def equality_time(xdict, pdict, unitdict, condition):
 
     num_sections = pdict["num_sections"]
 
-    #knotting time
-    con.append([t_[i] - pdict["params"][i]["timeAt_sec"] / unit_t for i in range(num_sections+1) if pdict["params"][i]["timeFixed"]])
+    # force to fix initial time
+    con.append(t_[0] - pdict["params"][0]["timeAt_sec"] / unit_t)
+    for i in range(1, num_sections+1):
+        if pdict["params"][i]["time_ref"] in pdict["event_index"].keys():
+            i_ref = pdict["event_index"][pdict["params"][i]["time_ref"]]
+            con.append(t_[i] - t_[i_ref] - (pdict["params"][i]["timeAt_sec"] - pdict["params"][i_ref]["timeAt_sec"]) / unit_t)
 
     return np.concatenate(con, axis=None)
 
 def equality_jac_time(xdict, pdict, unitdict, condition):
     jac = {}
 
-    data = []
-    row = []
-    col = []
+    data = [1.0]
+    row = [0]
+    col = [0]
 
-    counter = 0
-    for i in range(pdict["num_sections"]+1):
-        if pdict["params"][i]["timeFixed"]:
-            data.append(1.0)
-            row.append(counter)
-            col.append(i)
-            counter += 1
+    iRow = 1
+    for i in range(1, pdict["num_sections"]+1):
+        if pdict["params"][i]["time_ref"] in pdict["event_index"].keys():
+            i_ref = pdict["event_index"][pdict["params"][i]["time_ref"]]
+            data.extend([1.0, -1.0])
+            row.extend([iRow, iRow])
+            col.extend([i, i_ref])
+            iRow += 1
 
-    jac["t"] = sparse.coo_matrix((data, (row, col)), shape=[len(data), len(xdict["t"])])
+    jac["t"] = sparse.coo_matrix((data, (row, col)), shape=[iRow, len(xdict["t"])])
 
     return jac
 
@@ -563,7 +568,21 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
 
     param = np.zeros(5)
 
-    for i in range(num_sections-1):
+    section_sep_list = []
+    for key, stage in pdict["RocketStage"].items():
+        if stage["separation_at"] is not None:
+            section_ig = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["ignition_at"]][0]
+            section_sep = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["separation_at"]][0]
+            section_sep_list.append(section_sep)
+
+            # mass after separation
+            mass_stage = stage["dryMass_kg"] + stage["propellantMass_kg"] + sum([item["mass_kg"] for item in stage["dropMass"]])
+            index_ig = pdict["ps_params"][section_ig]["index_start"] + section_ig
+            index_sep = pdict["ps_params"][section_sep]["index_start"] + section_sep
+            con.append(mass_[index_ig] - mass_[index_sep] - mass_stage / unitdict["mass"])
+
+
+    for i in range(1, num_sections):
         a = pdict["ps_params"][i]["index_start"]
         n = pdict["ps_params"][i]["nodes"]
         b = a + n
@@ -577,22 +596,23 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
         param[2] = pdict["params"][i]["airArea_m2"]
         param[4] = pdict["params"][i]["nozzleArea_m2"]
 
-        # knotting constraints: 現在のsectionの末尾と次のsectionの先頭の連続性
-        mass_next_ = mass_[b+i+1]
-        mass_final_ = mass_i_[-1]
-        con.append(mass_next_ - mass_final_ + pdict["params"][i+1]["mass_jettison_kg"] / unitdict["mass"])
+        # knotting constraints: 現在のsectionの先頭と前のsectionの末尾の連続性
+        mass_init_ = mass_[a+i]
+        mass_prev_ = mass_[a+i-1]
+        if not (i in section_sep_list):
+            con.append(mass_init_ - mass_prev_ + pdict["params"][i]["mass_jettison_kg"] / unitdict["mass"])
 
-        pos_next_ = pos_[b+i+1]
-        pos_final_ = pos_i_[-1]
-        con.append(pos_next_ - pos_final_)
+        pos_init_ = pos_[a+i]
+        pos_prev_ = pos_[a+i-1]
+        con.append(pos_init_ - pos_prev_)
 
-        vel_next_ = vel_[b+i+1]
-        vel_final_ = vel_i_[-1]
-        con.append(vel_next_ - vel_final_)
+        vel_init_ = vel_[a+i]
+        vel_prev_ = vel_[a+i-1]
+        con.append(vel_init_ - vel_prev_)
 
-        quat_next_ = quat_[b+i+1]
-        quat_final_ = quat_i_[-1]
-        con.append(quat_next_ - quat_final_)
+        quat_init_ = quat_[a+i]
+        quat_prev_ = quat_[a+i-1]
+        con.append(quat_init_ - quat_prev_)
 
     return np.concatenate(con, axis=None)
 
@@ -601,27 +621,71 @@ def equality_jac_knot_LGR(xdict, pdict, unitdict, condition):
 
     num_sections = pdict["num_sections"]
 
-    jac["mass"]       = sparse.lil_matrix(((num_sections-1)*11, pdict["M"]))
-    jac["position"]   = sparse.lil_matrix(((num_sections-1)*11, pdict["M"]*3))
-    jac["velocity"]   = sparse.lil_matrix(((num_sections-1)*11, pdict["M"]*3))
-    jac["quaternion"] = sparse.lil_matrix(((num_sections-1)*11, pdict["M"]*4))
+    f_center = equality_knot_LGR(xdict, pdict, unitdict, condition)
+    nRow = len(f_center)
 
-    for i in range(num_sections-1):
+    jac["mass"]       = {"coo": [[], [], []], "shape":(nRow, pdict["M"])}
+    jac["position"]   = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*3)}
+    jac["velocity"]   = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*3)}
+    jac["quaternion"] = {"coo": [[], [], []], "shape":(nRow, pdict["M"]*4)}
+
+    iRow = 0
+
+    section_sep_list = []
+    for key, stage in pdict["RocketStage"].items():
+        if stage["separation_at"] is not None:
+            section_ig = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["ignition_at"]][0]
+            section_sep = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["separation_at"]][0]
+            section_sep_list.append(section_sep)
+
+            # mass after separation
+            mass_stage = stage["dryMass_kg"] + stage["propellantMass_kg"] + sum([item["mass_kg"] for item in stage["dropMass"]])
+            index_ig = pdict["ps_params"][section_ig]["index_start"] + section_ig
+            index_sep = pdict["ps_params"][section_sep]["index_start"] + section_sep
+            jac["mass"]["coo"][0].extend([iRow, iRow])
+            jac["mass"]["coo"][1].extend([index_ig, index_sep])
+            jac["mass"]["coo"][2].extend([1.0, -1.0])
+            iRow += 1
+
+    for i in range(1, num_sections):
         a = pdict["ps_params"][i]["index_start"]
         n = pdict["ps_params"][i]["nodes"]
         b = a + n
 
-        jac["mass"][i*11, b+i]   = -1.0
-        jac["mass"][i*11, b+i+1] = 1.0
+        if not (i in section_sep_list):
+            jac["mass"]["coo"][0].extend([iRow, iRow])
+            jac["mass"]["coo"][1].extend([a+i-1, a+i])
+            jac["mass"]["coo"][2].extend([-1.0, 1.0])        
+            iRow += 1
 
-        jac["position"][i*11+1:i*11+4, (b+i)*3:(b+i+1)*3] = -np.eye(3)
-        jac["position"][i*11+1:i*11+4, (b+i+1)*3:(b+i+2)*3] = np.eye(3)
+        jac["position"]["coo"][0].extend(list(range(iRow, iRow+3)))
+        jac["position"]["coo"][1].extend(list(range((a+i-1)*3, (a+i)*3)))
+        jac["position"]["coo"][2].extend([-1.0]*3)
+        jac["position"]["coo"][0].extend(list(range(iRow, iRow+3)))
+        jac["position"]["coo"][1].extend(list(range((a+i)*3, (a+i+1)*3)))
+        jac["position"]["coo"][2].extend([1.0]*3)
+        iRow += 3
 
-        jac["velocity"][i*11+4:i*11+7, (b+i)*3:(b+i+1)*3] = -np.eye(3)
-        jac["velocity"][i*11+4:i*11+7, (b+i+1)*3:(b+i+2)*3] = np.eye(3)
+        jac["velocity"]["coo"][0].extend(list(range(iRow, iRow+3)))
+        jac["velocity"]["coo"][1].extend(list(range((a+i-1)*3, (a+i)*3)))
+        jac["velocity"]["coo"][2].extend([-1.0]*3)
+        jac["velocity"]["coo"][0].extend(list(range(iRow, iRow+3)))
+        jac["velocity"]["coo"][1].extend(list(range((a+i)*3, (a+i+1)*3)))
+        jac["velocity"]["coo"][2].extend([1.0]*3)
+        iRow += 3
 
-        jac["quaternion"][i*11+7:i*11+11, (b+i)*4:(b+i+1)*4] = -np.eye(4)
-        jac["quaternion"][i*11+7:i*11+11, (b+i+1)*4:(b+i+2)*4] = np.eye(4)
+        jac["quaternion"]["coo"][0].extend(list(range(iRow, iRow+4)))
+        jac["quaternion"]["coo"][1].extend(list(range((a+i-1)*4, (a+i)*4)))
+        jac["quaternion"]["coo"][2].extend([-1.0]*4)
+        jac["quaternion"]["coo"][0].extend(list(range(iRow, iRow+4)))
+        jac["quaternion"]["coo"][1].extend(list(range((a+i)*4, (a+i+1)*4)))
+        jac["quaternion"]["coo"][2].extend([1.0]*4)
+        iRow += 4
+
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
 
     return jac
 
@@ -878,8 +942,8 @@ def inequality_time(xdict, pdict, unitdict, condition):
     con = []
     t_normal = xdict["t"]
 
-    for i in range(pdict["num_sections"]-1):
-        if not (pdict["params"][i]["timeFixed"] and pdict["params"][i+1]["timeFixed"]):
+    for i in range(pdict["num_sections"]):
+        if not (pdict["params"][i]["time_ref"] in pdict["event_index"].keys() and pdict["params"][i+1]["time_ref"] in pdict["event_index"].keys()):
             con.append(t_normal[i+1] - t_normal[i])
 
     return np.array(con)
@@ -892,8 +956,8 @@ def inequality_jac_time(xdict, pdict, unitdict, condition):
     col = []
 
     counter = 0
-    for i in range(pdict["num_sections"]-1):
-        if not (pdict["params"][i]["timeFixed"] and pdict["params"][i+1]["timeFixed"]):
+    for i in range(pdict["num_sections"]):
+        if not (pdict["params"][i]["time_ref"] in pdict["event_index"].keys() and pdict["params"][i+1]["time_ref"] in pdict["event_index"].keys()):
             data.extend([-1.0, 1.0])
             row.extend([counter, counter])
             col.extend([i, i+1])
@@ -905,6 +969,47 @@ def inequality_jac_time(xdict, pdict, unitdict, condition):
     }
     return jac
 
+def inequality_mass(xdict, pdict, unitdict, condition):
+    con = []
+
+    mass_ = xdict["mass"]
+    for index, stage in pdict["RocketStage"].items():
+
+        # read index number
+        section_ig = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["ignition_at"]][0]
+        section_co = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["cutoff_at"]][0]
+
+        mass_ig = mass_[pdict["ps_params"][section_ig]["index_start"] + section_ig]
+        mass_co = mass_[pdict["ps_params"][section_co]["index_start"] + section_co]
+
+        d_mass = stage["propellantMass_kg"]
+        if stage["dropMass"] is not None:
+            d_mass += sum([item["mass_kg"] for item in stage["dropMass"].values()])
+        con.append( -mass_ig + mass_co + d_mass / unitdict["mass"])
+
+    return con
+
+def inequality_jac_mass(xdict, pdict, unitdict, condition):
+    jac = {}
+
+    data = []
+    row = []
+    col = []
+
+    counter = 0
+    for index, stage in pdict["RocketStage"].items():
+        section_ig = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["ignition_at"]][0]
+        section_co = [i for i,value in enumerate(pdict["params"]) if value["name"] == stage["cutoff_at"]][0]
+        data.extend([-1.0, 1.0])
+        row.extend([counter, counter])
+        col.extend([pdict["ps_params"][section_ig]["index_start"] + section_ig, pdict["ps_params"][section_co]["index_start"] + section_co])
+        counter += 1
+
+    jac["mass"] = {
+        "coo": [np.array(row,dtype="i4"), np.array(col,dtype="i4"), np.array(data,dtype="f8")],
+        "shape" : (counter, len(xdict["mass"]))
+    }
+    return jac
 
 def inequality_kickturn(xdict, pdict, unitdict, condition):
     con = []
