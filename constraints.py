@@ -576,7 +576,7 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
             section_sep_list.append(section_sep)
 
             # mass after separation
-            mass_stage = stage["dryMass_kg"] + stage["propellantMass_kg"] + sum([item["mass_kg"] for item in stage["dropMass"]])
+            mass_stage = stage["dryMass_kg"] + stage["propellantMass_kg"] + sum([item["mass_kg"] for item in stage["dropMass"].values()])
             index_ig = pdict["ps_params"][section_ig]["index_start"] + section_ig
             index_sep = pdict["ps_params"][section_sep]["index_start"] + section_sep
             con.append(mass_[index_ig] - mass_[index_sep] - mass_stage / unitdict["mass"])
@@ -639,7 +639,6 @@ def equality_jac_knot_LGR(xdict, pdict, unitdict, condition):
             section_sep_list.append(section_sep)
 
             # mass after separation
-            mass_stage = stage["dryMass_kg"] + stage["propellantMass_kg"] + sum([item["mass_kg"] for item in stage["dropMass"]])
             index_ig = pdict["ps_params"][section_ig]["index_start"] + section_ig
             index_sep = pdict["ps_params"][section_sep]["index_start"] + section_sep
             jac["mass"]["coo"][0].extend([iRow, iRow])
