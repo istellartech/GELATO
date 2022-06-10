@@ -323,4 +323,4 @@ with open("output/{}-optResult.txt".format(settings["name"]), mode="w") as fout:
 
 out = output_6DoF(sol.xStar, unitdict, tx_res, tu_res, pdict)
 
-out.to_csv("output/{}-trajectoryResult.csv".format(settings["name"]))
+out.to_csv("output/{}-trajectoryResult.csv".format(settings["name"]), index=False)

@@ -272,8 +272,8 @@ def initialize_xdict_6DoF_from_file(x_ref, pdict, condition, unitdict, mode='LGL
     xdict["mass"] = (interp1d(x_ref["time"], x_ref["mass"], fill_value="extrapolate")(time_x_nodes) / unitdict["mass"]).ravel()
     xdict["position"] = (interp1d(x_ref["time"], x_ref[["pos_ECI_X", "pos_ECI_Y", "pos_ECI_Z"]], axis=0, fill_value="extrapolate")(time_x_nodes) / unitdict["position"]).ravel()
     xdict["velocity"] = (interp1d(x_ref["time"], x_ref[["vel_ECI_X", "vel_ECI_Y", "vel_ECI_Z"]], axis=0, fill_value="extrapolate")(time_x_nodes) / unitdict["velocity"]).ravel()
-    xdict["quaternion"] = (interp1d(x_ref["time"], x_ref[["quat_i2b_0", "quat_i2b_1", "quat_i2b_2", "quat_i2b_3"]], axis=0, fill_value="extrapolate")(time_x_nodes)).ravel()
-    xdict["u"] = (interp1d(x_ref["time"], x_ref[["rate_P", "rate_Q", "rate_R"]], axis=0, fill_value="extrapolate")(time_nodes) / unitdict["u"]).ravel()
+    xdict["quaternion"] = (interp1d(x_ref["time"], x_ref[["quat_ECI2BODY_0", "quat_ECI2BODY_1", "quat_ECI2BODY_2", "quat_ECI2BODY_3"]], axis=0, fill_value="extrapolate")(time_x_nodes)).ravel()
+    xdict["u"] = (interp1d(x_ref["time"], x_ref[["rate_BODY_X", "rate_BODY_Y", "rate_BODY_Z"]], axis=0, fill_value="extrapolate")(time_nodes) / unitdict["u"]).ravel()
 
     if flag_display:
         display_6DoF(output_6DoF(xdict, unitdict, time_x_nodes, time_nodes, pdict))
@@ -308,47 +308,47 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
             "lon"        : np.zeros(N),
             "lat_IIP"    : np.zeros(N),
             "lon_IIP"    : np.zeros(N),
-            "alt"        : np.zeros(N),
-            "ha"         : np.zeros(N),
-            "hp"         : np.zeros(N),
-            "inc"        : np.zeros(N),
-            "argp"       : np.zeros(N),
-            "asnd"       : np.zeros(N),
-            "tanm"       : np.zeros(N),
+            "altitude" : np.zeros(N),
+            "altitude_apogee" : np.zeros(N),
+            "altitude_apogee" : np.zeros(N),
+            "inclination" : np.zeros(N),
+            "argument_perigee" : np.zeros(N),
+            "lon_ascending_node" : np.zeros(N),
+            "true_anomaly" : np.zeros(N),
             "pos_ECI_X"  : pos_[:,0],
             "pos_ECI_Y"  : pos_[:,1],
             "pos_ECI_Z"  : pos_[:,2],
             "vel_ECI_X"  : vel_[:,0],
             "vel_ECI_Y"  : vel_[:,1],
             "vel_ECI_Z"  : vel_[:,2],
-            "vel_NED_X"  : np.zeros(N),
-            "vel_NED_Y"  : np.zeros(N),
-            "vel_NED_Z"  : np.zeros(N),
-            "quat_i2b_0" : quat_[:,0],
-            "quat_i2b_1" : quat_[:,1],
-            "quat_i2b_2" : quat_[:,2],
-            "quat_i2b_3" : quat_[:,3],
-            "accel_X"    : np.zeros(N),
-            "aero_X"     : np.zeros(N),
-            "heading"    : np.zeros(N),
-            "pitch"      : np.zeros(N),
-            "roll"       : np.zeros(N),
-            "vi"         : norm(vel_,axis=1),
-            "fpvgd"      : np.zeros(N),
-            "azvgd"      : np.zeros(N),
-            "thrustvec_X": np.zeros(N),
-            "thrustvec_Y": np.zeros(N),
-            "thrustvec_Z": np.zeros(N),
-            "rate_P"     : np.interp(tx_res, tu_res, u_[:,0]),
-            "rate_Q"     : np.interp(tx_res, tu_res, u_[:,1]),
-            "rate_R"     : np.interp(tx_res, tu_res, u_[:,2]),
-            "vr"         : np.zeros(N),
-            "va"         : np.zeros(N),
-            "aoa_total"  : np.zeros(N),
-            "aoa_alpha"  : np.zeros(N),
-            "aoa_beta"   : np.zeros(N),
-            "q"          : np.zeros(N),
-            "q-alpha"    : np.zeros(N),
+            "vel_ground_NED_X" : np.zeros(N),
+            "vel_ground_NED_Y" : np.zeros(N),
+            "vel_ground_NED_Z" : np.zeros(N),
+            "quat_ECI2BODY_0" : quat_[:,0],
+            "quat_ECI2BODY_1" : quat_[:,1],
+            "quat_ECI2BODY_2" : quat_[:,2],
+            "quat_ECI2BODY_3" : quat_[:,3],
+            "accel_BODY_X" : np.zeros(N),
+            "aero_BODY_X" : np.zeros(N),
+            "heading_NED2BODY" : np.zeros(N),
+            "pitch_NED2BODY" : np.zeros(N),
+            "roll_NED2BODY" : np.zeros(N),
+            "vel_inertial" : norm(vel_,axis=1),
+            "flightpath_vel_inertial_geocentric" : np.zeros(N),
+            "azimuth_vel_inertial_geocentric" : np.zeros(N),
+            "thrust_direction_ECI_X" : np.zeros(N),
+            "thrust_direction_ECI_Y" : np.zeros(N),
+            "thrust_direction_ECI_Z" : np.zeros(N),
+            "rate_BODY_X" : np.interp(tx_res, tu_res, u_[:,0]),
+            "rate_BODY_Y" : np.interp(tx_res, tu_res, u_[:,1]),
+            "rate_BODY_Z" : np.interp(tx_res, tu_res, u_[:,2]),
+            "vel_ground" : np.zeros(N),
+            "vel_air" : np.zeros(N),
+            "AOA_total" : np.zeros(N),
+            "AOA_pitch" : np.zeros(N),
+            "AOA_yaw" : np.zeros(N),
+            "dynamic_pressure" : np.zeros(N),
+            "Q_alpha" : np.zeros(N),
             "M"          : np.zeros(N)
         }
     
@@ -375,39 +375,39 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
 
         pos_llh = eci2geodetic(pos, t)
         altitude_m = geopotential_altitude(pos_llh[2])
-        out["lat"][i], out["lon"][i], out["alt"][i]  = pos_llh
+        out["lat"][i], out["lon"][i], out["altitude"][i]  = pos_llh
         
         elem = orbital_elements(pos, vel)
-        out["ha"][i] = elem[0] * (1.0 + elem[1]) - 6378137
-        out["hp"][i] = elem[0] * (1.0 - elem[1]) - 6378137
-        out["inc"][i], out["asnd"][i], out["argp"][i], out["tanm"][i] = elem[2:6]
+        out["altitude_apogee"][i] = elem[0] * (1.0 + elem[1]) - 6378137
+        out["altitude_apogee"][i] = elem[0] * (1.0 - elem[1]) - 6378137
+        out["inclination"][i], out["lon_ascending_node"][i], out["argument_perigee"][i], out["true_anomaly"][i] = elem[2:6]
         
         vel_ground_ecef = vel_eci2ecef(vel, pos, t)
         vel_ground_ned  = quatrot(quat_ecef2nedg(eci2ecef(pos, t)), vel_ground_ecef)
-        out["vel_NED_X"][i], out["vel_NED_Y"][i], out["vel_NED_Z"][i] = vel_ground_ned
+        out["vel_ground_NED_X"][i], out["vel_ground_NED_Y"][i], out["vel_ground_NED_Z"][i] = vel_ground_ned
         vel_ned         = quatrot(quat_eci2nedg(pos, t), vel)
         vel_air_ned     = vel_ground_ned - wind_ned(altitude_m, pdict["wind_table"])
-        out["vr"][i] = norm(vel_ground_ecef)
+        out["vel_ground"][i] = norm(vel_ground_ecef)
         
-        out["azvgd"][i] = degrees(atan2(vel_ned[1], vel_ned[0]))
-        out["fpvgd"][i] = degrees(asin(-vel_ned[2] / norm(vel_ned)))
+        out["azimuth_vel_inertial_geocentric"][i] = degrees(atan2(vel_ned[1], vel_ned[0]))
+        out["flightpath_vel_inertial_geocentric"][i] = degrees(asin(-vel_ned[2] / norm(vel_ned)))
         
         q = 0.5 * norm(vel_air_ned)**2 * airdensity_at(pos_llh[2])
-        out["q"][i] = q
+        out["dynamic_pressure"][i] = q
         
         aoa_all_deg = angle_of_attack_all_rad(pos, vel, quat, t, pdict["wind_table"]) * 180.0 / np.pi
         aoa_ab_deg = angle_of_attack_ab_rad(pos, vel, quat, t, pdict["wind_table"]) * 180.0 / np.pi
         
-        out["aoa_total"][i] = aoa_all_deg
-        out["q-alpha"][i] = aoa_all_deg * q
-        out["aoa_alpha"][i], out["aoa_beta"][i] = aoa_ab_deg
+        out["AOA_total"][i] = aoa_all_deg
+        out["Q_alpha"][i] = aoa_all_deg * q
+        out["AOA_pitch"][i], out["AOA_yaw"][i] = aoa_ab_deg
 
         thrustdir_eci = quatrot(conj(quat), np.array([1.0, 0.0, 0.0]))
-        out["thrustvec_X"][i], out["thrustvec_Y"][i], out["thrustvec_Z"][i] = thrustdir_eci
+        out["thrust_direction_ECI_X"][i], out["thrust_direction_ECI_Y"][i], out["thrust_direction_ECI_Z"][i] = thrustdir_eci
         euler = euler_from_quat(quat_nedg2body(quat, pos, t))
-        out["heading"][i] = euler[0]
-        out["pitch"][i]   = euler[1]
-        out["roll"][i]    = euler[2]
+        out["heading_NED2BODY"][i] = euler[0]
+        out["pitch_NED2BODY"][i]   = euler[1]
+        out["roll_NED2BODY"][i]    = euler[2]
 
         #####
         rho = airdensity_at(altitude_m)
@@ -424,7 +424,7 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         mach_number = norm(vel_air_eci) / speed_of_sound(altitude_m)
         out["M"][i] = mach_number
         airAxialForce_coeff = np.interp(mach_number, pdict["ca_table"][:,0], pdict["ca_table"][:,1])
-        out["va"][i] = norm(vel_air_eci)        
+        out["vel_air"][i] = norm(vel_air_eci)        
         
         ret = np.zeros(11)
         
@@ -436,8 +436,8 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         thrustdir_eci = quatrot(conj(quat), np.array([1.0, 0.0, 0.0]))
         thrust_n_eci = thrustdir_eci * thrust_n
         gravity_eci = gravity(pos)
-        out["aero_X"][i] = aero_n_body[0]
-        out["accel_X"][i] = (thrust_n + aero_n_body[0]) / mass
+        out["aero_BODY_X"][i] = aero_n_body[0]
+        out["accel_BODY_X"][i] = (thrust_n + aero_n_body[0]) / mass
         
         out["lat_IIP"][i], out["lon_IIP"][i], _ = posLLH_IIP_FAA(pos_ecef, vel_ecef)
 
