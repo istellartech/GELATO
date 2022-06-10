@@ -39,7 +39,7 @@ def dynamics(x, u, t, param, zlt, wind, ca):
     mach_number = norm(vel_air_eci) / speed_of_sound(altitude_m)
 
     thrust_vac_n = param[0]
-    massflow_kgps = param[1]
+    massflow = param[1]
     airArea_m2 = param[2]
     airAxialForce_coeff = np.interp(mach_number, ca[:,0], ca[:,1])
     nozzleArea_m2 = param[4]
@@ -62,7 +62,7 @@ def dynamics(x, u, t, param, zlt, wind, ca):
     d_quat = 0.5 * quatmult(quat_eci2body, omega_rps_body)
 
 
-    ret[0] = -massflow_kgps   
+    ret[0] = -massflow   
     ret[1:4] = vel_eci
     ret[4:7] = acc_eci
     ret[7:11] = d_quat
@@ -98,13 +98,13 @@ def rocket_simulation(x_init, u_table, pdict, t_init, t_out, dt=0.1):
         tn = t + dt
 
         if event_index < len(pdict["params"]) - 1:
-            if tn > pdict["params"][event_index+1]["timeAt_sec"]:
+            if tn > pdict["params"][event_index+1]["time"]:
                 event_index += 1
-                param[0] = pdict["params"][event_index]["thrust_n"]
-                param[1] = pdict["params"][event_index]["massflow_kgps"]
-                param[2] = pdict["params"][event_index]["airArea_m2"]
-                param[4] = pdict["params"][event_index]["nozzleArea_m2"]
-                x[0] -= pdict["params"][event_index]["mass_jettison_kg"]
+                param[0] = pdict["params"][event_index]["thrust"]
+                param[1] = pdict["params"][event_index]["massflow"]
+                param[2] = pdict["params"][event_index]["reference_area"]
+                param[4] = pdict["params"][event_index]["nozzle_area"]
+                x[0] -= pdict["params"][event_index]["mass_jettison"]
 
         u = np.array([np.interp(t, u_table[:,0], u_table[:,i+1]) for i in range(3)])
         x = runge_kutta_4d(lambda xa,ta:dynamics(xa, u, ta, param, zlt, wind, ca), x, t, dt)
@@ -188,8 +188,8 @@ def initialize_xdict_6DoF_2(x_init, pdict, condition, unitdict, mode='LGR', dt=0
     time_x_nodes = np.array([])
     
     for i in range(num_sections):
-        to = pdict["params"][i]["timeAt_sec"]
-        tf = pdict["params"][i]["timeFinishAt_sec"]
+        to = pdict["params"][i]["time"]
+        tf = pdict["params"][i]["timeFinishAt"]
         tau = pdict["ps_params"][i]["tau"]
         
         if mode=='LG' or mode=='LGR':
@@ -201,7 +201,7 @@ def initialize_xdict_6DoF_2(x_init, pdict, condition, unitdict, mode='LGR', dt=0
         time_x_nodes = np.hstack((time_x_nodes, tau_x*(tf-to)/2.0 + (tf+to)/2.0))
 
 
-    time_knots = np.array([e["timeAt_sec"] for e in pdict["params"]])
+    time_knots = np.array([e["time"] for e in pdict["params"]])
     xdict["t"] = (time_knots / unitdict["t"]).ravel()
 
     # 現在位置と目標軌道から、適当に目標位置・速度を決める
@@ -214,7 +214,7 @@ def initialize_xdict_6DoF_2(x_init, pdict, condition, unitdict, mode='LGR', dt=0
             sys.exit()
     print(r_final)
     
-    u_nodes = np.vstack([[[0.0, pdict["params"][i]["pitchrate_dps"],pdict["params"][i]["yawrate_dps"]]] * pdict["ps_params"][i]["nodes"] for i in range(num_sections)])
+    u_nodes = np.vstack([[[0.0, pdict["params"][i]["pitchrate_init"],pdict["params"][i]["yawrate_init"]]] * pdict["ps_params"][i]["nodes"] for i in range(num_sections)])
     xdict["u"] = (u_nodes / unitdict["u"]).ravel()
         
     u_table = np.hstack((time_nodes.reshape(-1,1),u_nodes))
@@ -253,8 +253,8 @@ def initialize_xdict_6DoF_from_file(x_ref, pdict, condition, unitdict, mode='LGL
     time_x_nodes = np.array([])
     
     for i in range(num_sections):
-        to = pdict["params"][i]["timeAt_sec"]
-        tf = pdict["params"][i]["timeFinishAt_sec"]
+        to = pdict["params"][i]["time"]
+        tf = pdict["params"][i]["timeFinishAt"]
         tau = pdict["ps_params"][i]["tau"]
         
         if mode=='LG' or mode=='LGR':
@@ -266,7 +266,7 @@ def initialize_xdict_6DoF_from_file(x_ref, pdict, condition, unitdict, mode='LGL
         time_x_nodes = np.hstack((time_x_nodes, tau_x*(tf-to)/2.0 + (tf+to)/2.0))
 
 
-    time_knots = np.array([e["timeAt_sec"] for e in pdict["params"]])
+    time_knots = np.array([e["time"] for e in pdict["params"]])
     xdict["t"] = (time_knots / unitdict["t"]).ravel()    
     
     xdict["mass"] = (interp1d(x_ref["time"], x_ref["mass"], fill_value="extrapolate")(time_x_nodes) / unitdict["mass"]).ravel()
@@ -365,10 +365,10 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         
         out["section"][i] = section
         out["stage"][i] = pdict["params"][section]["rocketStage"]
-        thrust_vac_n = pdict["params"][section]["thrust_n"]
-        massflow_kgps = pdict["params"][section]["massflow_kgps"]
-        airArea_m2 = pdict["params"][section]["airArea_m2"]
-        nozzleArea_m2 = pdict["params"][section]["nozzleArea_m2"]
+        thrust_vac_n = pdict["params"][section]["thrust"]
+        massflow = pdict["params"][section]["massflow"]
+        airArea_m2 = pdict["params"][section]["reference_area"]
+        nozzleArea_m2 = pdict["params"][section]["nozzle_area"]
         if i >= pdict["ps_params"][section]["index_start"] + pdict["ps_params"][section]["nodes"] + section:
             out["event"][i] = pdict["params"][section+1]["name"]
             section += 1

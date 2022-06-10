@@ -1,4 +1,4 @@
-name,timeAt_sec,time_ref,rocketStage,engineOn,thrust_n,nozzleArea_m2,attitude,pitchrate_dps,yawrate_dps,num_nodes
+name,time,time_ref,rocketStage,engineOn,thrust,nozzle_area,attitude,pitchrate_init,yawrate_init,num_nodes
 LIFTOFF,0,LIFTOFF,1,True,420000,0.68,vertical,0.0,0.0,5
 T4,10,LIFTOFF,1,True,420000,0.68,kick-turn,-1.0,0.0,5
 TGTS,20,LIFTOFF,1,True,420000,0.68,zero-lift-turn,0.0,0.0,16

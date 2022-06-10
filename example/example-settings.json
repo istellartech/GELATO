@@ -8,61 +8,61 @@
 
   "RocketStage": {
     "1": {
-      "dryMass_kg": 1361.0,
-      "propellantMass_kg": 21500.0,
+      "mass_dry": 1361.0,
+      "mass_propellant": 21500.0,
       "dropMass": {},
       "Isp_vac": 304.0,
-      "airArea_m2": 2.21,
+      "reference_area": 2.21,
       "ignition_at": "LIFTOFF",
       "cutoff_at": "MECO",
       "separation_at": "MSEP"
     },
     "2": {
-      "dryMass_kg": 544.0,
-      "propellantMass_kg": 4037.0,
+      "mass_dry": 544.0,
+      "mass_propellant": 4037.0,
       "dropMass": {
         "fairing": {
-          "mass_kg": 140.0,
+          "mass": 140.0,
           "separation_at": "FRGDR"
         }
       },
       "Isp_vac": 317.0,
-      "airArea_m2": 0.0,
+      "reference_area": 0.0,
       "ignition_at": "SEIG1",
       "cutoff_at": "SECO1",
       "separation_at": "SCSEP"
     }
   },
 
-  "PayloadMass" : 0.0,
+  "mass_payload" : 0.0,
 
   "LaunchCondition": {
-    "longitude_deg": 143.45659,
-    "latitude_deg": 42.50587,
-    "height_m": 50.0,
-    "init_azimuth_deg": 90.0
+    "lon": 143.45659,
+    "lat": 42.50587,
+    "altitude": 50.0,
+    "flight_azimuth_init": 90.0
   },
 
   "TerminalCondition": {
-    "hp_m": null,
-    "ha_m": null,
-    "inclination_deg": null,
-    "rf_m": 6578137,
-    "vtf_mps": 7784.3,
-    "vrf_mps": null,
-    "vf_elev_deg": 0.0
+    "altitude_perigee": null,
+    "altitude_apogee": null,
+    "inclination": null,
+    "radius": 6578137,
+    "vel_tangential_geocentric": 7784.3,
+    "vel_radial_geocentric": null,
+    "flightpath_vel_inertial_geocentric": 0.0
   },
 
   "FlightConstraint": {
-    "aoa_max_deg":{
+    "AOA_max":{
       "MECO" : {
         "value" : 10.0,
         "range" : "initial"
       }
     },
-    "q_max_pa":{
+    "dynamic_pressure_max":{
     },
-    "q-alpha_max_pa-deg":{
+    "Q_alpha_max":{
       "TGTS" : {
         "value" : 30000.0,
         "range" : "all"
