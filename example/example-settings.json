@@ -1,0 +1,87 @@
+{
+  "name": "example",
+  "Event setting file": "example-events.csv",
+  "Wind file": "example-wind_average.csv",
+  "CA file": "example-CA.csv",
+  "Initial trajectory file": "example-trajectory_init.csv",
+  "OptimizationMode": "Payload",
+
+  "RocketStage": {
+    "1": {
+      "dryMass_kg": 1361.0,
+      "propellantMass_kg": 21500.0,
+      "dropMass": {},
+      "Isp_vac": 304.0,
+      "airArea_m2": 2.21,
+      "ignition_at": "LIFTOFF",
+      "cutoff_at": "MECO",
+      "separation_at": "MSEP"
+    },
+    "2": {
+      "dryMass_kg": 544.0,
+      "propellantMass_kg": 4037.0,
+      "dropMass": {
+        "fairing": {
+          "mass_kg": 140.0,
+          "separation_at": "FRGDR"
+        }
+      },
+      "Isp_vac": 317.0,
+      "airArea_m2": 0.0,
+      "ignition_at": "SEIG1",
+      "cutoff_at": "SECO1",
+      "separation_at": "SCSEP"
+    }
+  },
+
+  "PayloadMass" : 0.0,
+
+  "LaunchCondition": {
+    "longitude_deg": 143.45659,
+    "latitude_deg": 42.50587,
+    "height_m": 50.0,
+    "init_azimuth_deg": 90.0
+  },
+
+  "TerminalCondition": {
+    "hp_m": null,
+    "ha_m": null,
+    "inclination_deg": null,
+    "rf_m": 6578137,
+    "vtf_mps": 7784.3,
+    "vrf_mps": null,
+    "vf_elev_deg": 0.0
+  },
+
+  "FlightConstraint": {
+    "aoa_max_deg":{
+      "MECO" : {
+        "value" : 10.0,
+        "range" : "initial"
+      }
+    },
+    "q_max_pa":{
+    },
+    "q-alpha_max_pa-deg":{
+      "TGTS" : {
+        "value" : 30000.0,
+        "range" : "all"
+      }
+    }
+  },
+
+  "SNOPT": {
+    "Time limit": 3600,
+    "Major feasibility tolerance": 1.0e-6,
+    "Minor feasibility tolerance": 1.0e-6,
+    "Major optimality tolerance" : 1.0e-4
+  },
+
+  "IPOPT": {
+    "linear_solver": "pardisomkl",
+    "tol": 1.0e-6,
+    "acceptable_tol": 1.0e-4,
+    "max_iter": 2000
+  }
+
+}
