@@ -14,6 +14,26 @@ from user_constraints import *
 
 @jit(nopython=True)
 def dynamics(x, u, t, param, zlt, wind, ca):
+    """Full equation of motion.
+    
+    Args:
+        x (ndarray) : state vector
+        (mass[kg], posion in ECI frame[m], 
+          inertial velocity in ECI frame[m/s], 
+          quaternion from ECI to body frame)
+        u (ndarray) : rate in body frame[deg/s]
+        t (float64) : time[s]
+        param (ndarray) : parameters
+        (thrust at vacuum[N], massflow rate[kg/s],
+          reference area[m2], (unused), nozzle area[m2])
+        zlt (boolean) : True when zero-lift turn mode
+        wind (ndarray) : wind table
+        ca (ndarray) : CA table
+
+    Returns:
+        differential of the state vector
+
+    """
 
     mass = x[0]
     pos_eci = x[1:4]
@@ -71,9 +91,19 @@ def dynamics(x, u, t, param, zlt, wind, ca):
 
 
 def rocket_simulation(x_init, u_table, pdict, t_init, t_out, dt=0.1):
+    """ Simulates the motion of the rocket and output time history.
 
-    # t_init, x_initからdynamicsをdt間隔で積分し、t_outの時刻の値(の配列)を返す
-    # u_table : list of [t, u1, u2, u3]
+    Args:
+        x_init (ndarray) : initial values of the state vector
+        u_table (ndarray) : time history of the rate
+        pdict (dict) : dict of parameters
+        t_init (float64) : initial time
+        t_out (ndarray or float64) : time(s) used for output
+        dt (float64) : integration interval
+
+    Returns:
+        ndarray : time history of the state vector
+    """
 
     x_map = [x_init]
     t_map = [t_init]
@@ -128,6 +158,20 @@ def rocket_simulation(x_init, u_table, pdict, t_init, t_out, dt=0.1):
 
 @jit('f8[:](f8[:],f8,f8[:,:])',nopython=True)
 def zerolift_turn_correct(x,t,wind=np.zeros((2,3))):
+    """Corrects attitude quaternion during zero-lift turn.
+
+    The body axis is corrected to be perpendicular to the air velocity.
+    The roll angle is corrected to be zero.
+
+    Args:
+        x (ndarray) : state vector
+        t (float64) : time
+        wind (ndarray) : wind table
+
+    Returns:
+        ndarray : corrected quaternion
+
+    """
 
     #mass = x[0]
     pos_eci = x[1:4]
@@ -155,9 +199,11 @@ def zerolift_turn_correct(x,t,wind=np.zeros((2,3))):
     return normalize(np.array((q0, q1, q2, q3)))
 
 def euler(function, x, t, dt):
+    """Integration of function by first-order Euler method."""
     return x + function(x, t) * dt
 
 def runge_kutta_4d(function, x, t, dt):
+    """Integration of function by fourth-order Runge-Kutta method."""
     k1 = function(x, t)
     k2 = function(x + dt / 2.0 * k1, t + dt / 2.0)
     k3 = function(x + dt / 2.0 * k2, t + dt / 2.0)
@@ -280,7 +326,19 @@ def initialize_xdict_6DoF_from_file(x_ref, pdict, condition, unitdict, mode='LGL
     return xdict
 
 def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
+    """Returns DataFrame that contains optimization results.
     
+    Args:
+        xdict (dict) : dict of calculation result
+        unitdict (dict) : dict of units of the state vector
+        tx_res (ndarray) : time of nodes including initial points
+        tu_res (ndarray) : time of LGR nodes
+        pdict (dict) : dict of parameters
+
+    Returns:
+        DataFrame : time history of state vectors and other values
+
+    """
         
     N = len(tx_res)
 

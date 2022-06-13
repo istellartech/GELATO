@@ -5,6 +5,7 @@ from numba import jit
 
 @jit('f8[:](f8[:],f8[:])',nopython=True)
 def quatmult(q, p):
+    """Multiplies two quaternions."""
     qp0 = q[0]*p[0] - q[1]*p[1] - q[2]*p[2] - q[3]*p[3]
     qp1 = q[1]*p[0] + q[0]*p[1] - q[3]*p[2] + q[2]*p[3]
     qp2 = q[2]*p[0] + q[3]*p[1] + q[0]*p[2] - q[1]*p[3]
@@ -13,21 +14,46 @@ def quatmult(q, p):
 
 @jit('f8[:](f8[:])',nopython=True)
 def conj(q):
+    """Returns conjugate of quaternion."""
     return np.array([q[0], -q[1], -q[2], -q[3]])
 
 @jit('f8[:](f8[:])',nopython=True)
 def normalize(v):
+    """Normalizes given vector.
+    
+    Args:
+        v (ndarray) : The input vector.
+
+    Returns:
+        ndarray : The normalized vector.
+
+    """
     return v / norm(v)
 
 
 @jit('f8[:](f8[:],f8[:])',nopython=True)
 def quatrot(q, v):
+    """Rotates a vector with coordinate transformation quaternion.
+
+    This function calculates conj(q) * v * q, where the sign * means 
+    quaternion product.
+
+    Args:
+        q (ndarray) : The quaternion that represents transformation 
+        from A-frame to B-frame.
+        v (ndarray) : The representation of vector in A-frame.
+
+    Returns:
+        ndarray : The representation of the input vector in B-frame.
+    
+    """
     vq  = np.array((0.0, v[0], v[1], v[2]))
     rvq = quatmult(conj(q), quatmult(vq, q))
     return rvq[1:4]
 
 @jit('f8[:,:](f8[:])',nopython=True)
 def dcm_from_quat(q):
+    """Converts a quaternion to a direction cosine matrix (DCM)."""
     C = np.zeros((3,3))
     C[0,0] = q[0]**2+q[1]**2-q[2]**2-q[3]**2
     C[0,1] = 2.0 * (q[1]*q[2] + q[0]*q[3])
@@ -45,6 +71,7 @@ def dcm_from_quat(q):
 
 @jit('f8[:](f8[:,:])',nopython=True)
 def quat_from_dcm(C):
+    """Converts a direction cosine matrix (DCM) into a quaternion."""
     if (1.0 + C[0,0] + C[1,1] + C[2,2]) < 0.0:
         print("quaternion conversion error")
         return np.array((1.0, 0.0, 0.0, 0.0))
@@ -58,6 +85,18 @@ def quat_from_dcm(C):
 
 @jit('f8[:](f8,f8,f8)',nopython=True) 
 def ecef2geodetic(x,y,z):
+    """Converts a position in ECEF frame into a geodetic coordinates.
+
+    Args:
+        x (float64) : X-coordinate of the position [m]
+        y (float64) : Y-coordinate of the position [m]
+        z (float64) : Z-coordinate of the position [m]
+
+    Returns:
+        ndarray : The combination of latitude [deg], longitude [deg] 
+        and altitude [m] of the input position in WGS84.
+
+    """
     
     a = 6378137.0
     f = 1.0 / 298.257223563
@@ -77,6 +116,18 @@ def ecef2geodetic(x,y,z):
 
 @jit('f8[:](f8,f8,f8)',nopython=True)
 def geodetic2ecef(lat, lon, alt):
+    """Converts a position in geodetic coordinates into an ECEF frame.
+
+    Args:
+        lat (float64) : latitude of the position [deg]
+        lon (float64) : longitude of the position [deg]
+        alt (float64) : geometric altitude of the position [m]
+
+    Returns:
+        ndarray : The position vector of the input position in 
+        ECEF frame.
+
+    """
     
     a = 6378137.0
     f = 1.0 / 298.257223563
@@ -93,6 +144,21 @@ def geodetic2ecef(lat, lon, alt):
 
 @jit('f8[:](f8,f8,f8)',nopython=True)
 def ecef2geodetic_sphere(x, y, z):
+    """Converts a position in ECEF frame into a spherical coordinates.
+
+    This function is DEPRECATED.
+
+    Args:
+        x (float64) : X-coordinate of the position [m]
+        y (float64) : Y-coordinate of the position [m]
+        z (float64) : Z-coordinate of the position [m]
+
+    Returns:
+        ndarray : The combination of latitude [deg], longitude [deg] 
+        and altitude [m] of the input position in spherical 
+        coordinates.
+
+    """
     r_Earth = 6378137.0
     lat = degrees(atan2(z,sqrt(x**2+y**2)))
     lon = degrees(atan2(y,x))
@@ -101,6 +167,21 @@ def ecef2geodetic_sphere(x, y, z):
 
 @jit('f8[:](f8,f8,f8)',nopython=True)
 def geodetic2ecef_sphere(lat, lon, alt):
+    """Converts a position in spherical coordinates into an ECEF frame.
+
+    This function is DEPRECATED.
+
+    Args:
+        lat (float64) : latitude of the position [deg]
+        lon (float64) : longitude of the position [deg]
+        alt (float64) : geometric altitude of the position [m]
+
+    Returns:
+        ndarray : The position vector of the input position in ECEF 
+        frame.
+
+    """
+
     r_Earth = 6378137.0
     z = (alt + r_Earth) * sin(radians(lat))
     y = (alt + r_Earth) * cos(radians(lat)) * sin(radians(lon))
@@ -109,6 +190,19 @@ def geodetic2ecef_sphere(lat, lon, alt):
 
 @jit('f8[:](f8[:],f8)',nopython=True)
 def ecef2eci(xyz_in, t):
+    """Converts a position in ECEF coordinates into an ECI frame.
+
+    Args:
+        xyz_int (ndarray) : position vector in the ECEF frame
+        t (float64) : time from the epoch (the time when the ECEF 
+        frame and the ECI frame coincides)
+
+    Returns:
+        ndarray : The position vector of the input position in the 
+        ECI frame.
+
+    """
+
     omega_earth_rps = 7.2921151467e-5
     xyz_out = np.zeros(3)
     xyz_out[0] = xyz_in[0] * cos(omega_earth_rps * t) - xyz_in[1] * sin(omega_earth_rps * t)
@@ -119,6 +213,19 @@ def ecef2eci(xyz_in, t):
 
 @jit('f8[:](f8[:],f8)',nopython=True)
 def eci2ecef(xyz_in, t):
+    """Converts a position in ECI coordinates into an ECEF frame.
+
+    Args:
+        xyz_int (ndarray) : position vector in the ECI frame
+        t (float64) : time from the epoch (the time when the ECEF 
+        frame and the ECI frame coincides)
+
+    Returns:
+        ndarray : The position vector of the input position in the
+        ECEF frame.
+
+    """
+    
     omega_earth_rps = 7.2921151467e-5
     xyz_out = np.zeros(3)
     xyz_out[0] = xyz_in[0] * cos(omega_earth_rps * t) + xyz_in[1] * sin(omega_earth_rps * t)
@@ -129,7 +236,20 @@ def eci2ecef(xyz_in, t):
 
 @jit('f8[:](f8[:],f8[:],f8)',nopython=True)
 def vel_ecef2eci(vel_in, pos_in, t):
-    
+    """Converts a ground velocity vector in ECEF coordinates into 
+    an inertial velocity vector in ECI frame.
+
+    Args:
+        vel_in (ndarray) : ground velocity vector in the ECEF frame
+        pos_in (ndarray) : position vector in the ECEF frame
+        t (float64) : time from the epoch (the time when the ECEF 
+        frame and the ECI frame coincides)
+
+    Returns:
+        ndarray : The inertial velocity vector in the ECI frame.
+
+    """
+
     omega_earth_rps = 7.2921151467e-5
     pos_eci = ecef2eci(pos_in, t)
     vel_ground_eci = ecef2eci(vel_in, t)
@@ -141,7 +261,20 @@ def vel_ecef2eci(vel_in, pos_in, t):
 
 @jit('f8[:](f8[:],f8[:],f8)',nopython=True)
 def vel_eci2ecef(vel_in, pos_in, t):
-    
+    """Converts an inertial velocity vector in ECI coordinates into 
+    a ground velocity vector in ECEF frame.
+
+    Args:
+        vel_in (ndarray) : inertial velocity vector in the ECI frame
+        pos_in (ndarray) : position vector in the ECI frame
+        t (float64) : time from the epoch (the time when the ECEF 
+        frame and the ECI frame coincides)
+
+    Returns:
+        ndarray : The ground velocity vector in the ECEF frame.
+
+    """
+
     omega_earth_rps = 7.2921151467e-5
     
     vel_rotation_eci = np.cross(np.array([0, 0, omega_earth_rps]), pos_in)
@@ -151,15 +284,50 @@ def vel_eci2ecef(vel_in, pos_in, t):
 
 @jit('f8[:](f8)',nopython=True)
 def quat_eci2ecef(t):
+    """Returns coordinates transformation quaternion from the ECI 
+    frame to the ECEF frame.
+    
+    Args:
+        t (float64) : time from the epoch (the time when the ECEF 
+        frame and the ECI frame coincides)
+
+    Returns:
+        ndarray : The coordinates transformation quaternion.
+
+    """
+
     omega_earth_rps = 7.2921151467e-5
     return np.array([cos(omega_earth_rps*t/2.0), 0.0, 0.0, sin(omega_earth_rps*t/2.0)])
 
 @jit('f8[:](f8)',nopython=True)
 def quat_ecef2eci(t):
+    """Returns coordinates transformation quaternion from the ECEF 
+    frame to the ECI frame.
+    
+    Args:
+        t (float64) : time from the epoch (the time when the ECEF 
+        frame and the ECI frame coincides)
+
+    Returns:
+        ndarray : The coordinates transformation quaternion.
+
+    """
+
     return conj(quat_eci2ecef(t))
 
 @jit('f8[:](f8[:])',nopython=True)
 def quat_ecef2nedc(pos_ecef):
+    """(DEPRECATED) Returns coordinates transformation quaternion from 
+    the ECEF frame to the local spherical North-East-Down frame.
+    
+    Args:
+        pos_ecef (ndarray) : position in the ECEF frame
+
+    Returns:
+        ndarray : The coordinates transformation quaternion.
+
+    """
+
     l = atan2(pos_ecef[1], pos_ecef[0])
     p = asin(pos_ecef[2] / norm(pos_ecef))
     c_hl = cos(l/2.0)
@@ -178,6 +346,17 @@ def quat_ecef2nedc(pos_ecef):
 
 @jit('f8[:](f8[:])',nopython=True)
 def quat_ecef2nedg(pos_ecef):
+    """Returns coordinates transformation quaternion from the ECEF 
+    frame to the WGS84 local North-East-Down frame.
+    
+    Args:
+        pos_ecef (ndarray) : position in the ECEF frame
+
+    Returns:
+        ndarray : The coordinates transformation quaternion.
+
+    """
+    
     
     p,l,_ = ecef2geodetic(pos_ecef[0], pos_ecef[1], pos_ecef[2])
     p = radians(p)
@@ -198,54 +377,123 @@ def quat_ecef2nedg(pos_ecef):
 
 @jit('f8[:](f8[:])',nopython=True)
 def quat_nedg2ecef(pos_ecef):
+    """Returns coordinates transformation quaternion from the WGS84 
+    local North-East-Down frame to the ECEF frame.
+    
+    Args:
+        pos_ecef (ndarray) : position in the ECEF frame
+
+    Returns:
+        ndarray : The coordinates transformation quaternion.
+
+    """
+    
     return conj(quat_ecef2nedg(pos_ecef))
 
 @jit('f8[:](f8[:])',nopython=True)
 def quat_nedc2ecef(pos_ecef):
+    """(DEPRECATED) Returns coordinates transformation quaternion 
+    from the local spherical North-East-Down frame to the ECEF frame.
+    
+    Args:
+        pos_ecef (ndarray) : position in the ECEF frame
+
+    Returns:
+        ndarray : The coordinates transformation quaternion.
+
+    """
+    
     return conj(quat_ecef2nedc(pos_ecef))
 
 
 @jit('f8[:](f8[:],f8)',nopython=True)
 def quat_eci2nedg(pos, t):
+    """Returns coordinates transformation quaternion from the ECI 
+    frame to the WGS84 local North-East-Down frame.
+    
+    Args:
+        pos (ndarray) : position in the ECI frame
+        t (float64) : time from the epoch (the time when the ECEF 
+        frame and the ECI frame coincides)
+
+    Returns:
+        ndarray : The coordinates transformation quaternion.
+
+    """
+    
     return quatmult(quat_eci2ecef(t), quat_ecef2nedg(eci2ecef(pos,t)))
 
 @jit('f8[:](f8[:],f8)',nopython=True)
 def quat_eci2nedc(pos, t):
+    """(DEPRECATED) Returns coordinates transformation quaternion 
+    from the ECI frame to the local spherical North-East-Down frame.
+    
+    Args:
+        pos (ndarray) : position in the ECI frame
+        t (float64) : time from the epoch (the time when the ECEF 
+        frame and the ECI frame coincides)
+
+    Returns:
+        ndarray : The coordinates transformation quaternion.
+
+    """
+    
     return quatmult(quat_eci2ecef(t), quat_ecef2nedc(eci2ecef(pos,t)))
 
 
 @jit('f8[:](f8[:],f8)',nopython=True)
 def quat_nedg2eci(pos, t):
+    """Returns coordinates transformation quaternion from the WGS84 
+    local North-East-Down frame to the ECI frame.
+    
+    Args:
+        pos (ndarray) : position in the ECI frame
+        t (float64) : time from the epoch (the time when the ECEF 
+        frame and the ECI frame coincides)
+
+    Returns:
+        ndarray : The coordinates transformation quaternion.
+
+    """
+    
     return conj(quat_eci2nedg(pos, t))
 
 @jit('f8[:](f8[:],f8)',nopython=True)
 def quat_nedc2eci(pos, t):
+    """(DEPRECATED) Returns coordinates transformation quaternion from 
+    the local spherical North-East-Down frame to the ECI frame.
+    
+    Args:
+        pos (ndarray) : position in the ECI frame
+        t (float64) : time from the epoch (the time when the ECEF frame 
+        and the ECI frame coincides)
+
+    Returns:
+        ndarray : The coordinates transformation quaternion.
+
+    """
+    
     return conj(quat_eci2nedc(pos, t))
 
-
-@jit('f8[:](f8[:],f8[:])',nopython=True)
-def quat_eci2guide(pos, vel):
-    
-    z_dir = normalize(-pos)
-    x_dir = normalize(np.cross(vel, pos))
-    y_dir = np.cross(z_dir,x_dir)
-    
-    q0 = 0.5 * sqrt(1.0 + x_dir[0] + y_dir[1] + z_dir[2])
-    q1 = 0.25 / q0 * (y_dir[2] - z_dir[1])
-    q2 = 0.25 / q0 * (z_dir[0] - x_dir[2])
-    q3 = 0.25 / q0 * (x_dir[1] - y_dir[0])
-    
-    return normalize(np.array((q0, q1, q2, q3)))
-
-
-@jit('f8[:](f8[:],f8[:],f8[:])',nopython=True)
-def quat_guide2body(pos, vel, quat_eci2body):
-    return quatmult(conj(quat_eci2guide(pos, vel)), quat_eci2body)
 
 
 
 @jit('f8[:](f8,f8,f8)',nopython=True)
 def quat_from_euler(az, el, ro):
+    """Converts Euler angles into a coordinate transformation 
+    quaternion.
+    
+    The sequence of rotation is Z-Y-X (yaw-pitch-roll).
+
+    Args:
+        az (float64) : yaw angle [deg]
+        el (float64) : pitch angle [deg]
+        ro (float64) : roll angle [deg]
+    
+    Returns:
+        ndarray : The coordinates transformation quaternion.
+
+    """
     qz = np.array([cos(radians(az/2)), 0.0, 0.0, sin(radians(az/2))])
     qy = np.array([cos(radians(el/2)), 0.0, sin(radians(el/2)), 0.0])
     qx = np.array([cos(radians(ro/2)), sin(radians(ro/2)), 0.0, 0.0])
@@ -254,6 +502,19 @@ def quat_from_euler(az, el, ro):
 
 @jit('f8[:](f8[:])',nopython=True)
 def gravity(pos):
+    """Calculates gravity acceleration vector at the given position.
+
+    This function uses JGM-3 geopotential model.
+    J2 factor is considered and higher zonal coefficients and the all 
+    tesseral coefficients are ignored.
+    
+    Args:
+        pos (ndarray) : position in the ECI or ECEF frame [m]
+
+    Returns:
+        ndarray: The gravity acceleration at the given point in the same 
+        frame as the input position [m/s2]
+    """
     x,y,z = pos
     
     a = 6378137
@@ -272,11 +533,38 @@ def gravity(pos):
 
 @jit('f8[:](f8[:],f8[:],f8)',nopython=True)
 def quat_nedg2body(quat_eci2body, pos, t):
+    """Returns coordinates transformation quaternion from the WGS84
+    local North-East-Down frame to the body frame.
+    
+    Args:
+        quat_eci2body : coordinates transformation quaternion from the 
+        ECI frame to the body frame
+        pos (ndarray) : position in the ECI frame
+        t (float64) : time from the epoch (the time when the ECEF 
+        frame and the ECI frame coincides)
+
+    Returns:
+        ndarray : The coordinates transformation quaternion.
+
+    """
+    
     q = quat_eci2nedg(pos, t)
     return quatmult(conj(q), quat_eci2body)
 
 @jit('f8[:](f8[:])',nopython=True)
 def euler_from_quat(q):
+    """Calculates Euler angles from a coordinate transformation 
+    quaternion.
+    
+    The sequence of rotation is Z-Y-X (yaw-pitch-roll).
+
+    Args:
+        q (ndarray) : the coordinates transformation quaternion
+    
+    Returns:
+        ndarray : yaw-pitch-roll Euler angles [deg]
+
+    """
     if 2.0*(q[0]*q[2]-q[3]*q[1]) >= 1.0:
         el = np.pi/2
         az = 0.0
@@ -289,6 +577,17 @@ def euler_from_quat(q):
 
 @jit('f8[:](f8[:,:])',nopython=True)
 def euler_from_dcm(C):
+    """Calculates Euler angles from a direction cosine matrix.
+    
+    The sequence of rotation is Z-Y-X (yaw-pitch-roll).
+
+    Args:
+        C (ndarray) : the direction cosine matrix
+    
+    Returns:
+        ndarray : yaw-pitch-roll Euler angles [deg]
+
+    """
     el = asin(-C[0,2])
     if cos(el) < 0.0001:
         az = 0.0
@@ -300,6 +599,19 @@ def euler_from_dcm(C):
 
 @jit('f8[:,:](f8[:],f8[:])',nopython=True)
 def dcm_from_thrustvector(pos_eci, u):
+    """Calculates direction cosine matrix(DCM) from the position 
+    and the direction of body axis.
+    
+    The roll angle is assumed to be 0 degree.
+
+    Args:
+        pos_eci (ndarray) : the position in the ECI frame
+        u (ndarray) : the direction of body axis in the ECI frame
+    
+    Returns:
+        ndarray : the DCM from the ECI frame to the body frame
+
+    """
 
     xb_dir = normalize(u)
     pos_dir = normalize(pos_eci)
@@ -313,12 +625,40 @@ def dcm_from_thrustvector(pos_eci, u):
 
 @jit('f8[:](f8[:],f8)',nopython=True)
 def eci2geodetic(pos_in, t):
+    """Converts a position in ECI frame into a WGS84 geodetic(latitude, 
+    longitude, altitude) coordinates.
+
+    Args:
+        x (float64) : X-coordinate of the position [m]
+        y (float64) : Y-coordinate of the position [m]
+        z (float64) : Z-coordinate of the position [m]
+        t (float64) : time from the epoch (the time when the ECEF 
+        frame and the ECI frame coincides)
+
+    Returns:
+        ndarray : The combination of latitude [deg], longitude [deg] 
+        and altitude [m] of the input position in WGS84.
+
+    """
+    
     pos_ecef = eci2ecef(pos_in, t)
     return ecef2geodetic(pos_ecef[0],pos_ecef[1],pos_ecef[2])
 
 
 @jit('f8[:](f8[:],f8[:])', nopython=True)
 def orbital_elements(r_eci, v_eci):
+    """Calculates orbital elements from position and velocity vectors.
+    
+    Args:
+        r_eci (float64) : position vector in ECI frame [m]
+        v_eci (float64) : inertial velocity vector in ECI frame [m]
+
+    Returns:
+        ndarray : orbital elements (semi-major axis[m], eccentricity, 
+        inclination[deg], longitude of ascending node[deg], 
+        argument of perigee[deg], true anomaly[deg]). 
+
+    """
     GMe = 3.986004418e14
     
     nr = normalize(r_eci)

@@ -11,6 +11,7 @@ from user_constraints import *
 
 @jit(nopython=True)
 def dynamics_velocity(mass_e, pos_eci_e, vel_eci_e, quat_eci2body, t, param, wind, ca, units):
+    """Equation of motion of velocity."""
 
     mass = mass_e * units[0]
     pos_eci = pos_eci_e * units[1]
@@ -49,6 +50,7 @@ def dynamics_velocity(mass_e, pos_eci_e, vel_eci_e, quat_eci2body, t, param, win
 
 @jit(nopython=True)
 def dynamics_quaternion(quat_eci2body, u_e, unit_u):
+    """Equation of motion of quaternion."""
 
     u = u_e * unit_u
 
@@ -62,6 +64,7 @@ def dynamics_quaternion(quat_eci2body, u_e, unit_u):
 
 
 def equality_init(xdict, pdict, unitdict, condition):
+    """Equality constraint about initial conditions."""
 
     con = []
     mass_ = xdict["mass"]
@@ -80,6 +83,8 @@ def equality_init(xdict, pdict, unitdict, condition):
 
 
 def equality_jac_init(xdict, pdict, unitdict, condition):
+    """Jacobian of equality_init."""
+
     jac = {}
 
     if condition["OptimizationMode"] == "Payload":
@@ -106,6 +111,8 @@ def equality_jac_init(xdict, pdict, unitdict, condition):
     return jac
 
 def equality_time(xdict, pdict, unitdict, condition):
+    """Equality constraint about time of knots."""
+
     con = []
     unit_t = unitdict["t"]
 
@@ -123,6 +130,8 @@ def equality_time(xdict, pdict, unitdict, condition):
     return np.concatenate(con, axis=None)
 
 def equality_jac_time(xdict, pdict, unitdict, condition):
+    """Jacobian of equality_time."""
+
     jac = {}
 
     data = [1.0]
@@ -143,6 +152,8 @@ def equality_jac_time(xdict, pdict, unitdict, condition):
     return jac
 
 def equality_dynamics_mass(xdict, pdict, unitdict, condition):
+    """Equality constraint about dynamics of mass."""
+
     con = []
 
     unit_mass = unitdict["mass"]
@@ -173,6 +184,8 @@ def equality_dynamics_mass(xdict, pdict, unitdict, condition):
     return np.concatenate(con, axis=None)
 
 def equality_jac_dynamics_mass(xdict, pdict, unitdict, condition):
+    """Jacobian of equality_dynamics_mass."""
+
     jac = {}
 
     unit_mass = unitdict["mass"]
@@ -199,6 +212,8 @@ def equality_jac_dynamics_mass(xdict, pdict, unitdict, condition):
     return jac
 
 def equality_dynamics_position(xdict, pdict, unitdict, condition):
+    """Equality constraint about dynamics of position."""
+
     con = []
 
     unit_pos = unitdict["position"]
@@ -234,6 +249,8 @@ def equality_dynamics_position(xdict, pdict, unitdict, condition):
     return np.concatenate(con, axis=None)
 
 def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
+    """Jacobian of equality_dynamics_position."""
+
     jac = {}
 
     unit_pos = unitdict["position"]
@@ -288,6 +305,8 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
     return jac
 
 def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
+    """Equality constraint about dynamics of velocity."""
+
     con = []
 
     unit_mass = unitdict["mass"]
@@ -333,6 +352,8 @@ def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
     return np.concatenate(con, axis=None)
 
 def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
+    """Jacobian of equality_dynamics_velocity."""
+
     jac = {}
     dx = 1.0e-8
 
@@ -442,6 +463,8 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
 
 
 def equality_dynamics_quaternion(xdict, pdict, unitdict, condition):
+    """Equality constraint about dynamics of quaternion."""
+
     con = []
 
     unit_u = unitdict["u"]
@@ -472,6 +495,8 @@ def equality_dynamics_quaternion(xdict, pdict, unitdict, condition):
     return np.concatenate(con, axis=None)
 
 def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
+    """Jacobian of equality_dynamics_quaternion."""
+
     jac = {}
     dx = 1.0e-8
 
@@ -556,6 +581,8 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
 
 
 def equality_knot_LGR(xdict, pdict, unitdict, condition):
+    """Equality constraint about knotting conditions."""
+
     con = []
 
     mass_ = xdict["mass"]
@@ -617,6 +644,8 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
     return np.concatenate(con, axis=None)
 
 def equality_jac_knot_LGR(xdict, pdict, unitdict, condition):
+    """Jacobian of equality_knot."""
+
     jac = {}
 
     num_sections = pdict["num_sections"]
@@ -689,6 +718,8 @@ def equality_jac_knot_LGR(xdict, pdict, unitdict, condition):
     return jac
 
 def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
+    """Equality constraint about terminal condition."""
+
     con = []
 
     unit_pos = unitdict["position"]
@@ -735,7 +766,10 @@ def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
 
     return np.concatenate(con, axis=None)
 
+
 def equality_jac_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
+    """Jacobian of equality_terminal."""
+
     jac = {}
     dx = 1.0e-8
 
@@ -772,7 +806,10 @@ def equality_jac_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
 
     return jac
 
+
 def equality_6DoF_rate(xdict, pdict, unitdict, condition):
+    """Equality constraint about angular rate."""
+
     con = []
 
     unit_pos = unitdict["position"]
@@ -832,7 +869,10 @@ def equality_6DoF_rate(xdict, pdict, unitdict, condition):
 
     return np.concatenate(con, axis=None)
 
+
 def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
+    """Jacobian of equality_rate."""
+
     jac = {}
     dx = 1.0e-8
 
@@ -938,6 +978,8 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
 
 
 def inequality_time(xdict, pdict, unitdict, condition):
+    """Inequality constraint about time at knots."""
+
     con = []
     t_normal = xdict["t"]
 
@@ -948,6 +990,8 @@ def inequality_time(xdict, pdict, unitdict, condition):
     return np.array(con)
 
 def inequality_jac_time(xdict, pdict, unitdict, condition):
+    """Jacobian of inequality_time."""
+
     jac = {}
 
     data = []
@@ -969,6 +1013,8 @@ def inequality_jac_time(xdict, pdict, unitdict, condition):
     return jac
 
 def inequality_mass(xdict, pdict, unitdict, condition):
+    """Inequality constraint about max propellant mass."""
+
     con = []
 
     mass_ = xdict["mass"]
@@ -989,6 +1035,8 @@ def inequality_mass(xdict, pdict, unitdict, condition):
     return con
 
 def inequality_jac_mass(xdict, pdict, unitdict, condition):
+    """Jacobian of inequality_mass"""
+
     jac = {}
 
     data = []
@@ -1011,6 +1059,8 @@ def inequality_jac_mass(xdict, pdict, unitdict, condition):
     return jac
 
 def inequality_kickturn(xdict, pdict, unitdict, condition):
+    """Inequality constraint about minimum rate at kick-turn."""
+
     con = []
     unit_u = unitdict["u"]
     u_ = xdict["u"].reshape(-1,3) * unit_u
@@ -1030,6 +1080,8 @@ def inequality_kickturn(xdict, pdict, unitdict, condition):
     return np.concatenate(con, axis=None)    
 
 def inequality_jac_kickturn(xdict, pdict, unitdict, condition):
+    """Jacobian of inequality_kickturn."""
+
     jac = {}
     unit_u = unitdict["u"]
     u_ = xdict["u"].reshape(-1,3) * unit_u
@@ -1061,6 +1113,7 @@ def inequality_jac_kickturn(xdict, pdict, unitdict, condition):
     return jac
 
 def inequality_max_alpha(xdict, pdict, unitdict, condition):
+    """Inequality constraint about maximum angle of attack."""
 
     con = []
 
@@ -1110,6 +1163,7 @@ def inequality_max_alpha(xdict, pdict, unitdict, condition):
         return np.concatenate(con, axis=None)    
 
 def inequality_max_q(xdict, pdict, unitdict, condition):
+    """Inequality constraint about maximum dynamic pressure."""
 
     con = []
 
@@ -1160,6 +1214,10 @@ def inequality_max_q(xdict, pdict, unitdict, condition):
 
 
 def inequality_max_qalpha(xdict, pdict, unitdict, condition):
+    """Inequality constraint about maximum Q-alpha 
+    (product of angle of attack and dynamic pressure).
+    
+    """
 
     con = []
 
@@ -1210,6 +1268,7 @@ def inequality_max_qalpha(xdict, pdict, unitdict, condition):
 
 
 def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
+    """Jacobian of inequality_max_alpha."""
 
     jac = {}
     dx = 1.0e-8
@@ -1327,6 +1386,8 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
     return jac
 
 def inequality_jac_max_q(xdict, pdict, unitdict, condition):
+    """Jacobian of inequality_max_q."""
+
     jac = {}
     dx = 1.0e-8
 
@@ -1433,6 +1494,7 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
 
 
 def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
+    """Jacobian of inequality_max_qalpha."""
 
     jac = {}
     dx = 1.0e-8
@@ -1550,28 +1612,33 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
 
 @jit(nopython=True)
 def dynamic_pressure_array_dimless(pos, vel, t, wind, units):
+    """Returns array of dynamic pressure for each state values."""
     return np.array([dynamic_pressure_dimless(pos[i], vel[i], t[i], wind, units) for i in range(len(t))])
 
 @jit(nopython=True)
 def aoa_zerolift_array_dimless(pos, vel, quat, t, wind, units):
+    """Returns array of angle of attack for each state values."""
     return np.array([angle_of_attack_all_dimless(pos[i], vel[i], quat[i], t[i], wind, units) for i in range(len(t))])
 
 @jit(nopython=True)
 def q_alpha_array_dimless(pos, vel, quat, t, wind, units):
+    """Returns array of Q-alpha for each state values."""
     return np.array([q_alpha_dimless(pos[i], vel[i], quat[i], t[i], wind, units) for i in range(len(t))])
 
 @jit(nopython=True)
 def roll_direction_array(pos, quat):
+    """Returns array of sine of roll angles for each state values."""
     return np.array([yb_r_dot(pos[i], quat[i]) for i in range(len(pos))])
 
 @jit(nopython=True)
 def yb_r_dot(pos_eci, quat_eci2body):
+    """Returns sine of roll angles."""
     yb_dir_eci = quatrot(conj(quat_eci2body), np.array([0.0, 1.0, 0.0]))
     return yb_dir_eci.dot(normalize(pos_eci))
 
 @jit(nopython=True)
 def angle_of_attack_all_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
-
+    """Returns angle of attack normalized by its maximum value."""
     pos_eci = pos_eci_e * units[0]
     vel_eci = vel_eci_e * units[1]
     t = t_e * units[2]
@@ -1580,7 +1647,9 @@ def angle_of_attack_all_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
 
 @jit(nopython=True)
 def angle_of_attack_ab_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
-
+    """Returns pitch and yaw angles of attack normalized by 
+    their maximum values.
+    """
     pos_eci = pos_eci_e * units[0]
     vel_eci = vel_eci_e * units[1]
     t = t_e * units[2]
@@ -1589,7 +1658,7 @@ def angle_of_attack_ab_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
 
 @jit(nopython=True)
 def dynamic_pressure_dimless(pos_eci_e, vel_eci_e, t_e, wind, units):
-
+    """Returns dynamic pressure normalized by its maximum value."""
     pos_eci = pos_eci_e * units[0]
     vel_eci = vel_eci_e * units[1]
     t = t_e * units[2]
@@ -1597,7 +1666,7 @@ def dynamic_pressure_dimless(pos_eci_e, vel_eci_e, t_e, wind, units):
 
 @jit(nopython=True)
 def q_alpha_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
-
+    """Returns Q-alpha normalized by its maximum value."""
     pos_eci = pos_eci_e * units[0]
     vel_eci = vel_eci_e * units[1]
     t = t_e * units[2]
@@ -1605,22 +1674,25 @@ def q_alpha_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
 
     
 def equality_jac_user(xdict, pdict, unitdict, condition):
+    """Jacobian of user-defined equality constraint."""
     if equality_user(xdict, pdict, unitdict, condition) is not None:
         return jac_fd(equality_user, xdict, pdict, unitdict, condition)
 
 def inequality_jac_user(xdict, pdict, unitdict, condition):
+    """Jacobian of user-defined inequality constraint."""
     if inequality_user(xdict, pdict, unitdict, condition) is not None:
         return jac_fd(inequality_user, xdict, pdict, unitdict, condition)
 
 
 def cost_6DoF(xdict, condition):
-    
+    """Objective function of the optimization problem."""
     if condition["OptimizationMode"] == "Payload":
         return -xdict["mass"][0] #初期質量(無次元)を最大化
     else:
         return xdict["t"][-1] #到達時間を最小化(=余剰推進剤を最大化)
 
 def cost_jac(xdict, condition):
+    """Gradient of the objective function."""
 
     jac = {}
     if condition["OptimizationMode"] == "Payload":
@@ -1630,4 +1702,3 @@ def cost_jac(xdict, condition):
         jac["t"] = np.zeros(xdict["t"].size)
         jac["t"][-1] = 1.0
     return jac
-

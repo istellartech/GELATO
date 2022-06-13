@@ -9,6 +9,18 @@ from math import sqrt
 
 @jit(nopython=True)
 def geopotential_altitude(z):
+    """Calculates geopotential altitude.
+
+    Refer to US1976 Equation 18.
+    
+    Args:
+        z (float64) : geometric altitude [m]
+
+    Returns:
+        float64 : geopotential altitude (z <= 86000),
+        geopotential altitude (z > 86000) [m]
+    
+    """
     
     r0 = 6356766
     g0 = 9.80665
@@ -21,8 +33,19 @@ def geopotential_altitude(z):
 
 @jit(nopython=True)
 def us_standard_atmosphere_params_at(altitude_m):
-    # ref: https://github.com/istellartech/OpenTsiolkovsky/blob/master/src/air.cpp
-    # ref: https://github.com/istellartech/OpenTsiolkovsky/blob/master/src/air.hpp
+    """Returns parameters at each reference levels.
+    
+    
+    Args:
+        altitude_m (float64) : geopotential altitude when Z <= 86000,
+        geometric altitude when Z > 86000 [m]
+
+    Returns:
+        ndarray: parameters (altitude[m], temperature gradient[K/m],
+        temperature[K], pressure[Pa], gas constant[J/kg-K], 
+        gravity acceleration[m/s2])
+
+    """
 
     
     GRAVITY_ACC_CONST = 9.80665
@@ -53,9 +76,18 @@ def us_standard_atmosphere_params_at(altitude_m):
 
 @jit(nopython=True)
 def airtemperature_at(altitude_m):
-    
-    # ref: https://github.com/istellartech/OpenTsiolkovsky/blob/master/src/air.cpp
-    # ref: https://github.com/istellartech/OpenTsiolkovsky/blob/master/src/air.hpp
+    """Air temperature at the given altitude.
+
+    Refer to US1976 Section 1.2.5.
+
+    Args:
+        altitude_m (float64) : geopotential altitude when Z <= 86000,
+        geometric altitude when Z > 86000 [m]
+
+    Returns:
+        float64: temperature[K]
+
+    """
 
     air_params = us_standard_atmosphere_params_at(altitude_m)
     HAL = air_params[0]
@@ -84,9 +116,20 @@ def airtemperature_at(altitude_m):
     
 @jit(nopython=True)
 def airpressure_at(altitude_m):
-    
-    # ref: https://github.com/istellartech/OpenTsiolkovsky/blob/master/src/air.cpp
-    # ref: https://github.com/istellartech/OpenTsiolkovsky/blob/master/src/air.hpp
+    """Air pressure at the given altitude.
+
+    Refer to US1976 Section 1.3.1.
+
+    The value above 86000m is an approximation by fitting.
+
+    Args:
+        altitude_m (float64) : geopotential altitude when Z <= 86000,
+        geometric altitude when Z > 86000 [m]
+
+    Returns:
+        float64: pressure[Pa]
+
+    """
     
     air_params = us_standard_atmosphere_params_at(altitude_m)
     HAL = air_params[0]
@@ -108,9 +151,20 @@ def airpressure_at(altitude_m):
 
 @jit(nopython=True)
 def airdensity_at(altitude_m):
-    
-    # ref: https://github.com/istellartech/OpenTsiolkovsky/blob/master/src/air.cpp
-    # ref: https://github.com/istellartech/OpenTsiolkovsky/blob/master/src/air.hpp
+    """Air density at the given altitude.
+
+    Refer to US1976 Section 1.3.4.
+
+    The value above 86000m is an approximation by fitting.
+
+    Args:
+        altitude_m (float64) : geopotential altitude when Z <= 86000,
+        geometric altitude when Z > 86000 [m]
+
+    Returns:
+        float64: mass density[kg/m3]
+
+    """
     
     air_params = us_standard_atmosphere_params_at(altitude_m)
     HAL = air_params[0]
@@ -134,9 +188,18 @@ def airdensity_at(altitude_m):
 
 @jit(nopython=True)
 def speed_of_sound(altitude_m):
-    
-    # ref: https://github.com/istellartech/OpenTsiolkovsky/blob/master/src/air.cpp
-    # ref: https://github.com/istellartech/OpenTsiolkovsky/blob/master/src/air.hpp
+    """Speed of sound at the given altitude.
+
+    Refer to US1976 Section 1.3.10.
+
+    Args:
+        altitude_m (float64) : geopotential altitude when Z <= 86000,
+        geometric altitude when Z > 86000 [m]
+
+    Returns:
+        float64: speed of sound[m/s]
+
+    """
 
     air_params = us_standard_atmosphere_params_at(altitude_m)
     HAL = air_params[0]

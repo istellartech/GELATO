@@ -3,10 +3,30 @@ import numpy as np
 
 
 def LegendreFunction(x, n):
-        Legendre, Derivative = special.lpn(n, x)
-        return Legendre[-1]
+    """ Legendre function of the first kind Pn(x).
+
+    Args:
+        x (float64) : argument of the Legendre function
+        n (int) : degree of the Legendre function
+
+    Returns:
+        float64 : the value of the nth function at x
+    """
+
+    Legendre, Derivative = special.lpn(n, x)
+    return Legendre[-1]
     
 def lagrange(tn,k,t):
+    """ Lagrange basis polynominal.
+    
+    Args:
+        tn (ndarray) : data points
+        k (int) : degree of the polynominal
+        t (float64) : argument
+
+    Returns:
+        float64 : value of the kth polynominal at t
+    """
     l = 1.0
     N = len(tn)
     for i in range(N):
@@ -15,6 +35,16 @@ def lagrange(tn,k,t):
     return l
 
 def lagrangeD(tn,k,t):
+    """ Differentiation of Lagrange basis polynominal.
+    
+    Args:
+        tn (ndarray) : data points
+        k (int) : degree of the polynominal
+        t (float64) : argument
+
+    Returns:
+        float64 : differential coefficient of the kth polynominal at t
+    """
     N = len(tn)
     den = 1.0
     for i in range(N):
@@ -63,12 +93,15 @@ def differentiation_matrix_LGL(n):
     return D
 
 def nodes_LG(n):
+    """ Legendre-Gauss(LG) points"""
     return special.roots_legendre(n)[0]
 
 def weight_LG(n):
+    """ Legendre-Gauss(LG) weights."""
     return special.roots_legendre(n)[1]
 
 def differentiation_matrix_LG(n):
+    """ Legendre-Gauss(LG) differentiation matrix."""
     tk_lg,_=special.roots_legendre(n)
     tk_lg = np.hstack((-1.0,tk_lg))
     D = np.zeros((n,n+1))
@@ -78,6 +111,19 @@ def differentiation_matrix_LG(n):
     return D
 
 def nodes_LGR(n, reverse=True):
+    """ Legendre-Gauss-Radau(LGR) points.
+    
+    Args:
+        n (int) : number of degrees. (n >= 2)
+        reverse (boolean) : type of LGR points. The return value
+        includes -1 when reverse is false and it includes +1 when
+        reverse is true.
+
+    Returns:
+        ndarray: LGR points.
+    
+    """
+
     roots, weight = special.j_roots(n-1, 0, 1)
     nodes = np.hstack((-1, roots))
     if reverse:
@@ -86,6 +132,7 @@ def nodes_LGR(n, reverse=True):
         return nodes
     
 def weight_LGR(n):
+    """ Legendre-Gauss-Radau(LGR) weights."""
     nodes = nodes_LGR(n)
     w = np.zeros(0)
     for i in range(n):
@@ -93,6 +140,19 @@ def weight_LGR(n):
     return w
     
 def differentiation_matrix_LGR(n,reverse=True):
+    """ Legendre-Gauss-Radau(LGR) differentiation matrix.
+    
+    Args:
+        n (int) : number of degrees. (n >= 2)
+        reverse (boolean) : type of LGR points. The LGR node
+        includes -1 when reverse is false and it includes +1 when
+        reverse is true.
+
+    Returns:
+        ndarray: differentiation matrix (n * n+1).
+    
+    """
+
     tk_lgr = nodes_LGR(n,reverse)
     if reverse:
         tk_lgr = np.hstack((-1.0,tk_lgr))

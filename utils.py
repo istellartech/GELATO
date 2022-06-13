@@ -8,6 +8,21 @@ from numba import jit
 
 @jit('f8(f8,f8,f8,f8,f8)',nopython=True)
 def haversine(lon1, lat1, lon2, lat2, r):
+    """Calculates surface distance with haversine formula.
+    
+    This function is DEPRECATED; use Vincenty formula instead.
+
+    Args:
+        lon1 (float64) : longitude of start point [deg]
+        lat1 (float64) : latitude of start point [deg]
+        lon2 (float64) : longitude of end point [deg]
+        lat2 (float64) : latitude of end point [deg]
+        r (float64) : radius of the sphere
+    
+    Returns:
+        float64 : surface distance between start and end points
+
+    """
 
     # convert decimal degrees to radians 
     lon1 = radians(lon1)
@@ -23,6 +38,23 @@ def haversine(lon1, lat1, lon2, lat2, r):
 
 @jit('f8(f8,f8,f8,f8,f8,f8)',nopython=True)
 def distance_on_earth(x_km, y_km, z_km, lon0, lat0, time):
+    """Calculates surface distance of two points on Earth with 
+    haversine formula.
+
+    This function is DEPRECATED; use Vincenty formula instead.
+
+    Args:
+        x_km (float64) : x-coordinates of target point in ECEF frame [km]
+        y_km (float64) : y-coordinates of target point in ECEF frame [km]
+        z_km (float64) : z-coordinates of target point in ECEF frame [km]
+        lon0 (float64) : longitude of reference point [deg]
+        lat0 (float64) : latitude of reference point [deg]
+        time (float64) : time [s]
+
+    Returns:
+        float64 : surface distance between reference and target points[km]
+
+    """
     radius_km = 6378.142
     angular_velocity_rps = 0.729211586e-4
 
@@ -34,6 +66,7 @@ def distance_on_earth(x_km, y_km, z_km, lon0, lat0, time):
 
 @jit('f8[:](f8,f8[:,:])',nopython=True)
 def wind_ned(altitude_m, wind_data):
+    """Get wind speed in NED frame by interpolation."""
     wind = np.zeros(3)
     wind[0] = np.interp(altitude_m, wind_data[:,0], wind_data[:,1])
     wind[1] = np.interp(altitude_m, wind_data[:,0], wind_data[:,2])
@@ -42,6 +75,19 @@ def wind_ned(altitude_m, wind_data):
 
 @jit(nopython=True)
 def angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind):
+    """Calculates total angle of attack.
+    
+    Args:
+        pos_eci (ndarray) : position in ECI frame [m]
+        vel_eci (ndarray) : inertial velocity in ECI frame [m/s]
+        quat (ndarray) : coordinate transformation quaternion from ECI
+          to body frame
+        t (float64) : time [s]
+        wind (ndarray) : wind table
+
+    Returns:
+        float64 : angle of attack [rad]
+    """
 
     thrust_dir_eci = quatrot(conj(quat), np.array([1.0, 0.0, 0.0]))
     
@@ -63,6 +109,19 @@ def angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind):
 
 @jit(nopython=True)
 def angle_of_attack_ab_rad(pos_eci, vel_eci, quat, t, wind):
+    """Calculates pitch and yaw angles of attack.
+    
+    Args:
+        pos_eci (ndarray) : position in ECI frame [m]
+        vel_eci (ndarray) : inertial velocity in ECI frame [m/s]
+        quat (ndarray) : coordinate transformation quaternion from ECI
+          to body frame
+        t (float64) : time [s]
+        wind (ndarray) : wind table
+
+    Returns:
+        ndarray : pitch and yaw angles of attack [rad]
+    """
 
     pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
     altitude_m = geopotential_altitude(pos_llh[2])
@@ -84,6 +143,17 @@ def angle_of_attack_ab_rad(pos_eci, vel_eci, quat, t, wind):
 
 @jit(nopython=True)
 def dynamic_pressure_pa(pos_eci, vel_eci, t, wind):
+    """Calculates dynamic pressure.
+    
+    Args:
+        pos_eci (ndarray) : position in ECI frame [m]
+        vel_eci (ndarray) : inertial velocity in ECI frame [m/s]
+        t (float64) : time [s]
+        wind (ndarray) : wind table
+
+    Returns:
+        float64 : dynamic pressure [Pa]
+    """
 
     pos_llh = ecef2geodetic(pos_eci[0],pos_eci[1],pos_eci[2])
     altitude_m = geopotential_altitude(pos_llh[2])
