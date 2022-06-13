@@ -66,8 +66,8 @@ def equality_user(xdict, pdict, unitdict, condition):
 
 
     # get state value vector
-    pos_IIP0 = get_values(xdict, pdict, unitdict, "IIPEnd")["position"][0]
-    vel_IIP0 = get_values(xdict, pdict, unitdict, "IIPEnd")["velocity"][0]
+    pos_IIP0 = get_values(xdict, pdict, unitdict, "IIP_END")["position"][0]
+    vel_IIP0 = get_values(xdict, pdict, unitdict, "IIP_END")["velocity"][0]
 
     elem = orbital_elements(pos_IIP0, vel_IIP0)
     ha = elem[0] * (1.0 - elem[1]) - 6378137.0 # height of apogee at the event IIPEnd
