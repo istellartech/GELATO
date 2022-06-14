@@ -15,7 +15,7 @@
       "reference_area": 2.21,
       "ignition_at": "LIFTOFF",
       "cutoff_at": "MECO",
-      "separation_at": "MSEP"
+      "separation_at": "SEP1"
     },
     "2": {
       "mass_dry": 544.0,
@@ -23,14 +23,14 @@
       "dropMass": {
         "fairing": {
           "mass": 140.0,
-          "separation_at": "FRGDR"
+          "separation_at": "FAIRING"
         }
       },
       "Isp_vac": 317.0,
       "reference_area": 0.0,
-      "ignition_at": "SEIG1",
-      "cutoff_at": "SECO1",
-      "separation_at": "SCSEP"
+      "ignition_at": "SEIG",
+      "cutoff_at": "SECO",
+      "separation_at": "SEP2"
     }
   },
 
@@ -63,7 +63,7 @@
     "dynamic_pressure_max":{
     },
     "Q_alpha_max":{
-      "TGTS" : {
+      "ZEROLIFT_START" : {
         "value" : 30000.0,
         "range" : "all"
       }
