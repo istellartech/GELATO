@@ -1,0 +1,14 @@
+name,time,time_ref,rocketStage,engineOn,thrust,nozzle_area,attitude,pitchrate_init,yawrate_init,num_nodes
+LIFTOFF,0,LIFTOFF,1,True,420000,0.68,vertical,0.0,0.0,5
+KICKTURN,10,LIFTOFF,1,True,420000,0.68,kick-turn,-1.0,0.0,5
+ZEROLIFT_START,20,LIFTOFF,1,True,420000,0.68,zero-lift-turn,0.0,0.0,16
+ZEROLIFT_END,90,LIFTOFF,1,True,420000,0.68,pitch-yaw,-0.1,0.0,8
+MECO,169,,1,False,0,0,hold,0.0,0.0,2
+SEP1,174,MECO,2,False,0,0,hold,0.0,0.0,2
+SEIG,179,SEP1,2,True,30700,0,pitch-yaw,-0.1,0.0,5
+FAIRING,189,SEP1,2,True,30700,0,same-rate,-0.1,0.0,6
+RATE_CHANGE,280,SEP1,2,True,30700,0,pitch-yaw,-0.1,0.0,8
+IIP_END,595,,2,True,30700,0,same-rate,-0.1,0.0,4
+SECO,597,,2,False,0,0,hold,0.0,0.0,3
+SEP2,627,SECO,2,False,0,0,hold,0.0,0.0,2
+SIMEND,630,SEP2,2,False,0,0,hold,0.0,0.0,2

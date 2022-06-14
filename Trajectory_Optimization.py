@@ -34,33 +34,33 @@ launch_conditions = settings["LaunchCondition"]
 terminal_conditions = settings["TerminalCondition"]
 
 t_init = 0.0
-launchsite_ecef = np.array(geodetic2ecef(launch_conditions["latitude_deg"], launch_conditions["longitude_deg"], launch_conditions["height_m"]))
+launchsite_ecef = np.array(geodetic2ecef(launch_conditions["lat"], launch_conditions["lon"], launch_conditions["altitude"]))
 launchsite_eci = ecef2eci(launchsite_ecef, t_init)
 
 events = pd.read_csv(settings["Event setting file"], index_col=0)
 
 num_sections = len(events) - 1
 
-events["timeduration_sec"] = -events["timeAt_sec"].diff(-1)
-events["timeduration_sec"].iat[-1] = 9000.0
-events["timeFinishAt_sec"] = events["timeAt_sec"] + events["timeduration_sec"]
-events["mass_jettison_kg"] = 0.0
+events["timeduration"] = -events["time"].diff(-1)
+events["timeduration"].iat[-1] = 9000.0
+events["timeFinishAt"] = events["time"] + events["timeduration"]
+events["mass_jettison"] = 0.0
 
 for key, stage in stages.items():
     if stage["separation_at"] in events.index:
-        events.at[stage["separation_at"], "mass_jettison_kg"] = stage["dryMass_kg"]
+        events.at[stage["separation_at"], "mass_jettison"] = stage["mass_dry"]
     elif stage["separation_at"] is not None:
         print("WARNING: separation time is invalid : stage {}".format(key))
 
     if stage["dropMass"] is not None:
         for key, item in stage["dropMass"].items():
             if item["separation_at"] in events.index:
-                events.at[item["separation_at"], "mass_jettison_kg"] = item["mass_kg"]
+                events.at[item["separation_at"], "mass_jettison"] = item["mass"]
             else:
                 print("WARNING: separation time is invalid : {}".format(key))
 
-events["massflow_kgps"] = 0.0
-events["airArea_m2"] = 0.0
+events["massflow"] = 0.0
+events["reference_area"] = 0.0
 events["hold_pitch"] = False
 events["hold_yaw"] = False
 
@@ -68,11 +68,11 @@ for i in events.index:
     
     stage = stages[str(events.at[i, "rocketStage"])]
     
-    events.at[i, "airArea_m2"] = stage["airArea_m2"]
+    events.at[i, "reference_area"] = stage["reference_area"]
     
 
     if events.at[i, "engineOn"]:
-        events.at[i, "massflow_kgps"] = events.at[i, "thrust_n"] / stage["Isp_vac"] / 9.80665
+        events.at[i, "massflow"] = events.at[i, "thrust"] / stage["Isp_vac"] / 9.80665
 
     att = events.at[i, "attitude"]
 
@@ -103,10 +103,10 @@ pdict["num_sections"] = num_sections
 
 r_init = launchsite_eci
 v_init = vel_ecef2eci(np.zeros(3),launchsite_ecef, t_init)
-quat_init = quatmult(quat_eci2nedg(r_init, t_init), quat_from_euler(launch_conditions["init_azimuth_deg"], 90.0, 0.0))
-m_init = sum([s["dryMass_kg"]+s["propellantMass_kg"] for s in stages.values()])
+quat_init = quatmult(quat_eci2nedg(r_init, t_init), quat_from_euler(launch_conditions["flight_azimuth_init"], 90.0, 0.0))
+m_init = sum([s["mass_dry"]+s["mass_propellant"] for s in stages.values()])
 if settings["OptimizationMode"] != "Payload":
-    m_init += settings["PayloadMass"]
+    m_init += settings["mass_payload"]
 x_init = np.hstack((m_init, r_init, v_init, quat_init))
 
 u_init = np.zeros(3)
@@ -115,7 +115,7 @@ unit_R = 6378137
 unit_V = 1000.0
 unit_m = m_init
 unit_u = 1.0
-unit_t = pdict["params"][-1]["timeAt_sec"]
+unit_t = pdict["params"][-1]["time"]
 
 unitdict = {"mass"     : unit_m,
             "position" : unit_R,
@@ -132,7 +132,7 @@ condition["init"]["position"] = r_init
 condition["init"]["velocity"] = v_init
 condition["init"]["quaternion"] = quat_init
 condition["init"]["u"] = u_init
-condition["init_azimuth_deg"] = launch_conditions["init_azimuth_deg"]
+condition["flight_azimuth_init"] = launch_conditions["flight_azimuth_init"]
 condition["OptimizationMode"] = settings["OptimizationMode"]
 
 if "Initial trajectory file" in settings.keys() and settings["Initial trajectory file"] is not None:
@@ -272,7 +272,7 @@ sol = opt(optProb, sens=sens)
 # Post processing
 
 for i,p in enumerate(pdict["params"]):
-    p["timeAt_sec"] = sol.xStar["t"][i] * unitdict["t"]
+    p["time"] = sol.xStar["t"][i] * unitdict["t"]
         
 flag_savefig = False
 # ========================
@@ -303,7 +303,7 @@ res_info.append("final mass      : {:10.3f} kg\n".format(m_res[-1]))
 mass_drop = 0.0
 for i,stage in settings["RocketStage"].items():
     if stage["dropMass"] is not None:
-        mass_drop += sum([item["mass_kg"] for item in stage["dropMass"].values()])
+        mass_drop += sum([item["mass"] for item in stage["dropMass"].values()])
 res_info.append("payload         : {:10.3f} kg\n\n".format(m_res[0] - m_init - mass_drop))
 
 res_info.append("optTime         : {:11.6f}\n".format(sol.optTime))
@@ -323,4 +323,4 @@ with open("output/{}-optResult.txt".format(settings["name"]), mode="w") as fout:
 
 out = output_6DoF(sol.xStar, unitdict, tx_res, tu_res, pdict)
 
-out.to_csv("output/{}-trajectoryResult.csv".format(settings["name"]))
+out.to_csv("output/{}-trajectoryResult.csv".format(settings["name"]), index=False)

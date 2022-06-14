@@ -1,0 +1,87 @@
+{
+  "name": "example",
+  "Event setting file": "example-events.csv",
+  "Wind file": "example-wind_average.csv",
+  "CA file": "example-CA.csv",
+  "Initial trajectory file": "example-trajectory_init.csv",
+  "OptimizationMode": "Payload",
+
+  "RocketStage": {
+    "1": {
+      "mass_dry": 1361.0,
+      "mass_propellant": 21500.0,
+      "dropMass": {},
+      "Isp_vac": 304.0,
+      "reference_area": 2.21,
+      "ignition_at": "LIFTOFF",
+      "cutoff_at": "MECO",
+      "separation_at": "SEP1"
+    },
+    "2": {
+      "mass_dry": 544.0,
+      "mass_propellant": 4037.0,
+      "dropMass": {
+        "fairing": {
+          "mass": 140.0,
+          "separation_at": "FAIRING"
+        }
+      },
+      "Isp_vac": 317.0,
+      "reference_area": 0.0,
+      "ignition_at": "SEIG",
+      "cutoff_at": "SECO",
+      "separation_at": "SEP2"
+    }
+  },
+
+  "mass_payload" : 0.0,
+
+  "LaunchCondition": {
+    "lon": 143.45659,
+    "lat": 42.50587,
+    "altitude": 50.0,
+    "flight_azimuth_init": 90.0
+  },
+
+  "TerminalCondition": {
+    "altitude_perigee": null,
+    "altitude_apogee": null,
+    "inclination": null,
+    "radius": 6578137,
+    "vel_tangential_geocentric": 7784.3,
+    "vel_radial_geocentric": null,
+    "flightpath_vel_inertial_geocentric": 0.0
+  },
+
+  "FlightConstraint": {
+    "AOA_max":{
+      "MECO" : {
+        "value" : 10.0,
+        "range" : "initial"
+      }
+    },
+    "dynamic_pressure_max":{
+    },
+    "Q_alpha_max":{
+      "ZEROLIFT_START" : {
+        "value" : 30000.0,
+        "range" : "all"
+      }
+    }
+  },
+
+  "SNOPT": {
+    "Time limit": 3600,
+    "Major feasibility tolerance": 1.0e-6,
+    "Minor feasibility tolerance": 1.0e-6,
+    "Major optimality tolerance" : 1.0e-4
+  },
+
+  "IPOPT": {
+    "linear_solver": "pardisomkl",
+    "tol": 1.0e-6,
+    "acceptable_tol": 1.0e-4,
+    "max_iter": 2000
+  }
+
+}

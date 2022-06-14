@@ -4,5 +4,3 @@ figures/*
 input/*
 output/*
 *.png
-*.json
-*.csv

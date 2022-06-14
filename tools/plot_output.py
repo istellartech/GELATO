@@ -5,96 +5,96 @@ import matplotlib.pyplot as plt
 def display_6DoF(out, flag_savefig=False):
     
     plt.figure()
-    plt.title('Altitude[km]')
+    plt.title("Altitude[km]")
         
-    plt.plot(out["time"], out["alt"], '.-', lw=0.8, label='Altitude')
-    plt.plot(out["time"], out["ha"], label='ha')
-    plt.plot(out["time"], out["hp"], label='hp')
+    plt.plot(out["time"], out["altitude"], ".-", lw=0.8, label="Altitude")
+    plt.plot(out["time"], out["altitude_apogee"], label="altitude_apogee")
+    plt.plot(out["time"], out["altitude_perigee"], label="altitude_perigee")
 
     plt.ylim([0,None])
     plt.xlim([0,None])
     plt.grid()
     plt.legend()
     if flag_savefig:
-        plt.savefig('figures/Altitude.png')
+        plt.savefig("figures/Altitude.png")
     plt.show()
 
     plt.figure()
-    plt.title('Orbital elements')
-    plt.plot(out["time"], out.loc[:,["inc","asnd","argp"]], label=['i', 'Ω', 'ω'])
+    plt.title("Orbital elements")
+    plt.plot(out["time"], out.loc[:,["inclination","lon_ascending_node","argument_perigee"]], label=["i", "Ω", "ω"])
     plt.xlim([0,None])
     plt.ylim([-180,180])
     plt.grid()
     if flag_savefig:
-        plt.savefig('figures/Orbital_Elements.png')
+        plt.savefig("figures/Orbital_Elements.png")
     plt.show()
     
     
     plt.figure()
-    plt.title('Ground speed_NED')
+    plt.title("Ground speed_NED")
     
-    plt.plot(out["time"], out.loc[:,["vel_NED_X","vel_NED_Y","vel_NED_Z"]], '.-', lw=0.8, label=["N", "E", "D"])
+    plt.plot(out["time"], out.loc[:,["vel_ground_NED_X","vel_ground_NED_Y","vel_ground_NED_Z"]], ".-", lw=0.8, label=["N", "E", "D"])
     plt.xlim([0,None])
     plt.grid()
     if flag_savefig:
-        plt.savefig('figures/Ground_Speed.png')
+        plt.savefig("figures/Ground_Speed.png")
     plt.show()
 
     plt.figure()
-    plt.title('Angle of attack')
+    plt.title("Angle of attack")
     
-    plt.plot(out["time"], out.loc[:,["aoa_alpha","aoa_beta"]], '.-', lw=0.8, label=["alpha", "beta"])
+    plt.plot(out["time"], out.loc[:,["AOA_pitch_NED2BODY","AOA_yaw"]], ".-", lw=0.8, label=["pitch_NED2BODY", "yaw"])
     plt.xlim([0,None])
     plt.ylim([-10,10])
     plt.grid()
     if flag_savefig:
-        plt.savefig('figures/Angle_of_attack.png')
+        plt.savefig("figures/Angle_of_attack.png")
     plt.show()
     
     plt.figure()
-    plt.title('Flight trajectory and velocity vector')
+    plt.title("Flight trajectory and velocity vector")
     i = int(len(out["time"]) / 10)
     
-    pos_llh = out.loc[:,["lat","lon","alt"]].to_numpy('f8')
-    vel_ned = out.loc[:,["vel_NED_X","vel_NED_Y","vel_NED_Z"]].to_numpy('f8')
+    pos_llh = out.loc[:,["lat","lon","altitude"]].to_numpy("f8")
+    vel_ned = out.loc[:,["vel_ground_NED_X","vel_ground_NED_Y","vel_ground_NED_Z"]].to_numpy("f8")
 
     x = np.deg2rad(pos_llh[:,1])
     y = np.log(np.tan(np.deg2rad(45+pos_llh[:,0]/2)))
     
     plt.plot(x,y,lw=0.5)
     plt.quiver(x[::i],y[::i],vel_ned[::i,1],vel_ned[::i,0], scale=1.5e5)
-    plt.axis('equal')
+    plt.axis("equal")
     plt.grid()
     if flag_savefig:
-        plt.savefig('figures/Trajectory.png')
+        plt.savefig("figures/Trajectory.png")
     plt.show()
 
 
     plt.figure()
-    plt.title('Thrust vector (ECI)')
+    plt.title("Thrust vector (ECI)")
     
-    plt.plot(out["time"], out.loc[:,["thrustvec_X","thrustvec_Y","thrustvec_Z"]], '.-', lw=0.8)
+    plt.plot(out["time"], out.loc[:,["thrust_direction_ECI_X","thrust_direction_ECI_Y","thrust_direction_ECI_Z"]], ".-", lw=0.8)
     plt.ylim([-1.0,1.0])
     plt.xlim([0, None])
     plt.grid()
     if flag_savefig:
-        plt.savefig('figures/Thrust_vector.png')
+        plt.savefig("figures/Thrust_vector.png")
     plt.show()
     
     
     plt.figure()
-    plt.title('Euler Angle and Velocity Direction')
+    plt.title("Euler Angle and Velocity Direction")
     
     
-    plt.plot(out["time"], out.loc[:,["heading","pitch","roll"]], '.-', lw=0.8, label=["body azimuth", "body elevation", "body roll"])
-    plt.plot(out["time"], out["azvgd"], lw=1, label="vel direction")
-    plt.plot(out["time"], out["fpvgd"], lw=1, label="vel elevation")
+    plt.plot(out["time"], out.loc[:,["heading_NED2BODY","pitch_NED2BODY","roll_NED2BODY"]], ".-", lw=0.8, label=["heading", "pitch", "roll"])
+    plt.plot(out["time"], out["azimuth_vel_inertial_geocentric"], lw=1, label="azimuth_vel_inertial")
+    plt.plot(out["time"], out["flightpath_vel_inertial_geocentric"], lw=1, label="flightpath_vel_inertial")
     plt.xlim([0,None])
     plt.ylim([-180,180])
     plt.grid()
     plt.legend()
     if flag_savefig:
-        plt.savefig('figures/Euler_angle.png')
+        plt.savefig("figures/Euler_angle.png")
     plt.show()
     
 def display_3d(out):
@@ -112,19 +112,19 @@ def display_3d(out):
     zs = 6357 * np.outer(np.cos(thetas),np.ones_like(phis))
 
     plt.figure(figsize=(8,8))
-    ax = plt.axes(projection='3d')
+    ax = plt.axes(projection="3d")
     ax.set_box_aspect((1,1,1))
 
     ax.view_init(elev=15, azim=150)
 
-    ax.plot_wireframe(xs,ys,zs, color='c', lw=0.2)
-    ax.plot(x_km,y_km,z_km, color='r')
+    ax.plot_wireframe(xs,ys,zs, color="c", lw=0.2)
+    ax.plot(x_km,y_km,z_km, color="r")
 
-    ax.plot([0,2000],[0,0],[0,0],color='r',lw=1)
-    ax.plot([0,0],[0,2000],[0,0],color='g',lw=1)
-    ax.plot([0,0],[0,0],[0,2000],color='b',lw=1)
+    ax.plot([0,2000],[0,0],[0,0],color="r",lw=1)
+    ax.plot([0,0],[0,2000],[0,0],color="g",lw=1)
+    ax.plot([0,0],[0,0],[0,2000],color="b",lw=1)
 
 
-    ax.set_xlabel('X[km]')
-    ax.set_ylabel('Y[km]')
-    ax.set_zlabel('Z[km]')
+    ax.set_xlabel("X[km]")
+    ax.set_ylabel("Y[km]")
+    ax.set_zlabel("Z[km]")

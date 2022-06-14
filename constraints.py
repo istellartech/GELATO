@@ -114,11 +114,11 @@ def equality_time(xdict, pdict, unitdict, condition):
     num_sections = pdict["num_sections"]
 
     # force to fix initial time
-    con.append(t_[0] - pdict["params"][0]["timeAt_sec"] / unit_t)
+    con.append(t_[0] - pdict["params"][0]["time"] / unit_t)
     for i in range(1, num_sections+1):
         if pdict["params"][i]["time_ref"] in pdict["event_index"].keys():
             i_ref = pdict["event_index"][pdict["params"][i]["time_ref"]]
-            con.append(t_[i] - t_[i_ref] - (pdict["params"][i]["timeAt_sec"] - pdict["params"][i_ref]["timeAt_sec"]) / unit_t)
+            con.append(t_[i] - t_[i_ref] - (pdict["params"][i]["time"] - pdict["params"][i_ref]["time"]) / unit_t)
 
     return np.concatenate(con, axis=None)
 
@@ -165,7 +165,7 @@ def equality_dynamics_mass(xdict, pdict, unitdict, condition):
 
         if pdict["params"][i]["engineOn"]:    
             lh = pdict["ps_params"][i]["D"].dot(mass_i_)
-            rh = np.full(n, -pdict["params"][i]["massflow_kgps"] / unit_mass * (tf-to) * unit_t / 2.0 ) #dynamics_mass
+            rh = np.full(n, -pdict["params"][i]["massflow"] / unit_mass * (tf-to) * unit_t / 2.0 ) #dynamics_mass
             con.append(lh - rh)
         else:
             con.append(mass_i_[1:] - mass_i_[0])
@@ -189,8 +189,8 @@ def equality_jac_dynamics_mass(xdict, pdict, unitdict, condition):
 
         if pdict["params"][i]["engineOn"]:
             jac["mass"][a:b, a+i:b+i+1] = pdict["ps_params"][i]["D"] # lh
-            jac["t"][a:b, i]   = -pdict["params"][i]["massflow_kgps"] / unit_mass * unit_t / 2.0 # rh(to)
-            jac["t"][a:b, i+1] =  pdict["params"][i]["massflow_kgps"] / unit_mass * unit_t / 2.0 # rh(tf)
+            jac["t"][a:b, i]   = -pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0 # rh(to)
+            jac["t"][a:b, i+1] =  pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0 # rh(tf)
 
         else:
             jac["mass"][a:b, a+i] = -1.0
@@ -222,10 +222,10 @@ def equality_dynamics_position(xdict, pdict, unitdict, condition):
         tf = t[i+1]
         # t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
 
-        param[0] = pdict["params"][i]["thrust_n"]
-        param[1] = pdict["params"][i]["massflow_kgps"]
-        param[2] = pdict["params"][i]["airArea_m2"]
-        param[4] = pdict["params"][i]["nozzleArea_m2"]
+        param[0] = pdict["params"][i]["thrust"]
+        param[1] = pdict["params"][i]["massflow"]
+        param[2] = pdict["params"][i]["reference_area"]
+        param[4] = pdict["params"][i]["nozzle_area"]
 
         lh = pdict["ps_params"][i]["D"].dot(pos_i_)
         rh = vel_i_[1:] * unit_vel * (tf-to) * unit_t / 2.0 / unit_pos #dynamics_position
@@ -318,10 +318,10 @@ def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
         tf = t[i+1]
         t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) * unit_t / 2.0 + (tf+to) * unit_t / 2.0
 
-        param[0] = pdict["params"][i]["thrust_n"]
-        param[1] = pdict["params"][i]["massflow_kgps"]
-        param[2] = pdict["params"][i]["airArea_m2"]
-        param[4] = pdict["params"][i]["nozzleArea_m2"]
+        param[0] = pdict["params"][i]["thrust"]
+        param[1] = pdict["params"][i]["massflow"]
+        param[2] = pdict["params"][i]["reference_area"]
+        param[4] = pdict["params"][i]["nozzle_area"]
 
         wind = pdict["wind_table"]
         ca = pdict["ca_table"]
@@ -370,10 +370,10 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
         tf = t[i+1]
         t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) * unit_t / 2.0 + (tf+to) * unit_t / 2.0
 
-        param[0] = pdict["params"][i]["thrust_n"]
-        param[1] = pdict["params"][i]["massflow_kgps"]
-        param[2] = pdict["params"][i]["airArea_m2"]
-        param[4] = pdict["params"][i]["nozzleArea_m2"]
+        param[0] = pdict["params"][i]["thrust"]
+        param[1] = pdict["params"][i]["massflow"]
+        param[2] = pdict["params"][i]["reference_area"]
+        param[4] = pdict["params"][i]["nozzle_area"]
 
         wind = pdict["wind_table"]
         ca = pdict["ca_table"]
@@ -576,7 +576,7 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
             section_sep_list.append(section_sep)
 
             # mass after separation
-            mass_stage = stage["dryMass_kg"] + stage["propellantMass_kg"] + sum([item["mass_kg"] for item in stage["dropMass"].values()])
+            mass_stage = stage["mass_dry"] + stage["mass_propellant"] + sum([item["mass"] for item in stage["dropMass"].values()])
             index_ig = pdict["ps_params"][section_ig]["index_start"] + section_ig
             index_sep = pdict["ps_params"][section_sep]["index_start"] + section_sep
             con.append(mass_[index_ig] - mass_[index_sep] - mass_stage / unitdict["mass"])
@@ -591,16 +591,16 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
         vel_i_ = vel_[a+i:b+i+1]
         quat_i_ = quat_[a+i:b+i+1]
 
-        param[0] = pdict["params"][i]["thrust_n"]
-        param[1] = pdict["params"][i]["massflow_kgps"]
-        param[2] = pdict["params"][i]["airArea_m2"]
-        param[4] = pdict["params"][i]["nozzleArea_m2"]
+        param[0] = pdict["params"][i]["thrust"]
+        param[1] = pdict["params"][i]["massflow"]
+        param[2] = pdict["params"][i]["reference_area"]
+        param[4] = pdict["params"][i]["nozzle_area"]
 
         # knotting constraints: 現在のsectionの先頭と前のsectionの末尾の連続性
         mass_init_ = mass_[a+i]
         mass_prev_ = mass_[a+i-1]
         if not (i in section_sep_list):
-            con.append(mass_init_ - mass_prev_ + pdict["params"][i]["mass_jettison_kg"] / unitdict["mass"])
+            con.append(mass_init_ - mass_prev_ + pdict["params"][i]["mass_jettison"] / unitdict["mass"])
 
         pos_init_ = pos_[a+i]
         pos_prev_ = pos_[a+i-1]
@@ -704,33 +704,33 @@ def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
 
     elem = orbital_elements(pos_f, vel_f)
 
-    if condition["hp_m"] is not None:
+    if condition["altitude_perigee"] is not None:
         hp = elem[0] * (1.0 - elem[1]) + 6378137
-        con.append((hp - condition["hp_m"]) / unit_pos)
+        con.append((hp - condition["altitude_perigee"]) / unit_pos)
 
-    if condition["ha_m"] is not None:
+    if condition["altitude_apogee"] is not None:
         ha = elem[0] * (1.0 + elem[1]) + 6378137
-        con.append((ha - condition["ha_m"]) / unit_pos)
+        con.append((ha - condition["altitude_apogee"]) / unit_pos)
 
-    if condition["rf_m"] is not None:
+    if condition["radius"] is not None:
         rf = norm(pos_f)
-        con.append((rf - condition["rf_m"]) / unit_pos)
+        con.append((rf - condition["radius"]) / unit_pos)
 
-    if condition["vtf_mps"] is not None:
+    if condition["vel_tangential_geocentric"] is not None:
         vrf = vel_f.dot(normalize(pos_f))
         vtf = sqrt(norm(vel_f)**2 - vrf**2)
-        con.append((vtf - condition["vtf_mps"]) / unit_vel)
+        con.append((vtf - condition["vel_tangential_geocentric"]) / unit_vel)
 
-    if condition["vf_elev_deg"] is not None:
+    if condition["flightpath_vel_inertial_geocentric"] is not None:
         cos_vf_angle = normalize(vel_f).dot(normalize(pos_f))
-        con.append(cos(radians(90.0-condition["vf_elev_deg"])) - cos_vf_angle)
+        con.append(cos(radians(90.0-condition["flightpath_vel_inertial_geocentric"])) - cos_vf_angle)
 
-    if condition["vrf_mps"] is not None:
+    if condition["vel_radial_geocentric"] is not None:
         vrf = vel_f.dot(normalize(pos_f))
-        con.append((vrf - condition["vrf_mps"]) / unit_vel)
+        con.append((vrf - condition["vel_radial_geocentric"]) / unit_vel)
 
-    if condition["inclination_deg"] is not None:
-        con.append((elem[2] - condition["inclination_deg"]) / 90.0)            
+    if condition["inclination"] is not None:
+        con.append((elem[2] - condition["inclination"]) / 90.0)            
 
 
     return np.concatenate(con, axis=None)
@@ -981,9 +981,9 @@ def inequality_mass(xdict, pdict, unitdict, condition):
         mass_ig = mass_[pdict["ps_params"][section_ig]["index_start"] + section_ig]
         mass_co = mass_[pdict["ps_params"][section_co]["index_start"] + section_co]
 
-        d_mass = stage["propellantMass_kg"]
+        d_mass = stage["mass_propellant"]
         if stage["dropMass"] is not None:
-            d_mass += sum([item["mass_kg"] for item in stage["dropMass"].values()])
+            d_mass += sum([item["mass"] for item in stage["dropMass"].values()])
         con.append( -mass_ig + mass_co + d_mass / unitdict["mass"])
 
     return con
@@ -1096,12 +1096,12 @@ def inequality_max_alpha(xdict, pdict, unitdict, condition):
         section_name = pdict["params"][i]["name"]
 
         # angle of attack
-        if section_name in condition["aoa_max_deg"]:
-            aoa_max = condition["aoa_max_deg"][section_name]["value"] * np.pi / 180.0
+        if section_name in condition["AOA_max"]:
+            aoa_max = condition["AOA_max"][section_name]["value"] * np.pi / 180.0
             units[3] = aoa_max
-            if condition["aoa_max_deg"][section_name]["range"] == "all":
+            if condition["AOA_max"][section_name]["range"] == "all":
                 con.append(1.0 - aoa_zerolift_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units))
-            elif condition["aoa_max_deg"][section_name]["range"] == "initial":
+            elif condition["AOA_max"][section_name]["range"] == "initial":
                 con.append(1.0 - angle_of_attack_all_dimless(pos_i_[0], vel_i_[0], quat_i_[0], to, wind, units))
 
     if len(con) == 0:
@@ -1145,12 +1145,12 @@ def inequality_max_q(xdict, pdict, unitdict, condition):
         section_name = pdict["params"][i]["name"]
 
         # max-Q
-        if section_name in condition["q_max_pa"]:
-            q_max = condition["q_max_pa"][section_name]["value"]
+        if section_name in condition["dynamic_pressure_max"]:
+            q_max = condition["dynamic_pressure_max"][section_name]["value"]
             units[3] = q_max
-            if condition["q_max_pa"][section_name]["range"] == "all":
+            if condition["dynamic_pressure_max"][section_name]["range"] == "all":
                 con.append(1.0 - dynamic_pressure_array_dimless(pos_i_, vel_i_, t_i_, wind, units))
-            elif condition["q_max_pa"][section_name]["range"] == "initial":
+            elif condition["dynamic_pressure_max"][section_name]["range"] == "initial":
                 con.append(1.0 - dynamic_pressure_dimless(pos_i_[0], vel_i_[0], to, wind, units))
 
     if len(con) == 0:
@@ -1195,12 +1195,12 @@ def inequality_max_qalpha(xdict, pdict, unitdict, condition):
         section_name = pdict["params"][i]["name"]
 
         # max-Qalpha
-        if section_name in condition["q-alpha_max_pa-deg"]:
-            qalpha_max = condition["q-alpha_max_pa-deg"][section_name]["value"] * np.pi / 180.0
+        if section_name in condition["Q_alpha_max"]:
+            qalpha_max = condition["Q_alpha_max"][section_name]["value"] * np.pi / 180.0
             units[3] = qalpha_max
-            if condition["q-alpha_max_pa-deg"][section_name]["range"] == "all":
+            if condition["Q_alpha_max"][section_name]["range"] == "all":
                 con.append(1.0 - q_alpha_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units))
-            elif condition["q-alpha_max_pa-deg"][section_name]["range"] == "initial":
+            elif condition["Q_alpha_max"][section_name]["range"] == "initial":
                 con.append(1.0 - q_alpha_dimless(pos_i_[0], vel_i_[0], quat_i_[0], to, wind, units))
 
     if len(con) == 0:
@@ -1248,7 +1248,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
         section_name = pdict["params"][i]["name"]
 
         # angle of attack
-        if section_name in condition["aoa_max_deg"]:
+        if section_name in condition["AOA_max"]:
             a = pdict["ps_params"][i]["index_start"]
             n = pdict["ps_params"][i]["nodes"]
             b = a + n
@@ -1264,12 +1264,12 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
             t_i_p1_ = np.zeros(n+1)
             t_i_p2_ = np.zeros(n+1)
 
-            aoa_max = condition["aoa_max_deg"][section_name]["value"] * np.pi / 180.0
+            aoa_max = condition["AOA_max"][section_name]["value"] * np.pi / 180.0
             units[3] = aoa_max
 
-            if condition["aoa_max_deg"][section_name]["range"] == "all":
+            if condition["AOA_max"][section_name]["range"] == "all":
                 nk = range(n+1)
-            elif condition["aoa_max_deg"][section_name]["range"] == "initial":
+            elif condition["AOA_max"][section_name]["range"] == "initial":
                 nk = [0]
 
             f_c = aoa_zerolift_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units)
@@ -1363,7 +1363,7 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
         section_name = pdict["params"][i]["name"]
 
         # angle of attack
-        if section_name in condition["q_max_pa"]:
+        if section_name in condition["dynamic_pressure_max"]:
             a = pdict["ps_params"][i]["index_start"]
             n = pdict["ps_params"][i]["nodes"]
             b = a + n
@@ -1378,12 +1378,12 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
             t_i_p1_ = np.zeros(n+1)
             t_i_p2_ = np.zeros(n+1)
 
-            q_max = condition["q_max_pa"][section_name]["value"]
+            q_max = condition["dynamic_pressure_max"][section_name]["value"]
             units[3] = q_max
 
-            if condition["q_max_pa"][section_name]["range"] == "all":
+            if condition["dynamic_pressure_max"][section_name]["range"] == "all":
                 nk = range(n+1)
-            elif condition["q_max_pa"][section_name]["range"] == "initial":
+            elif condition["dynamic_pressure_max"][section_name]["range"] == "initial":
                 nk = [0]
 
             f_c = dynamic_pressure_array_dimless(pos_i_, vel_i_, t_i_, wind, units)
@@ -1471,7 +1471,7 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
         section_name = pdict["params"][i]["name"]
 
         # angle of attack
-        if section_name in condition["q-alpha_max_pa-deg"]:
+        if section_name in condition["Q_alpha_max"]:
             a = pdict["ps_params"][i]["index_start"]
             n = pdict["ps_params"][i]["nodes"]
             b = a + n
@@ -1493,12 +1493,12 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
             t_i_p2_[0] = to
             t_i_p2_[1:] = pdict["ps_params"][i]["tau"] * (tf_p-to) / 2.0 + (tf_p+to) / 2.0
 
-            qalpha_max = condition["q-alpha_max_pa-deg"][section_name]["value"] * np.pi / 180.0
+            qalpha_max = condition["Q_alpha_max"][section_name]["value"] * np.pi / 180.0
             units[3] = qalpha_max
 
-            if condition["q-alpha_max_pa-deg"][section_name]["range"] == "all":
+            if condition["Q_alpha_max"][section_name]["range"] == "all":
                 nk = range(n+1)
-            elif condition["q-alpha_max_pa-deg"][section_name]["range"] == "initial":
+            elif condition["Q_alpha_max"][section_name]["range"] == "initial":
                 nk = [0]
 
             f_c = q_alpha_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units)

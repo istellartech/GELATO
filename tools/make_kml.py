@@ -15,12 +15,12 @@ kml = simplekml.Kml()
 ppi_folder = kml.newfolder(name="PPI")
 iip_folder = kml.newfolder(name="IIP")
 
-ppi_line = ppi_folder.newlinestring(name="PPI", coords=df.loc[:,["lon", "lat", "alt"]].to_numpy(), altitudemode="absolute")
+ppi_line = ppi_folder.newlinestring(name="PPI", coords=df.loc[:,["lon", "lat", "altitude"]].to_numpy(), altitudemode="absolute")
 iip_line = iip_folder.newlinestring(name="IIP", coords=df.dropna(subset=["lon_IIP"]).loc[:,["lon_IIP", "lat_IIP"]].to_numpy(), tessellate=1)
 
 df_event = df.dropna(subset=["event"])
 for _,v in df_event.iterrows():
-    ppi_event = ppi_folder.newpoint(name=v["event"], coords=[v[["lon", "lat", "alt"]]], altitudemode="absolute")
+    ppi_event = ppi_folder.newpoint(name=v["event"], coords=[v[["lon", "lat", "altitude"]]], altitudemode="absolute")
 for _,v in df_event.dropna(subset=["lon_IIP"]).iterrows():
     iip_event = iip_folder.newpoint(name=v["event"], coords=[v[["lon_IIP", "lat_IIP"]]])
 
