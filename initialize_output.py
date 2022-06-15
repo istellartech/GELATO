@@ -310,7 +310,7 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
             "lon_IIP"    : np.zeros(N),
             "altitude" : np.zeros(N),
             "altitude_apogee" : np.zeros(N),
-            "altitude_apogee" : np.zeros(N),
+            "altitude_perigee" : np.zeros(N),
             "inclination" : np.zeros(N),
             "argument_perigee" : np.zeros(N),
             "lon_ascending_node" : np.zeros(N),
@@ -379,7 +379,7 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         
         elem = orbital_elements(pos, vel)
         out["altitude_apogee"][i] = elem[0] * (1.0 + elem[1]) - 6378137
-        out["altitude_apogee"][i] = elem[0] * (1.0 - elem[1]) - 6378137
+        out["altitude_perigee"][i] = elem[0] * (1.0 - elem[1]) - 6378137
         out["inclination"][i], out["lon_ascending_node"][i], out["argument_perigee"][i], out["true_anomaly"][i] = elem[2:6]
         
         vel_ground_ecef = vel_eci2ecef(vel, pos, t)
