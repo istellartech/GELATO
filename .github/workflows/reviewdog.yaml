@@ -1,5 +1,5 @@
 name: reviewdog
-on: [push, pull_request]
+on: [pull_request]
 jobs:
   flake8-lint:
     runs-on: ubuntu-latest
@@ -15,3 +15,4 @@ jobs:
         uses: reviewdog/action-flake8@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          flake8_args: "--max-line-length 120"
