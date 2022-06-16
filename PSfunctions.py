@@ -55,9 +55,9 @@ def differentiation_matrix_LGL(n):
                           / LegendreFunction(tau[j], n-1) \
                           / (tau[i] - tau[j])
             elif i == j and i == 0:
-                D[i, j] = -n*(n-1)*0.25
+                D[i, j] = -n*(n-1)/4
             elif i == j and i == n-1:
-                D[i, j] = n*(n-1)*0.25
+                D[i, j] = n * (n - 1) / 4.0
             else:
                 D[i, j] = 0.0
     return D
