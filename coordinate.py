@@ -23,9 +23,9 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from math import sin, cos, tan, asin, acos, atan, atan2, degrees, radians, sqrt
 import numpy as np
 from numpy.linalg import norm
-from math import sin, cos, tan, asin, acos, atan, atan2, degrees, radians, sqrt
 from numba import jit
 
 

@@ -24,10 +24,11 @@
 #
 
 import sys
+import json
 
 import numpy as np
 import pandas as pd
-import json
+from pyoptsparse import IPOPT, SNOPT, Optimization
 
 from utils import *
 from coordinate import *
@@ -35,7 +36,6 @@ from initialize_output import *
 from constraints import *
 from PSfunctions import *
 from USStandardAtmosphere import *
-from pyoptsparse import IPOPT, SNOPT, Optimization
 
 version = "0.6.1"
 

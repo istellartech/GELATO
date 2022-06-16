@@ -23,13 +23,13 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-import numpy as np
-from numpy.linalg import norm
 from math import sin, cos, asin, atan2, sqrt, radians, degrees
 from copy import deepcopy
+import numpy as np
+from numpy.linalg import norm
+from numba import jit
 from USStandardAtmosphere import *
 from coordinate import *
-from numba import jit
 
 
 @jit("f8(f8,f8,f8,f8,f8)", nopython=True)

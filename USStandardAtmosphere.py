@@ -24,9 +24,9 @@
 #
 
 import math
+from math import sqrt
 import numpy as np
 from numba import jit
-from math import sqrt
 
 # U.S. Standard Atmosphere 1976
 
