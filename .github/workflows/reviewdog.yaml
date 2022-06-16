@@ -1,16 +1,17 @@
 name: reviewdog
-on: [pull_request]
+on: [push, pull_request]
 jobs:
-  linter_name:
-    name: runner / black formatter
+  flake8-lint:
     runs-on: ubuntu-latest
+    name: Lint
     steps:
-      - uses: actions/checkout@v2
-      - uses: reviewdog/action-black@v2
+      - name: Check out source repository
+        uses: actions/checkout@v2
+      - name: Set up Python environment
+        uses: actions/setup-python@v2
         with:
-          github_token: ${{ secrets.github_token }}
-          # Change reviewdog reporter if you need [github-pr-check, github-check].
-          reporter: github-pr-check
-          # Change reporter level if you need.
-          # GitHub Status Check won't become failure with a warning.
-          level: warning
+          python-version: "3.8"
+      - name: flake8 Lint
+        uses: reviewdog/action-flake8@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
