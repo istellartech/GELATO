@@ -15,4 +15,5 @@ jobs:
         uses: reviewdog/action-flake8@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
           flake8_args: "--max-line-length 120 --ignore=F403,F405,W503"
