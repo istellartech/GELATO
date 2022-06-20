@@ -30,8 +30,6 @@ from numba import jit
 
 # U.S. Standard Atmosphere 1976
 
-# altitude_m : geopotential altitude
-
 
 @jit(nopython=True)
 def geopotential_altitude(z):
