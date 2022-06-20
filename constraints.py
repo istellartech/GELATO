@@ -215,8 +215,6 @@ def equality_dynamics_mass(xdict, pdict, unitdict, condition):
 
     num_sections = pdict["num_sections"]
 
-    param = np.zeros(5)
-
     for i in range(num_sections):
         a = pdict["ps_params"][i]["index_start"]
         n = pdict["ps_params"][i]["nodes"]
@@ -320,7 +318,6 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_t = unitdict["t"]
-    pos_ = xdict["position"].reshape(-1, 3)
     vel_ = xdict["velocity"].reshape(-1, 3)
     t = xdict["t"]
 
@@ -334,7 +331,6 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
         a = pdict["ps_params"][i]["index_start"]
         n = pdict["ps_params"][i]["nodes"]
         b = a + n
-        pos_i_ = pos_[a + i : b + i + 1]
         vel_i_ = vel_[a + i : b + i + 1]
         to = t[i]
         tf = t[i + 1]
@@ -810,12 +806,6 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
 
     for i in range(1, num_sections):
         a = pdict["ps_params"][i]["index_start"]
-        n = pdict["ps_params"][i]["nodes"]
-        b = a + n
-        mass_i_ = mass_[a + i : b + i + 1]
-        pos_i_ = pos_[a + i : b + i + 1]
-        vel_i_ = vel_[a + i : b + i + 1]
-        quat_i_ = quat_[a + i : b + i + 1]
 
         param[0] = pdict["params"][i]["thrust"]
         param[1] = pdict["params"][i]["massflow"]
@@ -889,8 +879,6 @@ def equality_jac_knot_LGR(xdict, pdict, unitdict, condition):
 
     for i in range(1, num_sections):
         a = pdict["ps_params"][i]["index_start"]
-        n = pdict["ps_params"][i]["nodes"]
-        b = a + n
 
         if not (i in section_sep_list):
             jac["mass"]["coo"][0].extend([iRow, iRow])
@@ -1094,8 +1082,6 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
     pos_ = xdict["position"].reshape(-1, 3)
     quat_ = xdict["quaternion"].reshape(-1, 4)
 
-    u_ = xdict["u"].reshape(-1, 3)
-
     num_sections = pdict["num_sections"]
 
     f_center = equality_6DoF_rate(xdict, pdict, unitdict, condition)
@@ -1112,7 +1098,6 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
         b = a + n
         pos_i_ = pos_[a + i : b + i + 1]
         quat_i_ = quat_[a + i : b + i + 1]
-        u_i_ = u_[a:b]
 
         # rate constraint
 
@@ -1348,8 +1333,6 @@ def inequality_jac_kickturn(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_kickturn."""
 
     jac = {}
-    unit_u = unitdict["u"]
-    u_ = xdict["u"].reshape(-1, 3) * unit_u
     num_sections = pdict["num_sections"]
 
     data = []
@@ -1361,7 +1344,6 @@ def inequality_jac_kickturn(xdict, pdict, unitdict, condition):
         a = pdict["ps_params"][i]["index_start"]
         n = pdict["ps_params"][i]["nodes"]
         b = a + n
-        u_i_ = u_[a:b]
 
         # kick turn
         if "kick" in pdict["params"][i]["attitude"]:
@@ -1455,7 +1437,6 @@ def inequality_max_q(xdict, pdict, unitdict, condition):
 
     pos_ = xdict["position"].reshape(-1, 3)
     vel_ = xdict["velocity"].reshape(-1, 3)
-    quat_ = xdict["quaternion"].reshape(-1, 4)
 
     t = xdict["t"]
 
@@ -1470,7 +1451,6 @@ def inequality_max_q(xdict, pdict, unitdict, condition):
 
         pos_i_ = pos_[a + i : b + i + 1]
         vel_i_ = vel_[a + i : b + i + 1]
-        quat_i_ = quat_[a + i : b + i + 1]
         to = t[i]
         tf = t[i + 1]
         t_i_ = np.zeros(n + 1)
