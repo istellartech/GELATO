@@ -1,6 +1,7 @@
 # Trajectory_Optimization
 Rocket trajectory optimization
 
+![reviewdog](https://github.com/istellartech/Trajectory_Optimization/actions/workflows/reviewdog.yaml/badge.svg)
 ## Install
 
 This program uses the libraries below:
