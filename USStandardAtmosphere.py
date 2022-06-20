@@ -61,6 +61,9 @@ def geopotential_altitude(z):
 def us_standard_atmosphere_params_at(altitude_m):
     """Returns parameters at each reference levels.
 
+    The values of temperature gradient for the layer from 91 to 110 km
+    and above 120km are dummy values for calculation of the approximate
+    pressure.
 
     Args:
         altitude_m (float64) : geopotential altitude when Z <= 86000,
@@ -87,16 +90,10 @@ def us_standard_atmosphere_params_at(altitude_m):
         [51000.0, -0.0028, 270.65, 66.939, Rstar / 28.9644],
         [71000.0, -0.002, 214.65, 3.9564, Rstar / 28.9644],
         [86000.0, 0.0, 186.8673, 0.37338, Rstar / 28.9522],
-        [
-            91000.0,
-            0.0025,
-            186.8673,
-            0.15381,
-            Rstar / 28.89,
-        ],  # elliptic region, LR is dummy
+        [91000.0, 0.0025, 186.8673, 0.15381, Rstar / 28.89],  # Lb is dummy
         [110000.0, 0.012, 240.0, 7.1042e-3, Rstar / 27.27],
-        [120000.0, 0.012, 360.0, 2.5382e-3, Rstar / 26.20],
-    ]  # exponential region, LR is dummy
+        [120000.0, 0.012, 360.0, 2.5382e-3, Rstar / 26.20],  # Lb is dummy
+    ]
 
     k = 0
     for i in range(len(PARAMS)):

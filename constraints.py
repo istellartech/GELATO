@@ -822,7 +822,7 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
         param[2] = pdict["params"][i]["reference_area"]
         param[4] = pdict["params"][i]["nozzle_area"]
 
-        # knotting constraints: 現在のsectionの先頭と前のsectionの末尾の連続性
+        # knotting constraints
         mass_init_ = mass_[a + i]
         mass_prev_ = mass_[a + i - 1]
         if not (i in section_sep_list):
@@ -1503,7 +1503,6 @@ def inequality_max_q(xdict, pdict, unitdict, condition):
 def inequality_max_qalpha(xdict, pdict, unitdict, condition):
     """Inequality constraint about maximum Q-alpha
     (product of angle of attack and dynamic pressure).
-
     """
 
     con = []
