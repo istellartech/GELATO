@@ -36,7 +36,7 @@ from user_constraints import *
 
 @jit(nopython=True)
 def dynamics_velocity(
-    mass_e, pos_eci_e, vel_eci_e, quat_eci2body, t, param, wind, ca, units
+    mass_e, pos_eci_e, vel_eci_e, quat_eci2body, t, param, wind_table, CA_table, units
 ):
     """Equation of motion of velocity."""
 
@@ -45,40 +45,33 @@ def dynamics_velocity(
     vel_eci = vel_eci_e * units[2]
     acc_eci = np.zeros(vel_eci_e.shape)
 
-    thrust_vac_n = param[0]
-    airArea_m2 = param[2]
-    nozzleArea_m2 = param[4]
+    thrust_vac = param[0]
+    air_area = param[2]
+    nozzle_area = param[4]
 
     for i in range(len(mass)):
         pos_llh = ecef2geodetic(pos_eci[i, 0], pos_eci[i, 1], pos_eci[i, 2])
-        altitude_m = geopotential_altitude(pos_llh[2])
-        rho = airdensity_at(altitude_m)
-        p = airpressure_at(altitude_m)
+        altitude = geopotential_altitude(pos_llh[2])
+        rho = airdensity_at(altitude)
+        p = airpressure_at(altitude)
 
         vel_ecef = vel_eci2ecef(vel_eci[i], pos_eci[i], t[i])
-        vel_wind_ned = wind_ned(altitude_m, wind)
+        vel_wind_ned = wind_ned(altitude, wind_table)
 
         vel_wind_eci = quatrot(quat_nedg2eci(pos_eci[i], t[i]), vel_wind_ned)
         vel_air_eci = ecef2eci(vel_ecef, t[i]) - vel_wind_eci
-        mach_number = norm(vel_air_eci) / speed_of_sound(altitude_m)
+        mach_number = norm(vel_air_eci) / speed_of_sound(altitude)
 
-        airAxialForce_coeff = np.interp(mach_number, ca[:, 0], ca[:, 1])
+        ca = np.interp(mach_number, CA_table[:, 0], CA_table[:, 1])
 
-        aero_n_eci = (
-            0.5
-            * rho
-            * norm(vel_air_eci)
-            * -vel_air_eci
-            * airArea_m2
-            * airAxialForce_coeff
-        )
+        aeroforce_eci = 0.5 * rho * norm(vel_air_eci) * -vel_air_eci * air_area * ca
 
-        thrust_n = thrust_vac_n - nozzleArea_m2 * p
+        thrust = thrust_vac - nozzle_area * p
         thrustdir_eci = quatrot(conj(quat_eci2body[i]), np.array([1.0, 0.0, 0.0]))
-        thrust_n_eci = thrustdir_eci * thrust_n
+        thrust_eci = thrustdir_eci * thrust
         gravity_eci = gravity(pos_eci[i])
 
-        acc_eci[i] = gravity_eci + (thrust_n_eci + aero_n_eci) / mass[i]
+        acc_eci[i] = gravity_eci + (thrust_eci + aeroforce_eci) / mass[i]
 
     return acc_eci / units[2]
 
