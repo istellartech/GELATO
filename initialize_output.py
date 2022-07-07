@@ -562,7 +562,7 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
             asin(-vel_ned[2] / norm(vel_ned))
         )
 
-        q = 0.5 * norm(vel_air_ned) ** 2 * airdensity_at(pos_llh[2])
+        q = 0.5 * norm(vel_air_ned) ** 2 * airdensity_at(altitude_m)
         out["dynamic_pressure"][i] = q
 
         aoa_all_deg = (
