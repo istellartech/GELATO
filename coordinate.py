@@ -629,6 +629,8 @@ def euler_from_quat(q):
         ro = atan2(
             2.0 * (q[0] * q[1] + q[2] * q[3]), 1.0 - 2.0 * (q[1] ** 2 + q[2] ** 2)
         )
+    if az < 0.0:
+        az += 2.0 * np.pi
     return np.rad2deg(np.array([az, el, ro]))
 
 
@@ -652,6 +654,8 @@ def euler_from_dcm(C):
     else:
         az = atan2(C[0, 1], C[0, 0])
         ro = atan2(C[1, 2], C[2, 2])
+    if az < 0.0:
+        az += 2.0 * np.pi
     return np.rad2deg(np.array([az, el, ro]))
 
 
@@ -749,6 +753,13 @@ def orbital_elements(r_eci, v_eci):
     true_anomaly_rad = acos(f1_eci[0] * nr[0] + f1_eci[1] * nr[1] + f1_eci[2] * nr[2])
     if v_eci[0] * r_eci[0] + v_eci[1] * r_eci[1] + v_eci[2] * r_eci[2] < 0.0:
         true_anomaly_rad = 2.0 * np.pi - true_anomaly_rad
+
+    if ascending_node_rad < 0.0:
+        ascending_node_rad += 2.0 * np.pi
+    if argument_perigee < 0.0:
+        argument_perigee += 2.0 * np.pi
+    if true_anomaly_rad < 0.0:
+        true_anomaly_rad += 2.0 * np.pi
 
     return np.array(
         [
