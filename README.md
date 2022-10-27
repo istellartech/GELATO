@@ -11,11 +11,9 @@ This program uses the libraries below:
  - Numba
  - pyoptsparse(see below before installation)
 
-This program also uses IPOPT as NLP solver. Install it separately before use.
+This program also requires IPOPT or SNOPT as NLP solver. Install them separately before use.
 
-You must build pyoptsparse from source in order to call IPOPT from it. Please refer to [pyoptsparse instruction](https://mdolab-pyoptsparse.readthedocs-hosted.com/en/latest/optimizers/IPOPT.html).
-
-
+You must build pyoptsparse from source in order to call external NLP solver such as IPOPT or SNOPT from it. Please refer to [pyoptsparse instruction](https://mdolab-pyoptsparse.readthedocs-hosted.com/en/latest/optimizers/IPOPT.html).
 
 ## Usage
 
@@ -37,7 +35,7 @@ Put input files in AWS S3 directory.
 
 Execute
 ```
-./run_aws.sh [S3 input directory full path]
+./run_batch.sh [S3 input directory full path]
 ```
 
 and the optimization program will run for ALL settings files(\*.json) in the S3 directory
