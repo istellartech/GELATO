@@ -2,7 +2,7 @@
 ![reviewdog](https://github.com/istellartech/Trajectory_Optimization/actions/workflows/reviewdog.yaml/badge.svg)
 ![license](https://img.shields.io/github/license/istellartech/GELATO)
 
-GELATO is an open source tool for optimizion of launch trajectory, written in Python.
+GELATO is an open source tool for optimization of launch trajectory, written in Python.
 
 GELATO solves the trajectory optimization problem using Legendre-Gauss-Radau pseudospectral method, which is stable and robust for highly complex nonlinear problem.
 
