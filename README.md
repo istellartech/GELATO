@@ -25,7 +25,7 @@ This program uses the libraries below:
 
 This program also requires IPOPT or SNOPT as a NLP solver. Install them separately before use.
 
-You must build pyoptsparse from source in order to call the external NLP solver such as IPOPT or SNOPT from it. Please refer to [pyoptsparse instruction](https://mdolab-pyoptsparse.readthedocs-hosted.com/en/latest/optimizers/IPOPT.html).
+You must build pyoptsparse from source in order to call external NLP solvers such as IPOPT or SNOPT from it. Please refer to the [pyoptsparse instructions](https://mdolab-pyoptsparse.readthedocs-hosted.com/en/latest/optimizers/IPOPT.html).
 
 
 
