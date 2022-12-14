@@ -9,7 +9,7 @@ GELATO solves trajectory optimization problems using the Legendre-Gauss-Radau ps
 
 ### Features
 
- - Maximization of payload mass by changing the angular rate profile and event time (such as cutoff time)
+ - Maximization of payload mass by changing the angular rate profile and event times (such as cutoff time)
  - 3DoF calculation of dynamics with thrust, aerodynamics and gravity
  - Support for multi-stage launch vehicles
  - User customizable constraints
