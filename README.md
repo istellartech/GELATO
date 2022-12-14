@@ -44,7 +44,7 @@ Run
 python3 Trajectory_Optimization.py [setting file name]
 ```
 
-See the example folder for an example of input files.
+See the example folder for an example set of input files.
 
 
 ### Batch operation
