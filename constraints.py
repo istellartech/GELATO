@@ -26,6 +26,7 @@
 import sys
 from copy import copy, deepcopy
 import numpy as np
+from numpy.linalg import norm
 from scipy import sparse
 from numba import jit
 from utils import *
@@ -927,38 +928,39 @@ def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     pos_f = pos_[-1] * unit_pos
     vel_f = vel_[-1] * unit_vel
 
-    elem = orbital_elements(pos_f, vel_f)
-
-    if condition["altitude_perigee"] is not None:
-        hp = elem[0] * (1.0 - elem[1]) + 6378137
-        con.append((hp - condition["altitude_perigee"]) / unit_pos)
-
-    if condition["altitude_apogee"] is not None:
-        ha = elem[0] * (1.0 + elem[1]) + 6378137
-        con.append((ha - condition["altitude_apogee"]) / unit_pos)
-
-    if condition["radius"] is not None:
-        rf = norm(pos_f)
-        con.append((rf - condition["radius"]) / unit_pos)
-
-    if condition["vel_tangential_geocentric"] is not None:
-        vrf = vel_f.dot(normalize(pos_f))
-        vtf = sqrt(norm(vel_f) ** 2 - vrf**2)
-        con.append((vtf - condition["vel_tangential_geocentric"]) / unit_vel)
-
-    if condition["flightpath_vel_inertial_geocentric"] is not None:
-        cos_vf_angle = normalize(vel_f).dot(normalize(pos_f))
-        con.append(
-            cos(radians(90.0 - condition["flightpath_vel_inertial_geocentric"]))
-            - cos_vf_angle
+    GMe = 3.986004418e14
+    if (
+        condition["altitude_perigee"] is not None
+        and condition["altitude_apogee"] is not None
+    ):
+        a = (
+            condition["altitude_perigee"] + condition["altitude_apogee"]
+        ) / 2.0 + 6378137.0
+        rp = condition["altitude_perigee"] + 6378137.0
+        vp2 = GMe * (2.0 / rp - 1.0 / a)
+        c2_target = rp * rp * vp2  # squared target angular momentum
+        e_target = -GMe / 2.0 / a  # target orbit energy
+    else:
+        c2_target = (condition["radius"] * condition["vel_tangential_geocentric"]) ** 2
+        vf_target = condition["vel_tangential_geocentric"] / cos(
+            radians(condition["flightpath_vel_inertial_geocentric"])
         )
+        e_target = vf_target**2 / 2.0 - GMe / condition["radius"]
 
-    if condition["vel_radial_geocentric"] is not None:
-        vrf = vel_f.dot(normalize(pos_f))
-        con.append((vrf - condition["vel_radial_geocentric"]) / unit_vel)
+    c = np.cross(pos_f, vel_f)
+    vf2 = vel_f[0] ** 2 + vel_f[1] ** 2 + vel_f[2] ** 2
+    c2 = c[0] ** 2 + c[1] ** 2 + c[2] ** 2
+    con.append(
+        (vf2 / 2.0 - GMe / norm(pos_f) - e_target) / unit_vel**2
+    )  # orbit energy
+    con.append((c2 - c2_target) / unit_vel**2 / unit_pos**2)  # angular momentum
 
     if condition["inclination"] is not None:
-        con.append((elem[2] - condition["inclination"]) / 90.0)
+        con.append(
+            (c[2] - sqrt(c2_target) * cos(radians(condition["inclination"])))
+            / unit_vel
+            / unit_pos
+        )
 
     return np.concatenate(con, axis=None)
 
