@@ -21,11 +21,12 @@ This program uses the libraries below:
  - SciPy
  - pandas
  - Numba
+ - simplekml
  - pyoptsparse (see below before installation)
 
-This program also requires IPOPT or SNOPT as a NLP solver. Install them separately before use.
+This program also requires IPOPT or SNOPT as a NLP solver. Install them separately before use. By using conda package manager you can automatically install and setup IPOPT with pyoptsparse.
 
-You must build pyoptsparse from source in order to call external NLP solvers such as IPOPT or SNOPT from it. Please refer to the [pyoptsparse instructions](https://mdolab-pyoptsparse.readthedocs-hosted.com/en/latest/optimizers/IPOPT.html).
+You must build pyoptsparse from source if you would like to call self-built IPOPT or SNOPT from it. Please refer to the [pyoptsparse instructions](https://mdolab-pyoptsparse.readthedocs-hosted.com/en/latest/optimizers/IPOPT.html).
 
 
 
