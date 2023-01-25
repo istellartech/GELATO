@@ -37,7 +37,7 @@ from constraints import *
 from PSfunctions import *
 from USStandardAtmosphere import *
 
-version = "0.6.1"
+version = "0.7.1"
 
 mission_name = sys.argv[1]
 
@@ -416,7 +416,7 @@ for i in range(num_sections):
 m_res = sol.xStar["mass"] * unitdict["mass"]
 
 res_info = []
-res_info.append("IST Trajectory Optimizer v{}\n\n".format(version))
+res_info.append("GELATO: GENERIC LAUNCH TRAJECTORY OPTIMIZER v{}\n\n".format(version))
 res_info.append("Input file name : {}\n\n".format(mission_name))
 res_info.append("initial mass    : {:10.3f} kg\n".format(m_res[0]))
 res_info.append("final mass      : {:10.3f} kg\n".format(m_res[-1]))
