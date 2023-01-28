@@ -61,7 +61,7 @@ def get_values(xdict, pdict, unitdict, section_name, key):
         elif key == "quaternion":
             val_ = xdict[key].reshape(-1, 4)
         else:  # position, velocity or u
-            val_ = xdict[key].reshape(-1, 3) * unitdict[key]    
+            val_ = xdict[key].reshape(-1, 3) * unitdict[key]
 
         # sample variables in specified section
 
@@ -88,7 +88,6 @@ def equality_user(xdict, pdict, unitdict, condition):
 
     """
 
-
     # get state value vector
     pos_IIP0 = get_values(xdict, pdict, unitdict, "IIP_END", "position")[0]
     vel_IIP0 = get_values(xdict, pdict, unitdict, "IIP_END", "velocity")[0]
@@ -97,6 +96,7 @@ def equality_user(xdict, pdict, unitdict, condition):
     ha = (elem[0] * (1.0 - elem[1]) / 6378137.0) - 1.0  # height of apogee at the event IIP_END
 
     return ha
+
 
 def inequality_user(xdict, pdict, unitdict, condition):
     """
@@ -111,4 +111,3 @@ def inequality_user(xdict, pdict, unitdict, condition):
     """
 
     return None
-    
