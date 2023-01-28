@@ -24,7 +24,6 @@
 #
 
 from math import sin, cos, asin, atan2, sqrt, radians, degrees
-from copy import deepcopy
 import numpy as np
 from numpy.linalg import norm
 from numba import jit
