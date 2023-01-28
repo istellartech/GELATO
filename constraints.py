@@ -24,7 +24,6 @@
 #
 
 import sys
-from copy import copy, deepcopy
 import numpy as np
 from numpy.linalg import norm
 from scipy import sparse
@@ -500,10 +499,9 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
         )
 
         for j in range(n):
-            mass_i_p_ = deepcopy(mass_i_)
-            mass_i_p_[j + 1] += dx
+            mass_i_[j + 1] += dx
             f_p = dynamics_velocity(
-                mass_i_p_[1:],
+                mass_i_[1:],
                 pos_i_[1:],
                 vel_i_[1:],
                 quat_i_[1:],
@@ -513,6 +511,7 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                 ca,
                 units,
             )
+            mass_i_[j + 1] -= dx
             rh_mass = (
                 -(f_p[j] - f_center[j]) / dx * (tf - to) * unit_t / 2.0
             )  # rh acc mass
@@ -521,11 +520,10 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
             jac["mass"]["coo"][2].extend(rh_mass.tolist())
 
             for k in range(3):
-                pos_i_p_ = deepcopy(pos_i_)
-                pos_i_p_[j + 1, k] += dx
+                pos_i_[j + 1, k] += dx
                 f_p = dynamics_velocity(
                     mass_i_[1:],
-                    pos_i_p_[1:],
+                    pos_i_[1:],
                     vel_i_[1:],
                     quat_i_[1:],
                     t_nodes,
@@ -534,6 +532,7 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                     ca,
                     units,
                 )
+                pos_i_[j + 1, k] -= dx
                 rh_pos = (
                     -(f_p[j] - f_center[j]) / dx * (tf - to) * unit_t / 2.0
                 )  # rh acc pos
@@ -544,12 +543,11 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                 jac["position"]["coo"][2].extend(rh_pos.tolist())
 
             for k in range(3):
-                vel_i_p_ = deepcopy(vel_i_)
-                vel_i_p_[j + 1, k] += dx
+                vel_i_[j + 1, k] += dx
                 f_p = dynamics_velocity(
                     mass_i_[1:],
                     pos_i_[1:],
-                    vel_i_p_[1:],
+                    vel_i_[1:],
                     quat_i_[1:],
                     t_nodes,
                     param,
@@ -557,6 +555,7 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                     ca,
                     units,
                 )
+                vel_i_[j + 1, k] -= dx
                 submat_vel[j * 3, (j + 1) * 3 + k] += (
                     -(f_p[j, 0] - f_center[j, 0]) / dx * (tf - to) * unit_t / 2.0
                 )  # rh acc_x vel
@@ -568,19 +567,19 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                 )  # rh acc_x vel
 
             for k in range(4):
-                quat_i_p_ = deepcopy(quat_i_)
-                quat_i_p_[j + 1, k] += dx
+                quat_i_[j + 1, k] += dx
                 f_p = dynamics_velocity(
                     mass_i_[1:],
                     pos_i_[1:],
                     vel_i_[1:],
-                    quat_i_p_[1:],
+                    quat_i_[1:],
                     t_nodes,
                     param,
                     wind,
                     ca,
                     units,
                 )
+                quat_i_[j + 1, k] -= dx
                 rh_quat = (
                     -(f_p[j] - f_center[j]) / dx * (tf - to) * unit_t / 2.0
                 )  # rh acc quat
@@ -705,9 +704,8 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
             for j in range(n):
 
                 for k in range(4):
-                    quat_i_p_ = deepcopy(quat_i_)
-                    quat_i_p_[j + 1, k] += dx
-                    f_p = dynamics_quaternion(quat_i_p_[1:], u_i_, unit_u)
+                    quat_i_[j + 1, k] += dx
+                    f_p = dynamics_quaternion(quat_i_[1:], u_i_, unit_u)
                     submat_quat[j * 4, (j + 1) * 4 + k] += (
                         -(f_p[j, 0] - f_center[j, 0]) / dx * (tf - to) * unit_t / 2.0
                     )  # rh q0 quat
@@ -720,11 +718,12 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
                     submat_quat[j * 4 + 3, (j + 1) * 4 + k] += (
                         -(f_p[j, 3] - f_center[j, 3]) / dx * (tf - to) * unit_t / 2.0
                     )  # rh q3 quat
+                    quat_i_[j + 1, k] -= dx
 
                 for k in range(3):
-                    u_i_p_ = deepcopy(u_i_)
-                    u_i_p_[j, k] += dx
-                    f_p = dynamics_quaternion(quat_i_[1:], u_i_p_, unit_u)
+                    u_i_[j, k] += dx
+                    f_p = dynamics_quaternion(quat_i_[1:], u_i_, unit_u)
+                    u_i_[j, k] -= dx
 
                     rh_pos = (
                         -(f_p[j] - f_center[j]) / dx * (tf - to) * unit_t / 2.0
@@ -993,9 +992,9 @@ def equality_jac_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
         }
 
         for j in range(-3, 0):
-            xdict_p = deepcopy(xdict)
-            xdict_p[key][j] += dx
-            f_p = equality_6DoF_LGR_terminal(xdict_p, pdict, unitdict, condition)
+            xdict[key][j] += dx
+            f_p = equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition)
+            xdict[key][j] -= dx
             jac_base[key][:, j] = (f_p - f_center) / dx
 
         for i in range(len(jac[key]["coo"][0])):
@@ -1129,16 +1128,16 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
             for k in range(n):
                 f_c = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
                 for j in range(3):
-                    pos_i_p_ = deepcopy(pos_i_[k + 1])
-                    pos_i_p_[j] += dx
-                    f_p = yb_r_dot(pos_i_p_ * unit_pos, quat_i_[k + 1])
+                    pos_i_[k + 1, j] += dx
+                    f_p = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
+                    pos_i_[k + 1, j] -= dx
                     jac["position"][iRow + k, (a + i + 1 + k) * 3 + j] = (
                         f_p - f_c
                     ) / dx
                 for j in range(4):
-                    quat_i_p_ = deepcopy(quat_i_[k + 1])
-                    quat_i_p_[j] += dx
-                    f_p = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_p_)
+                    quat_i_[k + 1, j] += dx
+                    f_p = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
+                    quat_i_[k + 1, j] -= dx
                     jac["quaternion"][iRow + k, (a + i + 1 + k) * 4 + j] = (
                         f_p - f_c
                     ) / dx
@@ -1155,16 +1154,16 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
             for k in range(n):
                 f_c = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
                 for j in range(3):
-                    pos_i_p_ = deepcopy(pos_i_[k + 1])
-                    pos_i_p_[j] += dx
-                    f_p = yb_r_dot(pos_i_p_ * unit_pos, quat_i_[k + 1])
+                    pos_i_[k + 1, j] += dx
+                    f_p = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
+                    pos_i_[k + 1, j] -= dx
                     jac["position"][iRow + k, (a + i + 1 + k) * 3 + j] = (
                         f_p - f_c
                     ) / dx
                 for j in range(4):
-                    quat_i_p_ = deepcopy(quat_i_[k + 1])
-                    quat_i_p_[j] += dx
-                    f_p = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_p_)
+                    quat_i_[k + 1, j] += dx
+                    f_p = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
+                    quat_i_[k + 1, j] -= dx
                     jac["quaternion"][iRow + k, (a + i + 1 + k) * 4 + j] = (
                         f_p - f_c
                     ) / dx
@@ -1614,31 +1613,31 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
 
             for k in nk:
                 for j in range(3):
-                    pos_i_p_ = copy(pos_i_[k])
-                    pos_i_p_[j] += dx
+                    pos_i_[k, j] += dx
                     f_p = angle_of_attack_all_dimless(
-                        pos_i_p_, vel_i_[k], quat_i_[k], t_i_[k], wind, units
+                        pos_i_[k], vel_i_[k], quat_i_[k], t_i_[k], wind, units
                     )
+                    pos_i_[k, j] -= dx
                     jac["position"]["coo"][0].append(iRow + k)
                     jac["position"]["coo"][1].append((a + i + k) * 3 + j)
                     jac["position"]["coo"][2].append(-(f_p - f_c[k]) / dx)
 
                 for j in range(3):
-                    vel_i_p_ = copy(vel_i_[k])
-                    vel_i_p_[j] += dx
+                    vel_i_[k, j] += dx
                     f_p = angle_of_attack_all_dimless(
-                        pos_i_[k], vel_i_p_, quat_i_[k], t_i_[k], wind, units
+                        pos_i_[k], vel_i_[k], quat_i_[k], t_i_[k], wind, units
                     )
+                    vel_i_[k, j] -= dx
                     jac["velocity"]["coo"][0].append(iRow + k)
                     jac["velocity"]["coo"][1].append((a + i + k) * 3 + j)
                     jac["velocity"]["coo"][2].append(-(f_p - f_c[k]) / dx)
 
                 for j in range(4):
-                    quat_i_p_ = copy(quat_i_[k])
-                    quat_i_p_[j] += dx
+                    quat_i_[k, j] += dx
                     f_p = angle_of_attack_all_dimless(
-                        pos_i_[k], vel_i_[k], quat_i_p_, t_i_[k], wind, units
+                        pos_i_[k], vel_i_[k], quat_i_[k], t_i_[k], wind, units
                     )
+                    quat_i_[k, j] -= dx
                     jac["quaternion"]["coo"][0].append(iRow + k)
                     jac["quaternion"]["coo"][1].append((a + i + k) * 4 + j)
                     jac["quaternion"]["coo"][2].append(-(f_p - f_c[k]) / dx)
@@ -1744,21 +1743,21 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
 
             for k in nk:
                 for j in range(3):
-                    pos_i_p_ = copy(pos_i_[k])
-                    pos_i_p_[j] += dx
+                    pos_i_[k, j] += dx
                     f_p = dynamic_pressure_dimless(
-                        pos_i_p_, vel_i_[k], t_i_[k], wind, units
+                        pos_i_[k], vel_i_[k], t_i_[k], wind, units
                     )
+                    pos_i_[k, j] -= dx
                     jac["position"]["coo"][0].append(iRow + k)
                     jac["position"]["coo"][1].append((a + i + k) * 3 + j)
                     jac["position"]["coo"][2].append(-(f_p - f_c[k]) / dx)
 
                 for j in range(3):
-                    vel_i_p_ = copy(vel_i_[k])
-                    vel_i_p_[j] += dx
+                    vel_i_[k, j] += dx
                     f_p = dynamic_pressure_dimless(
-                        pos_i_[k], vel_i_p_, t_i_[k], wind, units
+                        pos_i_[k], vel_i_[k], t_i_[k], wind, units
                     )
+                    vel_i_[k, j] -= dx
                     jac["velocity"]["coo"][0].append(iRow + k)
                     jac["velocity"]["coo"][1].append((a + i + k) * 3 + j)
                     jac["velocity"]["coo"][2].append(-(f_p - f_c[k]) / dx)
@@ -1865,31 +1864,31 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
 
             for k in nk:
                 for j in range(3):
-                    pos_i_p_ = copy(pos_i_[k])
-                    pos_i_p_[j] += dx
+                    pos_i_[k, j] += dx
                     f_p = q_alpha_dimless(
-                        pos_i_p_, vel_i_[k], quat_i_[k], t_i_[k], wind, units
+                        pos_i_[k], vel_i_[k], quat_i_[k], t_i_[k], wind, units
                     )
+                    pos_i_[k, j] -= dx
                     jac["position"]["coo"][0].append(iRow + k)
                     jac["position"]["coo"][1].append((a + i + k) * 3 + j)
                     jac["position"]["coo"][2].append(-(f_p - f_c[k]) / dx)
 
                 for j in range(3):
-                    vel_i_p_ = copy(vel_i_[k])
-                    vel_i_p_[j] += dx
+                    vel_i_[k, j] += dx
                     f_p = q_alpha_dimless(
-                        pos_i_[k], vel_i_p_, quat_i_[k], t_i_[k], wind, units
+                        pos_i_[k], vel_i_[k], quat_i_[k], t_i_[k], wind, units
                     )
+                    vel_i_[k, j] -= dx
                     jac["velocity"]["coo"][0].append(iRow + k)
                     jac["velocity"]["coo"][1].append((a + i + k) * 3 + j)
                     jac["velocity"]["coo"][2].append(-(f_p - f_c[k]) / dx)
 
                 for j in range(4):
-                    quat_i_p_ = copy(quat_i_[k])
-                    quat_i_p_[j] += dx
+                    quat_i_[k, j] += dx
                     f_p = q_alpha_dimless(
-                        pos_i_[k], vel_i_[k], quat_i_p_, t_i_[k], wind, units
+                        pos_i_[k], vel_i_[k], quat_i_[k], t_i_[k], wind, units
                     )
+                    quat_i_[k, j] -= dx
                     jac["quaternion"]["coo"][0].append(iRow + k)
                     jac["quaternion"]["coo"][1].append((a + i + k) * 4 + j)
                     jac["quaternion"]["coo"][2].append(-(f_p - f_c[k]) / dx)
