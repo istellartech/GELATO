@@ -630,7 +630,7 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         out["aero_BODY_X"][i] = aero_n_body[0]
         out["accel_BODY_X"][i] = (thrust_n + aero_n_body[0]) / mass
 
-        out["lat_IIP"][i], out["lon_IIP"][i], _ = posLLH_IIP_FAA(pos_ecef, vel_ecef)
+        out["lat_IIP"][i], out["lon_IIP"][i], _ = posLLH_IIP_FAA(pos_ecef, vel_ecef, False)
 
         acc_eci = gravity_eci + (thrust_n_eci + aero_n_eci) / mass
 
