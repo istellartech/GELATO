@@ -26,8 +26,47 @@
 import numpy as np
 from coordinate import orbital_elements
 
+def get_value(xdict, pdict, unitdict, section_name, key):
+    """
+    get vector of states, contols and time at the specified knot.
 
-def get_values(xdict, pdict, unitdict, section_name, key):
+    Args:
+        xdict(dict) : variables(dimensionless)
+        pdict(dict) : parameters
+        unitdict(dict) : unit of the variables
+        section_name(str) : section name
+        key(str) : "mass", "position", "velocity", "quaternion", "u" or "t"
+
+    Returns:
+        out(float or ndarray) : array of variables
+    """
+
+    # read index number
+    index = pdict["event_index"][section_name]
+
+    if key == "t":
+        out = xdict[key][index] * unitdict[key]
+
+    else:
+        # sample variables in specified section
+
+        a = pdict["ps_params"][index]["index_start"]
+
+        if key == "u":
+            out = xdict[key][a * 3 : (a + 1) * 3] * unitdict[key]
+        else:
+            a2 = a + index
+            if key in ["position", "velocity"]:
+                out = xdict[key][a2 * 3 : (a2 + 1) * 3] * unitdict[key]
+            elif key == "mass":
+                out = xdict[key][a2] * unitdict[key]
+            elif key == "quaternion":
+                out = xdict[key][a2 * 4 : (a2 + 1) * 4]
+
+    return out
+
+
+def get_values_section(xdict, pdict, unitdict, section_name, key):
     """
     get vector of states, contols and time in the specified section.
 
@@ -65,7 +104,7 @@ def get_values(xdict, pdict, unitdict, section_name, key):
 
         # sample variables in specified section
 
-        a = pdict["ps_params"][index]["index _start"]
+        a = pdict["ps_params"][index]["index_start"]
         a2 = a + index
 
         if key == "u":
@@ -89,8 +128,8 @@ def equality_user(xdict, pdict, unitdict, condition):
     """
 
     # get state value vector
-    pos_IIP0 = get_values(xdict, pdict, unitdict, "IIP_END", "position")[0]
-    vel_IIP0 = get_values(xdict, pdict, unitdict, "IIP_END", "velocity")[0]
+    pos_IIP0 = get_value(xdict, pdict, unitdict, "IIP_END", "position")
+    vel_IIP0 = get_value(xdict, pdict, unitdict, "IIP_END", "velocity")
 
     elem = orbital_elements(pos_IIP0, vel_IIP0)
     ha = (elem[0] * (1.0 - elem[1]) / 6378137.0) - 1.0  # height of apogee at the event IIP_END
