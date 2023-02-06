@@ -69,15 +69,8 @@
     }
   },
 
-  "SNOPT": {
-    "Time limit": 3600,
-    "Major feasibility tolerance": 1.0e-6,
-    "Minor feasibility tolerance": 1.0e-6,
-    "Major optimality tolerance" : 1.0e-4
-  },
-
   "IPOPT": {
-    "linear_solver": "pardisomkl",
+    "linear_solver": "mumps",
     "tol": 1.0e-6,
     "acceptable_tol": 1.0e-4,
     "max_iter": 2000
