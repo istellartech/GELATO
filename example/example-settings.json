@@ -44,12 +44,11 @@
   },
 
   "TerminalCondition": {
-    "altitude_perigee": null,
-    "altitude_apogee": null,
+    "altitude_perigee": 200000,
+    "altitude_apogee": 200000,
     "inclination": null,
     "radius": 6578137,
     "vel_tangential_geocentric": 7784.3,
-    "vel_radial_geocentric": null,
     "flightpath_vel_inertial_geocentric": 0.0
   },
 

@@ -24,7 +24,6 @@
 #
 
 from math import sin, cos, asin, atan2, sqrt, radians, degrees
-from copy import deepcopy
 import numpy as np
 from numpy.linalg import norm
 from numba import jit
@@ -226,9 +225,9 @@ def jac_fd(con, xdict, pdict, unitdict, condition):
     for key, val in xdict.items():
         jac[key] = np.zeros((nRows, val.size))
         for i in range(val.size):
-            xdict_p = deepcopy(xdict)
-            xdict_p[key][i] += dx
-            g_p = con(xdict_p, pdict, unitdict, condition)
+            xdict[key][i] += dx
+            g_p = con(xdict, pdict, unitdict, condition)
             jac[key][:, i] = (g_p - g_base) / dx
+            xdict[key][i] -= dx
 
     return jac
