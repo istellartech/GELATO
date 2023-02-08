@@ -38,7 +38,7 @@ from constraints import *
 from PSfunctions import *
 from USStandardAtmosphere import *
 
-version = "0.7.1"
+version = "0.7.2"
 
 mission_name = sys.argv[1]
 
@@ -376,9 +376,21 @@ if "SNOPT" in settings.keys():
         options_SNOPT["Return work arrays"] = True
 
     rdict = None
-    if ("SNOPT work array file" in settings.keys() and settings["SNOPT work array file"] is not None):
+    if (
+        "SNOPT work array file" in settings.keys()
+        and settings["SNOPT work array file"] is not None
+    ):
         with open(settings["SNOPT work array file"], "rb") as f:
             rdict = pickle.load(f)
+        # raw data size check
+        if len(rdict["xs"]) != sum([len(v) for v in optProb.variables.values()]) + sum(
+            [v.ncon for v in optProb.constraints.values()]
+        ):
+            print(
+                "WARNING : The dimension of raw data does not match. Switched to cold start mode."
+            )
+            rdict = None
+            options_SNOPT["Start"] = "Cold"
 
     opt = SNOPT(options=options_SNOPT)
 
