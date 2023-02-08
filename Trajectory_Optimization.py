@@ -25,6 +25,7 @@
 
 import sys
 import json
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -371,16 +372,27 @@ if "SNOPT" in settings.keys():
     options_SNOPT["Summary file"] = "output/{}-SNOPT-summary.out".format(
         settings["name"]
     )
+    if not "Return work arrays" in options_SNOPT.keys():
+        options_SNOPT["Return work arrays"] = True
     opt = SNOPT(options=options_SNOPT)
+
+    if options_SNOPT["Return work arrays"]:
+        sol, raw = opt(optProb, sens=sens)
+        with open("output/{}-SNOPT-raw.bin".format(settings["name"]), "wb") as f:
+            pickle.dump(raw, f)
+    else:
+        sol = opt(optProb, sens=sens)
+
 elif "IPOPT" in settings.keys():
     options_IPOPT = settings["IPOPT"]
     options_IPOPT["output_file"] = "output/{}-IPOPT.out".format(settings["name"])
     opt = IPOPT(options=options_IPOPT)
+    sol = opt(optProb, sens=sens)
+
 else:
     print("ERROR : UNRECOGNIZED OPTIMIZER. USE IPOPT OR SNOPT.")
     sys.exit()
 
-sol = opt(optProb, sens=sens)
 
 # Post processing
 
