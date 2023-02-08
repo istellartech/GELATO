@@ -374,14 +374,20 @@ if "SNOPT" in settings.keys():
     )
     if not "Return work arrays" in options_SNOPT.keys():
         options_SNOPT["Return work arrays"] = True
+
+    rdict = None
+    if ("SNOPT work array file" in settings.keys() and settings["SNOPT work array file"] is not None):
+        with open(settings["SNOPT work array file"], "rb") as f:
+            rdict = pickle.load(f)
+
     opt = SNOPT(options=options_SNOPT)
 
     if options_SNOPT["Return work arrays"]:
-        sol, raw = opt(optProb, sens=sens)
+        sol, raw = opt(optProb, sens=sens, restartDict=rdict)
         with open("output/{}-SNOPT-raw.bin".format(settings["name"]), "wb") as f:
             pickle.dump(raw, f)
     else:
-        sol = opt(optProb, sens=sens)
+        sol = opt(optProb, sens=sens, restartDict=rdict)
 
 elif "IPOPT" in settings.keys():
     options_IPOPT = settings["IPOPT"]
