@@ -35,4 +35,5 @@ fi
 rm -r output
 rm ./*.json
 rm ./*.csv
+rm ./*.bin
 rm ./user_constraints.py

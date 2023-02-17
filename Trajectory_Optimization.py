@@ -25,6 +25,7 @@
 
 import sys
 import json
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -37,7 +38,7 @@ from constraints import *
 from PSfunctions import *
 from USStandardAtmosphere import *
 
-version = "0.7.1"
+version = "0.7.2"
 
 mission_name = sys.argv[1]
 
@@ -371,16 +372,45 @@ if "SNOPT" in settings.keys():
     options_SNOPT["Summary file"] = "output/{}-SNOPT-summary.out".format(
         settings["name"]
     )
+    if "Return work arrays" not in options_SNOPT.keys():
+        options_SNOPT["Return work arrays"] = True
+
+    rdict = None
+    if (
+        "SNOPT work array file" in settings.keys()
+        and settings["SNOPT work array file"] is not None
+    ):
+        with open(settings["SNOPT work array file"], "rb") as f:
+            rdict = pickle.load(f)
+        # raw data size check
+        if len(rdict["xs"]) != sum([len(v) for v in optProb.variables.values()]) + sum(
+            [v.ncon for v in optProb.constraints.values()]
+        ):
+            print(
+                "WARNING : The dimension of raw data does not match. Switched to cold start mode."
+            )
+            rdict = None
+            options_SNOPT["Start"] = "Cold"
+
     opt = SNOPT(options=options_SNOPT)
+
+    if options_SNOPT["Return work arrays"]:
+        sol, raw = opt(optProb, sens=sens, restartDict=rdict)
+        with open("output/{}-SNOPT-raw.bin".format(settings["name"]), "wb") as f:
+            pickle.dump(raw, f)
+    else:
+        sol = opt(optProb, sens=sens, restartDict=rdict)
+
 elif "IPOPT" in settings.keys():
     options_IPOPT = settings["IPOPT"]
     options_IPOPT["output_file"] = "output/{}-IPOPT.out".format(settings["name"])
     opt = IPOPT(options=options_IPOPT)
+    sol = opt(optProb, sens=sens)
+
 else:
     print("ERROR : UNRECOGNIZED OPTIMIZER. USE IPOPT OR SNOPT.")
     sys.exit()
 
-sol = opt(optProb, sens=sens)
 
 # Post processing
 
