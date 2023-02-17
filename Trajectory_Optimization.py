@@ -372,7 +372,7 @@ if "SNOPT" in settings.keys():
     options_SNOPT["Summary file"] = "output/{}-SNOPT-summary.out".format(
         settings["name"]
     )
-    if not "Return work arrays" in options_SNOPT.keys():
+    if "Return work arrays" not in options_SNOPT.keys():
         options_SNOPT["Return work arrays"] = True
 
     rdict = None
