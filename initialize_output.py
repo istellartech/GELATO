@@ -35,6 +35,7 @@ from USStandardAtmosphere import *
 from coordinate import *
 from tools.plot_output import display_6DoF
 from tools.IIP import posLLH_IIP_FAA
+from tools.downrange import distance_vincenty
 from user_constraints import *
 
 
@@ -460,6 +461,7 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         "lon": np.zeros(N),
         "lat_IIP": np.zeros(N),
         "lon_IIP": np.zeros(N),
+        "downrange": np.zeros(N),
         "altitude": np.zeros(N),
         "altitude_apogee": np.zeros(N),
         "altitude_perigee": np.zeros(N),
@@ -533,6 +535,12 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         pos_llh = eci2geodetic(pos, t)
         altitude_m = geopotential_altitude(pos_llh[2])
         out["lat"][i], out["lon"][i], out["altitude"][i] = pos_llh
+        out["downrange"][i] = distance_vincenty(
+            pdict["LaunchCondition"]["lat"],
+            pdict["LaunchCondition"]["lon"],
+            pos_llh[0],
+            pos_llh[1],
+        )
 
         elem = orbital_elements(pos, vel)
         out["altitude_apogee"][i] = elem[0] * (1.0 + elem[1]) - 6378137
@@ -630,7 +638,9 @@ def output_6DoF(xdict, unitdict, tx_res, tu_res, pdict):
         out["aero_BODY_X"][i] = aero_n_body[0]
         out["accel_BODY_X"][i] = (thrust_n + aero_n_body[0]) / mass
 
-        out["lat_IIP"][i], out["lon_IIP"][i], _ = posLLH_IIP_FAA(pos_ecef, vel_ecef, False)
+        out["lat_IIP"][i], out["lon_IIP"][i], _ = posLLH_IIP_FAA(
+            pos_ecef, vel_ecef, False
+        )
 
         acc_eci = gravity_eci + (thrust_n_eci + aero_n_eci) / mass
 
