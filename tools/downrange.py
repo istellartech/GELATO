@@ -106,8 +106,12 @@ def distance_vincenty(lat_origin, lon_origin, lat_target, lon_target):
     )
 
     downrange = Rb * A * (sigma - delta_sigma)
-    # alpha1 = atan2(cos(U2) * sin(lamda), (cos(U1) * sin(U2) - sin(U1) * cos(U2) * cos(lamda)))  # observer to target azimuth
-    # alpha2 = atan2(cos(U1) * sin(lamda), (-sin(U1) * cos(U2) + cos(U1) * sin(U2) * cos(lamda)))  # target to observer azimuth
+    # alpha1 = atan2(
+    #     cos(U2) * sin(lamda), (cos(U1) * sin(U2) - sin(U1) * cos(U2) * cos(lamda))
+    # )  # observer to target azimuth
+    # alpha2 = atan2(
+    #     cos(U1) * sin(lamda), (-sin(U1) * cos(U2) + cos(U1) * sin(U2) * cos(lamda))
+    # )  # target to observer azimuth
     return downrange
 
 
