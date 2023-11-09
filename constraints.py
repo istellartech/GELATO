@@ -26,7 +26,6 @@
 import sys
 import numpy as np
 from numpy.linalg import norm
-from scipy import sparse
 from numba import jit
 from utils import *
 from USStandardAtmosphere import *
@@ -115,36 +114,60 @@ def equality_jac_init(xdict, pdict, unitdict, condition):
     jac = {}
 
     if condition["OptimizationMode"] == "Payload":
-        rowcol_pos = (range(0, 3), range(0, 3))
-        rowcol_vel = (range(3, 6), range(0, 3))
-        rowcol_quat = (range(6, 10), range(0, 4))
-
-        jac["position"] = sparse.coo_matrix(
-            ([1.0] * 3, rowcol_pos), shape=(10, pdict["M"] * 3)
-        )
-        jac["velocity"] = sparse.coo_matrix(
-            ([1.0] * 3, rowcol_vel), shape=(10, pdict["M"] * 3)
-        )
-        jac["quaternion"] = sparse.coo_matrix(
-            ([1.0] * 4, rowcol_quat), shape=(10, pdict["M"] * 4)
-        )
+        jac["position"] = {
+            "coo": [
+                np.arange(0, 3, dtype="i4"),
+                np.arange(0, 3, dtype="i4"),
+                np.ones(3),
+            ],
+            "shape": (10, pdict["M"] * 3),
+        }
+        jac["velocity"] = {
+            "coo": [
+                np.arange(3, 6, dtype="i4"),
+                np.arange(0, 3, dtype="i4"),
+                np.ones(3),
+            ],
+            "shape": (10, pdict["M"] * 3),
+        }
+        jac["quaternion"] = {
+            "coo": [
+                np.arange(6, 10, dtype="i4"),
+                np.arange(0, 4, dtype="i4"),
+                np.ones(4),
+            ],
+            "shape": (10, pdict["M"] * 4),
+        }
 
     else:
-        rowcol_mass = ([0], [0])
-        rowcol_pos = (range(1, 4), range(0, 3))
-        rowcol_vel = (range(4, 7), range(0, 3))
-        rowcol_quat = (range(7, 11), range(0, 4))
-
-        jac["mass"] = sparse.coo_matrix(([1.0], rowcol_mass), shape=(11, pdict["M"]))
-        jac["position"] = sparse.coo_matrix(
-            ([1.0] * 3, rowcol_pos), shape=(11, pdict["M"] * 3)
-        )
-        jac["velocity"] = sparse.coo_matrix(
-            ([1.0] * 3, rowcol_vel), shape=(11, pdict["M"] * 3)
-        )
-        jac["quaternion"] = sparse.coo_matrix(
-            ([1.0] * 4, rowcol_quat), shape=(11, pdict["M"] * 4)
-        )
+        jac["mass"] = {
+            "coo": [np.zeros(1, dtype="i4"), np.zeros(1, dtype="i4"), np.ones(1)],
+            "shape": (11, pdict["M"]),
+        }
+        jac["position"] = {
+            "coo": [
+                np.arange(1, 4, dtype="i4"),
+                np.arange(0, 3, dtype="i4"),
+                np.ones(3),
+            ],
+            "shape": (11, pdict["M"] * 3),
+        }
+        jac["velocity"] = {
+            "coo": [
+                np.arange(4, 7, dtype="i4"),
+                np.arange(0, 3, dtype="i4"),
+                np.ones(3),
+            ],
+            "shape": (11, pdict["M"] * 3),
+        }
+        jac["quaternion"] = {
+            "coo": [
+                np.arange(7, 11, dtype="i4"),
+                np.arange(0, 4, dtype="i4"),
+                np.ones(4),
+            ],
+            "shape": (11, pdict["M"] * 4),
+        }
 
     return jac
 
@@ -191,7 +214,10 @@ def equality_jac_time(xdict, pdict, unitdict, condition):
             col.extend([i, i_ref])
             iRow += 1
 
-    jac["t"] = sparse.coo_matrix((data, (row, col)), shape=[iRow, len(xdict["t"])])
+    jac["t"] = {
+        "coo": [np.array(row, dtype="i4"), np.array(col, dtype="i4"), np.array(data)],
+        "shape": (iRow, len(xdict["t"])),
+    }
 
     return jac
 
@@ -239,8 +265,8 @@ def equality_jac_dynamics_mass(xdict, pdict, unitdict, condition):
     unit_t = unitdict["t"]
     num_sections = pdict["num_sections"]
 
-    jac["mass"] = sparse.lil_matrix((pdict["N"], pdict["M"]))
-    jac["t"] = sparse.lil_matrix((pdict["N"], num_sections + 1))
+    jac["mass"] = {"coo": [[], [], []], "shape": (pdict["N"], pdict["M"])}
+    jac["t"] = {"coo": [[], [], []], "shape": (pdict["N"], num_sections + 1)}
 
     for i in range(num_sections):
         a = pdict["ps_params"][i]["index_start"]
@@ -248,17 +274,36 @@ def equality_jac_dynamics_mass(xdict, pdict, unitdict, condition):
         b = a + n
 
         if pdict["params"][i]["engineOn"]:
-            jac["mass"][a:b, a + i : b + i + 1] = pdict["ps_params"][i]["D"]  # lh
-            jac["t"][a:b, i] = (
-                -pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0
+
+            jac["mass"]["coo"][0].extend(sum([[i] * (n + 1) for i in range(a, b)], []))
+            jac["mass"]["coo"][1].extend(list(range(a + i, b + i + 1)) * (n))
+            jac["mass"]["coo"][2].extend(
+                pdict["ps_params"][i]["D"].ravel(order="C").tolist()
+            )
+
+            jac["t"]["coo"][0].extend(list(range(a, b)))
+            jac["t"]["coo"][1].extend([i] * n)
+            jac["t"]["coo"][2].extend(
+                [-pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0] * n
             )  # rh(to)
-            jac["t"][a:b, i + 1] = (
-                pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0
+            jac["t"]["coo"][0].extend(list(range(a, b)))
+            jac["t"]["coo"][1].extend([i + 1] * n)
+            jac["t"]["coo"][2].extend(
+                [pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0] * n
             )  # rh(tf)
 
         else:
-            jac["mass"][a:b, a + i] = -1.0
-            jac["mass"][a:b, a + i + 1 : b + i + 1] = np.eye(n)
+            jac["mass"]["coo"][0].extend(list(range(a, b)))
+            jac["mass"]["coo"][1].extend([a + i] * n)
+            jac["mass"]["coo"][2].extend([-1.0] * n)
+            jac["mass"]["coo"][0].extend(list(range(a, b)))
+            jac["mass"]["coo"][1].extend(list(range(a + i + 1, b + i + 1)))
+            jac["mass"]["coo"][2].extend([1.0] * n)
+
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
 
     return jac
 
@@ -977,30 +1022,23 @@ def equality_jac_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     else:
         nRow = 1
 
-    jac_base = {
-        "position": np.zeros((nRow, pdict["M"] * 3)),
-        "velocity": np.zeros((nRow, pdict["M"] * 3)),
-    }
+    nCol = pdict["M"] * 3
+    jac["position"] = {"coo": [[], [], []], "shape": (nRow, nCol)}
+    jac["velocity"] = {"coo": [[], [], []], "shape": (nRow, nCol)}
 
     for key in ["position", "velocity"]:
 
-        jac_base[key][:, -3:] = 1.0
-        jac_base_coo = sparse.coo_matrix(jac_base[key])
-        jac[key] = {
-            "coo": [jac_base_coo.row, jac_base_coo.col, jac_base_coo.data],
-            "shape": jac_base[key].shape,
-        }
-
-        for j in range(-3, 0):
+        for j in range(nCol - 3, nCol):
             xdict[key][j] += dx
             f_p = equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition)
             xdict[key][j] -= dx
-            jac_base[key][:, j] = (f_p - f_center) / dx
+            jac[key]["coo"][0].extend(list(range(nRow)))
+            jac[key]["coo"][1].extend([j] * nRow)
+            jac[key]["coo"][2].extend(((f_p - f_center) / dx).tolist())
 
-        for i in range(len(jac[key]["coo"][0])):
-            jac[key]["coo"][2][i] = jac_base[key][
-                jac[key]["coo"][0][i], jac[key]["coo"][1][i]
-            ]
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
 
     return jac
 
@@ -1080,9 +1118,9 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
 
     f_center = equality_6DoF_rate(xdict, pdict, unitdict, condition)
     nRow = len(f_center)
-    jac["position"] = sparse.lil_matrix((nRow, pdict["M"] * 3))
-    jac["quaternion"] = sparse.lil_matrix((nRow, pdict["M"] * 4))
-    jac["u"] = sparse.lil_matrix((nRow, pdict["N"] * 3))
+    jac["position"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 3)}
+    jac["quaternion"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 4)}
+    jac["u"] = {"coo": [[], [], []], "shape": (nRow, pdict["N"] * 3)}
 
     iRow = 0
 
@@ -1098,32 +1136,44 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
         att = pdict["params"][i]["attitude"]
         # attitude hold : angular velocity is zero
         if att in ["hold", "vertical"]:
-            jac["u"][iRow : iRow + n * 3, a * 3 : (a + n) * 3] = np.eye(n * 3)
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n * 3)))
+            jac["u"]["coo"][1].extend(list(range(a * 3, (a + n) * 3)))
+            jac["u"]["coo"][2].extend([1.0] * (n * 3))
             iRow += n * 3
 
         # kick-turn : pitch rate constant, roll/yaw rate is zero
         elif att == "kick-turn" or att == "pitch":
-            jac["u"][iRow : iRow + n, a * 3 : (a + n) * 3 : 3] = np.eye(n)
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
+            jac["u"]["coo"][1].extend(list(range(a * 3, (a + n) * 3, 3)))
+            jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
-            jac["u"][iRow : iRow + n, a * 3 + 2 : (a + n) * 3 + 2 : 3] = np.eye(n)
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
+            jac["u"]["coo"][1].extend(list(range(a * 3 + 2, (a + n) * 3 + 2, 3)))
+            jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
-            jac["u"][iRow : iRow + n - 1, a * 3 + 1] = -1.0
-            jac["u"][
-                iRow : iRow + n - 1, (a + 1) * 3 + 1 : (a + n) * 3 + 1 : 3
-            ] = np.eye(n - 1)
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
+            jac["u"]["coo"][1].extend([a * 3 + 1] * (n - 1))
+            jac["u"]["coo"][2].extend([-1.0] * (n - 1))
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
+            jac["u"]["coo"][1].extend(list(range((a + 1) * 3 + 1, (a + n) * 3 + 1, 3)))
+            jac["u"]["coo"][2].extend([1.0] * (n - 1))
             iRow += n - 1
 
         # pitch-yaw : pitch/yaw constant, roll ANGLE is zero
         elif att == "pitch-yaw":
-            jac["u"][iRow : iRow + n - 1, a * 3 + 1] = -1.0
-            jac["u"][
-                iRow : iRow + n - 1, (a + 1) * 3 + 1 : (a + n) * 3 + 1 : 3
-            ] = np.eye(n - 1)
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
+            jac["u"]["coo"][1].extend([a * 3 + 1] * (n - 1))
+            jac["u"]["coo"][2].extend([-1.0] * (n - 1))
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
+            jac["u"]["coo"][1].extend(list(range((a + 1) * 3 + 1, (a + n) * 3 + 1, 3)))
+            jac["u"]["coo"][2].extend([1.0] * (n - 1))
             iRow += n - 1
-            jac["u"][iRow : iRow + n - 1, a * 3 + 2] = -1.0
-            jac["u"][
-                iRow : iRow + n - 1, (a + 1) * 3 + 2 : (a + n) * 3 + 2 : 3
-            ] = np.eye(n - 1)
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
+            jac["u"]["coo"][1].extend([a * 3 + 2] * (n - 1))
+            jac["u"]["coo"][2].extend([-1.0] * (n - 1))
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
+            jac["u"]["coo"][1].extend(list(range((a + 1) * 3 + 2, (a + n) * 3 + 2, 3)))
+            jac["u"]["coo"][2].extend([1.0] * (n - 1))
             iRow += n - 1
             for k in range(n):
                 f_c = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
@@ -1131,25 +1181,33 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
                     pos_i_[k + 1, j] += dx
                     f_p = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
                     pos_i_[k + 1, j] -= dx
-                    jac["position"][iRow + k, (a + i + 1 + k) * 3 + j] = (
-                        f_p - f_c
-                    ) / dx
+                    jac["position"]["coo"][0].append(iRow + k)
+                    jac["position"]["coo"][1].append((a + i + 1 + k) * 3 + j)
+                    jac["position"]["coo"][2].append((f_p - f_c) / dx)
                 for j in range(4):
                     quat_i_[k + 1, j] += dx
                     f_p = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
                     quat_i_[k + 1, j] -= dx
-                    jac["quaternion"][iRow + k, (a + i + 1 + k) * 4 + j] = (
-                        f_p - f_c
-                    ) / dx
+                    jac["quaternion"]["coo"][0].append(iRow + k)
+                    jac["quaternion"]["coo"][1].append((a + i + 1 + k) * 4 + j)
+                    jac["quaternion"]["coo"][2].append((f_p - f_c) / dx)
             iRow += n
 
         # same-rate : pitch/yaw is the same as previous section, roll ANGLE is zero
         elif att == "same-rate":
-            jac["u"][iRow : iRow + n, a * 3 - 2] = -1.0
-            jac["u"][iRow : iRow + n, a * 3 + 1 : (a + n) * 3 + 1 : 3] = np.eye(n)
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
+            jac["u"]["coo"][1].extend([a * 3 - 2] * n)
+            jac["u"]["coo"][2].extend([-1.0] * n)
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
+            jac["u"]["coo"][1].extend(list(range(a * 3 + 1, (a + n) * 3 + 1, 3)))
+            jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
-            jac["u"][iRow : iRow + n, a * 3 - 1] = -1.0
-            jac["u"][iRow : iRow + n, a * 3 + 2 : (a + n) * 3 + 2 : 3] = np.eye(n)
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
+            jac["u"]["coo"][1].extend([a * 3 - 1] * n)
+            jac["u"]["coo"][2].extend([-1.0] * n)
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
+            jac["u"]["coo"][1].extend(list(range(a * 3 + 2, (a + n) * 3 + 2, 3)))
+            jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
             for k in range(n):
                 f_c = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
@@ -1157,26 +1215,33 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
                     pos_i_[k + 1, j] += dx
                     f_p = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
                     pos_i_[k + 1, j] -= dx
-                    jac["position"][iRow + k, (a + i + 1 + k) * 3 + j] = (
-                        f_p - f_c
-                    ) / dx
+                    jac["position"]["coo"][0].append(iRow + k)
+                    jac["position"]["coo"][1].append((a + i + 1 + k) * 3 + j)
+                    jac["position"]["coo"][2].append((f_p - f_c) / dx)
                 for j in range(4):
                     quat_i_[k + 1, j] += dx
                     f_p = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
                     quat_i_[k + 1, j] -= dx
-                    jac["quaternion"][iRow + k, (a + i + 1 + k) * 4 + j] = (
-                        f_p - f_c
-                    ) / dx
+                    jac["quaternion"]["coo"][0].append(iRow + k)
+                    jac["quaternion"]["coo"][1].append((a + i + 1 + k) * 4 + j)
+                    jac["quaternion"]["coo"][2].append((f_p - f_c) / dx)
             iRow += n
 
         # zero-lift-turn or free : roll hold
         elif att == "zero-lift-turn" or att == "free":
-            jac["u"][iRow : iRow + n, a * 3 : (a + n) * 3 : 3] = np.eye(n)
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
+            jac["u"]["coo"][1].extend(list(range(a * 3, (a + n) * 3, 3)))
+            jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
 
         else:
             print("ERROR: UNKNOWN ATTITUDE OPTION! ({})".format(att))
             sys.exit()
+
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
 
     return jac
 
