@@ -2293,6 +2293,124 @@ def inequality_jac_IIP(xdict, pdict, unitdict, condition):
         return None
 
 
+def equality_posLLH(xdict, pdict, unitdict, condition):
+    """Equality constraint about IIP position."""
+    con = []
+    unit_pos = unitdict["position"]
+    unit_t = unitdict["t"]
+
+    pos_ = xdict["position"].reshape(-1, 3)
+
+    t = xdict["t"]
+
+    num_sections = pdict["num_sections"]
+
+    if "waypoint" not in condition:
+        return None
+
+    for i in range(num_sections - 1):
+
+        section_name = pdict["params"][i]["name"]
+        if section_name in condition["waypoint"]:
+
+            waypoint = condition["waypoint"][section_name]
+            a = pdict["ps_params"][i]["index_start"]
+            pos = pos_[a + i] * unit_pos
+            to = t[i] * unit_t
+            posLLH = eci2geodetic(pos, to)
+            lon_origin = pdict["LaunchCondition"]["lon"]
+            lat_origin = pdict["LaunchCondition"]["lat"]
+            downrange = haversine(
+                lon_origin, lat_origin, posLLH[1], posLLH[0], 6378137.0
+            )
+
+            # altitude
+            if "altitude" in waypoint:
+                if "exact" in waypoint["altitude"]:
+                    con.append((posLLH[2] / waypoint["altitude"]["exact"]) - 1.0)
+
+            # downrange
+            if "downrange" in waypoint:
+                if "exact" in waypoint["downrange"]:
+                    con.append((downrange / waypoint["downrange"]["exact"]) - 1.0)
+
+    if len(con) == 0:
+        return None
+    else:
+        return np.concatenate(con, axis=None)
+
+
+def equality_jac_posLLH(xdict, pdict, unitdict, condition):
+    """Jacobian of equality_posLLH."""
+    if equality_posLLH(xdict, pdict, unitdict, condition) is not None:
+        return jac_fd(equality_posLLH, xdict, pdict, unitdict, condition)
+    else:
+        return None
+
+
+def inequality_posLLH(xdict, pdict, unitdict, condition):
+    """Inequality constraint about IIP position."""
+    con = []
+    unit_pos = unitdict["position"]
+    unit_t = unitdict["t"]
+
+    pos_ = xdict["position"].reshape(-1, 3)
+
+    t = xdict["t"]
+
+    num_sections = pdict["num_sections"]
+
+    if "waypoint" not in condition:
+        return None
+
+    for i in range(num_sections - 1):
+
+        section_name = pdict["params"][i]["name"]
+        if section_name in condition["waypoint"]:
+
+            waypoint = condition["waypoint"][section_name]
+            a = pdict["ps_params"][i]["index_start"]
+            pos = pos_[a + i] * unit_pos
+            to = t[i] * unit_t
+            posLLH = eci2geodetic(pos, to)
+            lon_origin = pdict["LaunchCondition"]["lon"]
+            lat_origin = pdict["LaunchCondition"]["lat"]
+            downrange = haversine(
+                lon_origin, lat_origin, posLLH[1], posLLH[0], 6378137.0
+            )
+
+            # altitude
+            if "altitude" in waypoint:
+                # min
+                if "min" in waypoint["altitude"]:
+                    con.append((posLLH[2] / waypoint["altitude"]["min"]) - 1.0)
+                # max
+                if "max" in waypoint["altitude"]:
+                    con.append(-(posLLH[2] / waypoint["altitude"]["max"]) + 1.0)
+
+            # downrange
+            if "downrange" in waypoint:
+                # min
+                if "min" in waypoint["downrange"]:
+                    con.append((downrange / waypoint["downrange"]["min"]) - 1.0)
+                # max
+                if "max" in waypoint["downrange"]:
+                    con.append(-(downrange / waypoint["downrange"]["min"]) + 1.0)
+
+    if len(con) == 0:
+        return None
+    else:
+        return np.concatenate(con, axis=None)
+
+
+def inequality_jac_posLLH(xdict, pdict, unitdict, condition):
+    """Jacobian of inequality_posLLH."""
+    if inequality_posLLH(xdict, pdict, unitdict, condition) is not None:
+        return jac_fd(inequality_posLLH, xdict, pdict, unitdict, condition)
+    else:
+        return None
+
+
 def equality_jac_user(xdict, pdict, unitdict, condition):
     """Jacobian of user-defined equality constraint."""
     if equality_user(xdict, pdict, unitdict, condition) is not None:
