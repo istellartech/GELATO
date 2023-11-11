@@ -66,6 +66,16 @@
         "value" : 30000.0,
         "range" : "all"
       }
+    },
+    "antenna": {
+      "ANT1" : {
+        "lon": 143.45659,
+        "lat": 42.50587,
+        "altitude": 50.0,
+        "elevation_min": {
+          "SECO": 0.0
+        }
+      }
     }
   },
 

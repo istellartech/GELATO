@@ -2070,6 +2070,113 @@ def q_alpha_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
     )
 
 
+def inequality_antenna(xdict, pdict, unitdict, condition):
+    """Inequality constraint about antenna elevation angle."""
+    con = []
+
+    unit_pos = unitdict["position"]
+    unit_t = unitdict["t"]
+
+    pos_ = xdict["position"].reshape(-1, 3)
+
+    t = xdict["t"]
+
+    num_sections = pdict["num_sections"]
+
+    if "antenna" not in condition:
+        return None
+
+    for antenna in condition["antenna"].values():
+
+        posECEF_ANT = geodetic2ecef(antenna["lat"], antenna["lon"], antenna["altitude"])
+
+        for i in range(num_sections - 1):
+
+            section_name = pdict["params"][i]["name"]
+            if section_name in antenna["elevation_min"]:
+
+                elevation_min = antenna["elevation_min"][section_name]
+                a = pdict["ps_params"][i]["index_start"]
+                pos_ = pos_[a + i]
+                to_ = t[i]
+                sin_elv = sin_elevation(pos_, to_, posECEF_ANT, unit_pos, unit_t)
+                con.append(sin_elv - np.sin(elevation_min * np.pi / 180.0))
+
+    if len(con) == 0:
+        return None
+    else:
+        return np.concatenate(con, axis=None)
+
+
+def inequality_jac_antenna(xdict, pdict, unitdict, condition):
+    """Jacobian of inequality_antenna."""
+
+    jac = {}
+    dx = 1.0e-8
+
+    unit_pos = unitdict["position"]
+    unit_t = unitdict["t"]
+    pos_ = xdict["position"].reshape(-1, 3)
+    t = xdict["t"]
+    num_sections = pdict["num_sections"]
+
+    f_center = inequality_antenna(xdict, pdict, unitdict, condition)
+    if hasattr(f_center, "__len__"):
+        nRow = len(f_center)
+    elif f_center is None:
+        return None
+    else:
+        nRow = 1
+
+    jac["position"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 3)}
+    jac["t"] = {"coo": [[], [], []], "shape": (nRow, num_sections + 1)}
+
+    iRow = 0
+    for antenna in condition["antenna"].values():
+
+        posECEF_ANT = geodetic2ecef(antenna["lat"], antenna["lon"], antenna["altitude"])
+        for i in range(num_sections - 1):
+
+            section_name = pdict["params"][i]["name"]
+            if section_name in antenna["elevation_min"]:
+
+                a = pdict["ps_params"][i]["index_start"]
+                pos_o_ = pos_[a + i]
+                to_ = t[i]
+                f_c = sin_elevation(pos_o_, to_, posECEF_ANT, unit_pos, unit_t)
+
+                for j in range(3):
+                    pos_o_[j] += dx
+                    f_p = sin_elevation(pos_o_, to_, posECEF_ANT, unit_pos, unit_t)
+                    pos_o_[j] -= dx
+                    jac["position"]["coo"][0].append(iRow)
+                    jac["position"]["coo"][1].append((a + i) * 3 + j)
+                    jac["position"]["coo"][2].append((f_p - f_c) / dx)
+
+                f_p = sin_elevation(pos_o_, to_ + dx, posECEF_ANT, unit_pos, unit_t)
+                jac["t"]["coo"][0].append(iRow)
+                jac["t"]["coo"][1].append(i)
+                jac["t"]["coo"][2].append((f_p - f_c) / dx)
+
+                iRow += 1
+
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
+
+    return jac
+
+
+def sin_elevation(pos_, t_, posECEF_ANT, unit_pos, unit_t):
+    pos = pos_ * unit_pos
+    to = t_ * unit_t
+    posECEF = eci2ecef(pos, to)
+    direction_ANT = normalize(posECEF - posECEF_ANT)
+    vertical_ANT = quatrot(quat_nedg2ecef(posECEF_ANT), np.array([0, 0, -1.0]))
+    return np.dot(direction_ANT, vertical_ANT)
+
+
 def equality_jac_user(xdict, pdict, unitdict, condition):
     """Jacobian of user-defined equality constraint."""
     if equality_user(xdict, pdict, unitdict, condition) is not None:

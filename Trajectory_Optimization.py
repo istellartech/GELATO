@@ -217,6 +217,7 @@ def objfunc(xdict):
     funcs["ineqcon_mass"] = inequality_mass(xdict, pdict, unitdict, condition)
     funcs["ineqcon_kick"] = inequality_kickturn(xdict, pdict, unitdict, condition)
     funcs["ineqcon_time"] = inequality_time(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_antenna"] = inequality_antenna(xdict, pdict, unitdict, condition)
     funcs["ineqcon_user"] = inequality_user(xdict, pdict, unitdict, condition)
 
     fail = False
@@ -261,6 +262,9 @@ def sens(xdict, funcs):
         xdict, pdict, unitdict, condition
     )
     funcsSens["ineqcon_time"] = inequality_jac_time(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_antenna"] = inequality_jac_antenna(
+        xdict, pdict, unitdict, condition
+    )
     funcsSens["ineqcon_user"] = inequality_jac_user(xdict, pdict, unitdict, condition)
 
     fail = False
@@ -327,6 +331,7 @@ wrt = {
     "ineqcon_mass": ["mass"],
     "ineqcon_kick": ["u"],
     "ineqcon_time": ["t"],
+    "ineqcon_antenna": ["position", "t"],
     "ineqcon_user": ["mass", "position", "velocity", "quaternion", "u", "t"],
 }
 
