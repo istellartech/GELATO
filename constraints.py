@@ -31,6 +31,7 @@ from utils import *
 from USStandardAtmosphere import *
 from coordinate import *
 from user_constraints import *
+from tools.IIP import posLLH_IIP_FAA
 
 
 @jit(nopython=True)
@@ -2175,6 +2176,121 @@ def sin_elevation(pos_, t_, posECEF_ANT, unit_pos, unit_t):
     direction_ANT = normalize(posECEF - posECEF_ANT)
     vertical_ANT = quatrot(quat_nedg2ecef(posECEF_ANT), np.array([0, 0, -1.0]))
     return np.dot(direction_ANT, vertical_ANT)
+
+
+def equality_IIP(xdict, pdict, unitdict, condition):
+    """Equality constraint about IIP position."""
+    con = []
+    unit_pos = unitdict["position"]
+    unit_vel = unitdict["velocity"]
+    unit_t = unitdict["t"]
+
+    pos_ = xdict["position"].reshape(-1, 3)
+    vel_ = xdict["velocity"].reshape(-1, 3)
+
+    t = xdict["t"]
+
+    num_sections = pdict["num_sections"]
+
+    if "waypoint" not in condition:
+        return None
+
+    for i in range(num_sections - 1):
+
+        section_name = pdict["params"][i]["name"]
+        if section_name in condition["waypoint"]:
+
+            waypoint = condition["waypoint"][section_name]
+            a = pdict["ps_params"][i]["index_start"]
+            pos = pos_[a + i] * unit_pos
+            vel = vel_[a + i] * unit_vel
+            to = t[i] * unit_t
+            posECEF = eci2ecef(pos, to)
+            velECEF = vel_eci2ecef(vel, pos, to)
+            posLLH_IIP = posLLH_IIP_FAA(posECEF, velECEF)
+            # latitude
+            if "lat_IIP" in waypoint:
+                if "exact" in waypoint["lat_IIP"]:
+                    con.append((posLLH_IIP[0] - waypoint["lat_IIP"]["exact"]) / 90.0)
+
+            # longitude
+            if "lon_IIP" in waypoint:
+                if "exact" in waypoint["lon_IIP"]:
+                    con.append((posLLH_IIP[1] - waypoint["lon_IIP"]["exact"]) / 180.0)
+
+    if len(con) == 0:
+        return None
+    else:
+        return np.concatenate(con, axis=None)
+
+
+def equality_jac_IIP(xdict, pdict, unitdict, condition):
+    if equality_IIP(xdict, pdict, unitdict, condition) is not None:
+        return jac_fd(equality_IIP, xdict, pdict, unitdict, condition)
+    else:
+        return None
+
+
+def inequality_IIP(xdict, pdict, unitdict, condition):
+    """Inequality constraint about IIP position."""
+    con = []
+    unit_pos = unitdict["position"]
+    unit_vel = unitdict["velocity"]
+    unit_t = unitdict["t"]
+
+    pos_ = xdict["position"].reshape(-1, 3)
+    vel_ = xdict["velocity"].reshape(-1, 3)
+
+    t = xdict["t"]
+
+    num_sections = pdict["num_sections"]
+
+    if "waypoint" not in condition:
+        return None
+
+    for i in range(num_sections - 1):
+
+        section_name = pdict["params"][i]["name"]
+        if section_name in condition["waypoint"]:
+
+            waypoint = condition["waypoint"][section_name]
+            a = pdict["ps_params"][i]["index_start"]
+            pos = pos_[a + i] * unit_pos
+            vel = vel_[a + i] * unit_vel
+            to = t[i] * unit_t
+            posECEF = eci2ecef(pos, to)
+            velECEF = vel_eci2ecef(vel, pos, to)
+            posLLH_IIP = posLLH_IIP_FAA(posECEF, velECEF)
+            # latitude
+            if "lat_IIP" in waypoint:
+                # min
+                if "min" in waypoint["lat_IIP"]:
+                    con.append((posLLH_IIP[0] - waypoint["lat_IIP"]["min"]) / 90.0)
+                # max
+                if "max" in waypoint["lat_IIP"]:
+                    con.append((waypoint["lat_IIP"]["max"] - posLLH_IIP[0]) / 90.0)
+
+            # longitude
+            if "lon_IIP" in waypoint:
+                # min
+                if "min" in waypoint["lon_IIP"]:
+                    con.append((posLLH_IIP[1] - waypoint["lon_IIP"]["min"]) / 180.0)
+                # max
+                if "max" in waypoint["lon_IIP"]:
+                    con.append((waypoint["lon_IIP"]["max"] - posLLH_IIP[1]) / 180.0)
+
+    if len(con) == 0:
+        return None
+    else:
+        return np.concatenate(con, axis=None)
+
+
+def inequality_jac_IIP(xdict, pdict, unitdict, condition):
+    """Jacobian of inequality_IIP."""
+    if inequality_IIP(xdict, pdict, unitdict, condition) is not None:
+        return jac_fd(inequality_IIP, xdict, pdict, unitdict, condition)
+    else:
+        return None
 
 
 def equality_jac_user(xdict, pdict, unitdict, condition):

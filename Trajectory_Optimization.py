@@ -209,6 +209,7 @@ def objfunc(xdict):
         xdict, pdict, unitdict, condition
     )
     funcs["eqcon_rate"] = equality_6DoF_rate(xdict, pdict, unitdict, condition)
+    funcs["eqcon_iip"] = equality_IIP(xdict, pdict, unitdict, condition)
     funcs["eqcon_user"] = equality_user(xdict, pdict, unitdict, condition)
 
     funcs["ineqcon_alpha"] = inequality_max_alpha(xdict, pdict, unitdict, condition)
@@ -217,6 +218,7 @@ def objfunc(xdict):
     funcs["ineqcon_mass"] = inequality_mass(xdict, pdict, unitdict, condition)
     funcs["ineqcon_kick"] = inequality_kickturn(xdict, pdict, unitdict, condition)
     funcs["ineqcon_time"] = inequality_time(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_iip"] = inequality_IIP(xdict, pdict, unitdict, condition)
     funcs["ineqcon_antenna"] = inequality_antenna(xdict, pdict, unitdict, condition)
     funcs["ineqcon_user"] = inequality_user(xdict, pdict, unitdict, condition)
 
@@ -248,6 +250,7 @@ def sens(xdict, funcs):
         xdict, pdict, unitdict, condition
     )
     funcsSens["eqcon_rate"] = equality_jac_6DoF_rate(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_iip"] = equality_jac_IIP(xdict, pdict, unitdict, condition)
     funcsSens["eqcon_user"] = equality_jac_user(xdict, pdict, unitdict, condition)
 
     funcsSens["ineqcon_alpha"] = inequality_jac_max_alpha(
@@ -262,6 +265,7 @@ def sens(xdict, funcs):
         xdict, pdict, unitdict, condition
     )
     funcsSens["ineqcon_time"] = inequality_jac_time(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_iip"] = inequality_jac_IIP(xdict, pdict, unitdict, condition)
     funcsSens["ineqcon_antenna"] = inequality_jac_antenna(
         xdict, pdict, unitdict, condition
     )
@@ -324,6 +328,7 @@ wrt = {
     "eqcon_knot": ["mass", "position", "velocity", "quaternion"],
     "eqcon_terminal": ["position", "velocity"],
     "eqcon_rate": ["position", "quaternion", "u"],
+    "eqcon_iip": ["position", "velocity", "t"],
     "eqcon_user": ["mass", "position", "velocity", "quaternion", "u", "t"],
     "ineqcon_alpha": ["position", "velocity", "quaternion", "t"],
     "ineqcon_q": ["position", "velocity", "quaternion", "t"],
@@ -331,6 +336,7 @@ wrt = {
     "ineqcon_mass": ["mass"],
     "ineqcon_kick": ["u"],
     "ineqcon_time": ["t"],
+    "ineqcon_iip": ["position", "velocity", "t"],
     "ineqcon_antenna": ["position", "t"],
     "ineqcon_user": ["mass", "position", "velocity", "quaternion", "u", "t"],
 }

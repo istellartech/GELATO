@@ -67,6 +67,13 @@
         "range" : "all"
       }
     },
+    "waypoint": {
+      "FAIRING": {
+        "lon_IIP" : {
+          "min": 145.0
+        }
+      }
+    },
     "antenna": {
       "ANT1" : {
         "lon": 143.45659,
