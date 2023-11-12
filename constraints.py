@@ -32,6 +32,7 @@ from USStandardAtmosphere import *
 from coordinate import *
 from user_constraints import *
 from tools.IIP import posLLH_IIP_FAA
+from tools.downrange import distance_vincenty
 
 
 @jit(nopython=True)
@@ -2684,9 +2685,7 @@ def equality_posLLH(xdict, pdict, unitdict, condition):
             posLLH = eci2geodetic(pos, to)
             lon_origin = pdict["LaunchCondition"]["lon"]
             lat_origin = pdict["LaunchCondition"]["lat"]
-            downrange = haversine(
-                lon_origin, lat_origin, posLLH[1], posLLH[0], 6378137.0
-            )
+            downrange = distance_vincenty(lat_origin, lon_origin, posLLH[0], posLLH[1])
 
             # altitude
             if "altitude" in waypoint:
@@ -2741,8 +2740,8 @@ def equality_jac_posLLH(xdict, pdict, unitdict, condition):
             pos_o_ = pos_[a + i]
             to_ = t_[i]
             posLLH_c = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
-            downrange_c = haversine(
-                lon_origin, lat_origin, posLLH_c[1], posLLH_c[0], 6378137.0
+            downrange_c = distance_vincenty(
+                lat_origin, lon_origin, posLLH_c[0], posLLH_c[1]
             )
 
             # altitude
@@ -2774,8 +2773,8 @@ def equality_jac_posLLH(xdict, pdict, unitdict, condition):
                     for j in range(3):
                         pos_o_[j] += dx
                         posLLH_p = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
-                        downrange_p = haversine(
-                            lon_origin, lat_origin, posLLH_p[1], posLLH_p[0], 6378137.0
+                        downrange_p = distance_vincenty(
+                            lat_origin, lon_origin, posLLH_p[0], posLLH_p[1]
                         )
                         pos_o_[j] -= dx
                         jac["position"]["coo"][0].append(iRow)
@@ -2787,8 +2786,8 @@ def equality_jac_posLLH(xdict, pdict, unitdict, condition):
                         )
 
                     posLLH_p = eci2geodetic(pos_o_ * unit_pos, (to_ + dx) * unit_t)
-                    downrange_p = haversine(
-                        lon_origin, lat_origin, posLLH_p[1], posLLH_p[0], 6378137.0
+                    downrange_p = distance_vincenty(
+                        lat_origin, lon_origin, posLLH_p[0], posLLH_p[1]
                     )
                     jac["t"]["coo"][0].append(iRow)
                     jac["t"]["coo"][1].append(i)
@@ -2834,9 +2833,7 @@ def inequality_posLLH(xdict, pdict, unitdict, condition):
             posLLH = eci2geodetic(pos, to)
             lon_origin = pdict["LaunchCondition"]["lon"]
             lat_origin = pdict["LaunchCondition"]["lat"]
-            downrange = haversine(
-                lon_origin, lat_origin, posLLH[1], posLLH[0], 6378137.0
-            )
+            downrange = distance_vincenty(lat_origin, lon_origin, posLLH[0], posLLH[1])
 
             # altitude
             if "altitude" in waypoint:
@@ -2899,8 +2896,8 @@ def inequality_jac_posLLH(xdict, pdict, unitdict, condition):
             pos_o_ = pos_[a + i]
             to_ = t_[i]
             posLLH_c = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
-            downrange_c = haversine(
-                lon_origin, lat_origin, posLLH_c[1], posLLH_c[0], 6378137.0
+            downrange_c = distance_vincenty(
+                lat_origin, lon_origin, posLLH_c[0], posLLH_c[1]
             )
 
             # altitude
@@ -2953,8 +2950,8 @@ def inequality_jac_posLLH(xdict, pdict, unitdict, condition):
                     for j in range(3):
                         pos_o_[j] += dx
                         posLLH_p = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
-                        downrange_p = haversine(
-                            lon_origin, lat_origin, posLLH_p[1], posLLH_p[0], 6378137.0
+                        downrange_p = distance_vincenty(
+                            lat_origin, lon_origin, posLLH_p[0], posLLH_p[1]
                         )
                         pos_o_[j] -= dx
                         jac["position"]["coo"][0].append(iRow)
@@ -2966,8 +2963,8 @@ def inequality_jac_posLLH(xdict, pdict, unitdict, condition):
                         )
 
                     posLLH_p = eci2geodetic(pos_o_ * unit_pos, (to_ + dx) * unit_t)
-                    downrange_p = haversine(
-                        lon_origin, lat_origin, posLLH_p[1], posLLH_p[0], 6378137.0
+                    downrange_p = distance_vincenty(
+                        lat_origin, lon_origin, posLLH_p[0], posLLH_p[1]
                     )
                     jac["t"]["coo"][0].append(iRow)
                     jac["t"]["coo"][1].append(i)
@@ -2980,8 +2977,8 @@ def inequality_jac_posLLH(xdict, pdict, unitdict, condition):
                     for j in range(3):
                         pos_o_[j] += dx
                         posLLH_p = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
-                        downrange_p = haversine(
-                            lon_origin, lat_origin, posLLH_p[1], posLLH_p[0], 6378137.0
+                        downrange_p = distance_vincenty(
+                            lat_origin, lon_origin, posLLH_p[0], posLLH_p[1]
                         )
                         pos_o_[j] -= dx
                         jac["position"]["coo"][0].append(iRow)
@@ -2993,8 +2990,8 @@ def inequality_jac_posLLH(xdict, pdict, unitdict, condition):
                         )
 
                     posLLH_p = eci2geodetic(pos_o_ * unit_pos, (to_ + dx) * unit_t)
-                    downrange_p = haversine(
-                        lon_origin, lat_origin, posLLH_p[1], posLLH_p[0], 6378137.0
+                    downrange_p = distance_vincenty(
+                        lat_origin, lon_origin, posLLH_p[0], posLLH_p[1]
                     )
                     jac["t"]["coo"][0].append(iRow)
                     jac["t"]["coo"][1].append(i)
