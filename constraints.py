@@ -2225,10 +2225,124 @@ def equality_IIP(xdict, pdict, unitdict, condition):
 
 
 def equality_jac_IIP(xdict, pdict, unitdict, condition):
-    if equality_IIP(xdict, pdict, unitdict, condition) is not None:
-        return jac_fd(equality_IIP, xdict, pdict, unitdict, condition)
-    else:
+    """Jacobian of equality_IIP."""
+    jac = {}
+    dx = 1.0e-8
+
+    unit_pos = unitdict["position"]
+    unit_vel = unitdict["velocity"]
+    unit_t = unitdict["t"]
+
+    pos_ = xdict["position"].reshape(-1, 3)
+    vel_ = xdict["velocity"].reshape(-1, 3)
+    t_ = xdict["t"]
+    num_sections = pdict["num_sections"]
+
+    f_center = equality_IIP(xdict, pdict, unitdict, condition)
+    if hasattr(f_center, "__len__"):
+        nRow = len(f_center)
+    elif f_center is None:
         return None
+    else:
+        nRow = 1
+
+    if "waypoint" not in condition:
+        return None
+
+    jac["position"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 3)}
+    jac["velocity"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 3)}
+    jac["t"] = {"coo": [[], [], []], "shape": (nRow, num_sections + 1)}
+
+    iRow = 0
+    for i in range(num_sections - 1):
+
+        section_name = pdict["params"][i]["name"]
+        if section_name in condition["waypoint"]:
+
+            waypoint = condition["waypoint"][section_name]
+            a = pdict["ps_params"][i]["index_start"]
+            pos_o_ = pos_[a + i]
+            vel_o_ = vel_[a + i]
+            to_ = t_[i]
+            posLLH_IIP_c = posLLH_IIP_FAA(
+                eci2ecef(pos_o_ * unit_pos, to_ * unit_t),
+                vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, to_ * unit_t)
+            )
+            # latitude
+            if "lat_IIP" in waypoint:
+                if "exact" in waypoint["lat_IIP"]:
+                    for j in range(3):
+                        pos_o_[j] += dx
+                        posLLH_IIP_p = posLLH_IIP_FAA(
+                            eci2ecef(pos_o_ * unit_pos, to_ * unit_t),
+                            vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, to_ * unit_t)
+                        )
+                        pos_o_[j] -= dx
+                        jac["position"]["coo"][0].append(iRow)
+                        jac["position"]["coo"][1].append((a + i) * 3 + j)
+                        jac["position"]["coo"][2].append((posLLH_IIP_p[0] - posLLH_IIP_c[0]) / dx / 90.0)
+
+                    for j in range(3):
+                        vel_o_[j] += dx
+                        posLLH_IIP_p = posLLH_IIP_FAA(
+                            eci2ecef(pos_o_ * unit_pos, to_ * unit_t),
+                            vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, to_ * unit_t)
+                        )
+                        vel_o_[j] -= dx
+                        jac["velocity"]["coo"][0].append(iRow)
+                        jac["velocity"]["coo"][1].append((a + i) * 3 + j)
+                        jac["velocity"]["coo"][2].append((posLLH_IIP_p[0] - posLLH_IIP_c[0]) / dx / 90.0)
+
+                    posLLH_IIP_p = posLLH_IIP_FAA(
+                        eci2ecef(pos_o_ * unit_pos, (to_ + dx) * unit_t),
+                        vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, (to_ + dx) * unit_t)
+                    )
+                    jac["t"]["coo"][0].append(iRow)
+                    jac["t"]["coo"][1].append(i)
+                    jac["t"]["coo"][2].append((posLLH_IIP_p[0] - posLLH_IIP_c[0]) / dx / 90.0)
+                    iRow += 1
+
+            # longitude
+            if "lon_IIP" in waypoint:
+                # min
+                if "exact" in waypoint["lon_IIP"]:
+                    for j in range(3):
+                        pos_o_[j] += dx
+                        posLLH_IIP_p = posLLH_IIP_FAA(
+                            eci2ecef(pos_o_ * unit_pos, to_ * unit_t),
+                            vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, to_ * unit_t)
+                        )
+                        pos_o_[j] -= dx
+                        jac["position"]["coo"][0].append(iRow)
+                        jac["position"]["coo"][1].append((a + i) * 3 + j)
+                        jac["position"]["coo"][2].append((posLLH_IIP_p[1] - posLLH_IIP_c[1]) / dx / 180.0)
+
+                    for j in range(3):
+                        vel_o_[j] += dx
+                        posLLH_IIP_p = posLLH_IIP_FAA(
+                            eci2ecef(pos_o_ * unit_pos, to_ * unit_t),
+                            vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, to_ * unit_t)
+                        )
+                        vel_o_[j] -= dx
+                        jac["velocity"]["coo"][0].append(iRow)
+                        jac["velocity"]["coo"][1].append((a + i) * 3 + j)
+                        jac["velocity"]["coo"][2].append((posLLH_IIP_p[1] - posLLH_IIP_c[1]) / dx / 180.0)
+
+                    posLLH_IIP_p = posLLH_IIP_FAA(
+                        eci2ecef(pos_o_ * unit_pos, (to_ + dx) * unit_t),
+                        vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, (to_ + dx) * unit_t)
+                    )
+                    jac["t"]["coo"][0].append(iRow)
+                    jac["t"]["coo"][1].append(i)
+                    jac["t"]["coo"][2].append((posLLH_IIP_p[1] - posLLH_IIP_c[1]) / dx / 180.0)
+                    iRow += 1
+
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
+
+    return jac
 
 
 def inequality_IIP(xdict, pdict, unitdict, condition):
@@ -2287,11 +2401,188 @@ def inequality_IIP(xdict, pdict, unitdict, condition):
 
 def inequality_jac_IIP(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_IIP."""
-    if inequality_IIP(xdict, pdict, unitdict, condition) is not None:
-        return jac_fd(inequality_IIP, xdict, pdict, unitdict, condition)
+    jac = {}
+    dx = 1.0e-8
+
+    unit_pos = unitdict["position"]
+    unit_vel = unitdict["velocity"]
+    unit_t = unitdict["t"]
+
+    pos_ = xdict["position"].reshape(-1, 3)
+    vel_ = xdict["velocity"].reshape(-1, 3)
+    t_ = xdict["t"]
+    num_sections = pdict["num_sections"]
+
+    f_center = inequality_IIP(xdict, pdict, unitdict, condition)
+    if hasattr(f_center, "__len__"):
+        nRow = len(f_center)
+    elif f_center is None:
+        return None
     else:
+        nRow = 1
+
+    if "waypoint" not in condition:
         return None
 
+    jac["position"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 3)}
+    jac["velocity"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 3)}
+    jac["t"] = {"coo": [[], [], []], "shape": (nRow, num_sections + 1)}
+
+    iRow = 0
+    for i in range(num_sections - 1):
+
+        section_name = pdict["params"][i]["name"]
+        if section_name in condition["waypoint"]:
+
+            waypoint = condition["waypoint"][section_name]
+            a = pdict["ps_params"][i]["index_start"]
+            pos_o_ = pos_[a + i]
+            vel_o_ = vel_[a + i]
+            to_ = t_[i]
+            posLLH_IIP_c = posLLH_IIP_FAA(
+                eci2ecef(pos_o_ * unit_pos, to_ * unit_t),
+                vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, to_ * unit_t)
+            )
+            # latitude
+            if "lat_IIP" in waypoint:
+                if "min" in waypoint["lat_IIP"]:
+                    for j in range(3):
+                        pos_o_[j] += dx
+                        posLLH_IIP_p = posLLH_IIP_FAA(
+                            eci2ecef(pos_o_ * unit_pos, to_ * unit_t),
+                            vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, to_ * unit_t)
+                        )
+                        pos_o_[j] -= dx
+                        jac["position"]["coo"][0].append(iRow)
+                        jac["position"]["coo"][1].append((a + i) * 3 + j)
+                        jac["position"]["coo"][2].append((posLLH_IIP_p[0] - posLLH_IIP_c[0]) / dx / 90.0)
+
+                    for j in range(3):
+                        vel_o_[j] += dx
+                        posLLH_IIP_p = posLLH_IIP_FAA(
+                            eci2ecef(pos_o_ * unit_pos, to_ * unit_t),
+                            vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, to_ * unit_t)
+                        )
+                        vel_o_[j] -= dx
+                        jac["velocity"]["coo"][0].append(iRow)
+                        jac["velocity"]["coo"][1].append((a + i) * 3 + j)
+                        jac["velocity"]["coo"][2].append((posLLH_IIP_p[0] - posLLH_IIP_c[0]) / dx / 90.0)
+
+                    posLLH_IIP_p = posLLH_IIP_FAA(
+                        eci2ecef(pos_o_ * unit_pos, (to_ + dx) * unit_t),
+                        vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, (to_ + dx) * unit_t)
+                    )
+                    jac["t"]["coo"][0].append(iRow)
+                    jac["t"]["coo"][1].append(i)
+                    jac["t"]["coo"][2].append((posLLH_IIP_p[0] - posLLH_IIP_c[0]) / dx / 90.0)
+                    iRow += 1
+
+                if "max" in waypoint["lat_IIP"]:
+                    for j in range(3):
+                        pos_o_[j] += dx
+                        posLLH_IIP_p = posLLH_IIP_FAA(
+                            eci2ecef(pos_o_ * unit_pos, to_ * unit_t),
+                            vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, to_ * unit_t)
+                        )
+                        pos_o_[j] -= dx
+                        jac["position"]["coo"][0].append(iRow)
+                        jac["position"]["coo"][1].append((a + i) * 3 + j)
+                        jac["position"]["coo"][2].append((posLLH_IIP_p[0] - posLLH_IIP_c[0]) / dx / -90.0)
+
+                    for j in range(3):
+                        vel_o_[j] += dx
+                        posLLH_IIP_p = posLLH_IIP_FAA(
+                            eci2ecef(pos_o_ * unit_pos, to_ * unit_t),
+                            vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, to_ * unit_t)
+                        )
+                        vel_o_[j] -= dx
+                        jac["velocity"]["coo"][0].append(iRow)
+                        jac["velocity"]["coo"][1].append((a + i) * 3 + j)
+                        jac["velocity"]["coo"][2].append((posLLH_IIP_p[0] - posLLH_IIP_c[0]) / dx / -90.0)
+
+                    posLLH_IIP_p = posLLH_IIP_FAA(
+                        eci2ecef(pos_o_ * unit_pos, (to_ + dx) * unit_t),
+                        vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, (to_ + dx) * unit_t)
+                    )
+                    jac["t"]["coo"][0].append(iRow)
+                    jac["t"]["coo"][1].append(i)
+                    jac["t"]["coo"][2].append((posLLH_IIP_p[0] - posLLH_IIP_c[0]) / dx / -90.0)
+                    iRow += 1
+
+            # longitude
+            if "lon_IIP" in waypoint:
+                # min
+                if "min" in waypoint["lon_IIP"]:
+                    for j in range(3):
+                        pos_o_[j] += dx
+                        posLLH_IIP_p = posLLH_IIP_FAA(
+                            eci2ecef(pos_o_ * unit_pos, to_ * unit_t),
+                            vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, to_ * unit_t)
+                        )
+                        pos_o_[j] -= dx
+                        jac["position"]["coo"][0].append(iRow)
+                        jac["position"]["coo"][1].append((a + i) * 3 + j)
+                        jac["position"]["coo"][2].append((posLLH_IIP_p[1] - posLLH_IIP_c[1]) / dx / 180.0)
+
+                    for j in range(3):
+                        vel_o_[j] += dx
+                        posLLH_IIP_p = posLLH_IIP_FAA(
+                            eci2ecef(pos_o_ * unit_pos, to_ * unit_t),
+                            vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, to_ * unit_t)
+                        )
+                        vel_o_[j] -= dx
+                        jac["velocity"]["coo"][0].append(iRow)
+                        jac["velocity"]["coo"][1].append((a + i) * 3 + j)
+                        jac["velocity"]["coo"][2].append((posLLH_IIP_p[1] - posLLH_IIP_c[1]) / dx / 180.0)
+
+                    posLLH_IIP_p = posLLH_IIP_FAA(
+                        eci2ecef(pos_o_ * unit_pos, (to_ + dx) * unit_t),
+                        vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, (to_ + dx) * unit_t)
+                    )
+                    jac["t"]["coo"][0].append(iRow)
+                    jac["t"]["coo"][1].append(i)
+                    jac["t"]["coo"][2].append((posLLH_IIP_p[1] - posLLH_IIP_c[1]) / dx / 180.0)
+                    iRow += 1
+
+                # max
+                if "max" in waypoint["lon_IIP"]:
+                    for j in range(3):
+                        pos_o_[j] += dx
+                        posLLH_IIP_p = posLLH_IIP_FAA(
+                            eci2ecef(pos_o_ * unit_pos, to_ * unit_t),
+                            vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, to_ * unit_t)
+                        )
+                        pos_o_[j] -= dx
+                        jac["position"]["coo"][0].append(iRow)
+                        jac["position"]["coo"][1].append((a + i) * 3 + j)
+                        jac["position"]["coo"][2].append((posLLH_IIP_p[1] - posLLH_IIP_c[1]) / dx / -180.0)
+
+                    for j in range(3):
+                        vel_o_[j] += dx
+                        posLLH_IIP_p = posLLH_IIP_FAA(
+                            eci2ecef(pos_o_ * unit_pos, to_ * unit_t),
+                            vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, to_ * unit_t)
+                        )
+                        vel_o_[j] -= dx
+                        jac["velocity"]["coo"][0].append(iRow)
+                        jac["velocity"]["coo"][1].append((a + i) * 3 + j)
+                        jac["velocity"]["coo"][2].append((posLLH_IIP_p[1] - posLLH_IIP_c[1]) / dx / -180.0)
+
+                    posLLH_IIP_p = posLLH_IIP_FAA(
+                        eci2ecef(pos_o_ * unit_pos, (to_ + dx) * unit_t),
+                        vel_eci2ecef(vel_o_ * unit_vel, pos_o_ * unit_pos, (to_ + dx) * unit_t)
+                    )
+                    jac["t"]["coo"][0].append(iRow)
+                    jac["t"]["coo"][1].append(i)
+                    jac["t"]["coo"][2].append((posLLH_IIP_p[1] - posLLH_IIP_c[1]) / dx / -180.0)
+                    iRow += 1
+
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
+
+    return jac
 
 def equality_posLLH(xdict, pdict, unitdict, condition):
     """Equality constraint about IIP position."""
@@ -2542,7 +2833,7 @@ def inequality_jac_posLLH(xdict, pdict, unitdict, condition):
                     jac["t"]["coo"][2].append((posLLH_p[2] - posLLH_c[2]) / dx / waypoint["altitude"]["min"])
                     iRow += 1
 
-                elif "max" in waypoint["altitude"]:
+                if "max" in waypoint["altitude"]:
                     for j in range(3):
                         pos_o_[j] += dx
                         posLLH_p = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
@@ -2580,7 +2871,7 @@ def inequality_jac_posLLH(xdict, pdict, unitdict, condition):
                     jac["position"]["coo"][2].append((downrange_p - downrange_c) / dx / waypoint["downrange"]["min"])
                     iRow += 1
 
-                elif "max" in waypoint["downrange"]:
+                if "max" in waypoint["downrange"]:
                     for j in range(3):
                         pos_o_[j] += dx
                         posLLH_p = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
