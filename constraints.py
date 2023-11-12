@@ -2342,10 +2342,91 @@ def equality_posLLH(xdict, pdict, unitdict, condition):
 
 def equality_jac_posLLH(xdict, pdict, unitdict, condition):
     """Jacobian of equality_posLLH."""
-    if equality_posLLH(xdict, pdict, unitdict, condition) is not None:
-        return jac_fd(equality_posLLH, xdict, pdict, unitdict, condition)
-    else:
+
+    jac = {}
+    dx = 1.0e-8
+
+    unit_pos = unitdict["position"]
+    unit_t = unitdict["t"]
+    pos_ = xdict["position"].reshape(-1, 3)
+    t_ = xdict["t"]
+    num_sections = pdict["num_sections"]
+
+    f_center = equality_posLLH(xdict, pdict, unitdict, condition)
+    if hasattr(f_center, "__len__"):
+        nRow = len(f_center)
+    elif f_center is None:
         return None
+    else:
+        nRow = 1
+
+    lon_origin = pdict["LaunchCondition"]["lon"]
+    lat_origin = pdict["LaunchCondition"]["lat"]
+
+    jac["position"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 3)}
+    jac["t"] = {"coo": [[], [], []], "shape": (nRow, num_sections + 1)}
+
+    iRow = 0
+    for i in range(num_sections - 1):
+
+        section_name = pdict["params"][i]["name"]
+        if section_name in condition["waypoint"]:
+
+            waypoint = condition["waypoint"][section_name]
+            a = pdict["ps_params"][i]["index_start"]
+            pos_o_ = pos_[a + i]
+            to_ = t_[i]
+            posLLH_c = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
+            downrange_c = haversine(
+                lon_origin, lat_origin, posLLH_c[1], posLLH_c[0], 6378137.0
+            )
+
+            # altitude
+            if "altitude" in waypoint:
+                if "exact" in waypoint["altitude"]:
+                    for j in range(3):
+                        pos_o_[j] += dx
+                        posLLH_p = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
+                        pos_o_[j] -= dx
+                        jac["position"]["coo"][0].append(iRow)
+                        jac["position"]["coo"][1].append((a + i) * 3 + j)
+                        jac["position"]["coo"][2].append((posLLH_p[2] - posLLH_c[2]) / dx / waypoint["altitude"]["exact"])
+
+                    posLLH_p = eci2geodetic(pos_o_ * unit_pos, (to_ + dx) * unit_t)
+                    jac["t"]["coo"][0].append(iRow)
+                    jac["t"]["coo"][1].append(i)
+                    jac["t"]["coo"][2].append((posLLH_p[2] - posLLH_c[2]) / dx / waypoint["altitude"]["exact"])
+                    iRow += 1
+
+            # downrange
+            if "downrange" in waypoint:
+                if "exact" in waypoint["downrange"]:
+                    for j in range(3):
+                        pos_o_[j] += dx
+                        posLLH_p = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
+                        downrange_p = haversine(
+                            lon_origin, lat_origin, posLLH_p[1], posLLH_p[0], 6378137.0
+                        )
+                        pos_o_[j] -= dx
+                        jac["position"]["coo"][0].append(iRow)
+                        jac["position"]["coo"][1].append((a + i) * 3 + j)
+                        jac["position"]["coo"][2].append((downrange_p - downrange_c) / dx / waypoint["downrange"]["exact"])
+
+                    posLLH_p = eci2geodetic(pos_o_ * unit_pos, (to_ + dx) * unit_t)
+                    downrange_p = haversine(
+                        lon_origin, lat_origin, posLLH_p[1], posLLH_p[0], 6378137.0
+                    )
+                    jac["t"]["coo"][0].append(iRow)
+                    jac["t"]["coo"][1].append(i)
+                    jac["position"]["coo"][2].append((downrange_p - downrange_c) / dx / waypoint["downrange"]["exact"])
+                    iRow += 1
+
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
+
+    return jac
 
 
 def inequality_posLLH(xdict, pdict, unitdict, condition):
@@ -2405,10 +2486,127 @@ def inequality_posLLH(xdict, pdict, unitdict, condition):
 
 def inequality_jac_posLLH(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_posLLH."""
-    if inequality_posLLH(xdict, pdict, unitdict, condition) is not None:
-        return jac_fd(inequality_posLLH, xdict, pdict, unitdict, condition)
-    else:
+
+    jac = {}
+    dx = 1.0e-8
+
+    unit_pos = unitdict["position"]
+    unit_t = unitdict["t"]
+    pos_ = xdict["position"].reshape(-1, 3)
+    t_ = xdict["t"]
+    num_sections = pdict["num_sections"]
+
+    f_center = inequality_posLLH(xdict, pdict, unitdict, condition)
+    if hasattr(f_center, "__len__"):
+        nRow = len(f_center)
+    elif f_center is None:
         return None
+    else:
+        nRow = 1
+
+    lon_origin = pdict["LaunchCondition"]["lon"]
+    lat_origin = pdict["LaunchCondition"]["lat"]
+
+    jac["position"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 3)}
+    jac["t"] = {"coo": [[], [], []], "shape": (nRow, num_sections + 1)}
+
+    iRow = 0
+    for i in range(num_sections - 1):
+
+        section_name = pdict["params"][i]["name"]
+        if section_name in condition["waypoint"]:
+
+            waypoint = condition["waypoint"][section_name]
+            a = pdict["ps_params"][i]["index_start"]
+            pos_o_ = pos_[a + i]
+            to_ = t_[i]
+            posLLH_c = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
+            downrange_c = haversine(
+                lon_origin, lat_origin, posLLH_c[1], posLLH_c[0], 6378137.0
+            )
+
+            # altitude
+            if "altitude" in waypoint:
+                if "min" in waypoint["altitude"]:
+                    for j in range(3):
+                        pos_o_[j] += dx
+                        posLLH_p = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
+                        pos_o_[j] -= dx
+                        jac["position"]["coo"][0].append(iRow)
+                        jac["position"]["coo"][1].append((a + i) * 3 + j)
+                        jac["position"]["coo"][2].append((posLLH_p[2] - posLLH_c[2]) / dx / waypoint["altitude"]["min"])
+
+                    posLLH_p = eci2geodetic(pos_o_ * unit_pos, (to_ + dx) * unit_t)
+                    jac["t"]["coo"][0].append(iRow)
+                    jac["t"]["coo"][1].append(i)
+                    jac["t"]["coo"][2].append((posLLH_p[2] - posLLH_c[2]) / dx / waypoint["altitude"]["min"])
+                    iRow += 1
+
+                elif "max" in waypoint["altitude"]:
+                    for j in range(3):
+                        pos_o_[j] += dx
+                        posLLH_p = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
+                        pos_o_[j] -= dx
+                        jac["position"]["coo"][0].append(iRow)
+                        jac["position"]["coo"][1].append((a + i) * 3 + j)
+                        jac["position"]["coo"][2].append((posLLH_p[2] - posLLH_c[2]) / dx / -waypoint["altitude"]["max"])
+
+                    posLLH_p = eci2geodetic(pos_o_ * unit_pos, (to_ + dx) * unit_t)
+                    jac["t"]["coo"][0].append(iRow)
+                    jac["t"]["coo"][1].append(i)
+                    jac["t"]["coo"][2].append((posLLH_p[2] - posLLH_c[2]) / dx / -waypoint["altitude"]["max"])
+                    iRow += 1
+
+            # downrange
+            if "downrange" in waypoint:
+                if "min" in waypoint["downrange"]:
+                    for j in range(3):
+                        pos_o_[j] += dx
+                        posLLH_p = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
+                        downrange_p = haversine(
+                            lon_origin, lat_origin, posLLH_p[1], posLLH_p[0], 6378137.0
+                        )
+                        pos_o_[j] -= dx
+                        jac["position"]["coo"][0].append(iRow)
+                        jac["position"]["coo"][1].append((a + i) * 3 + j)
+                        jac["position"]["coo"][2].append((downrange_p - downrange_c) / dx / waypoint["downrange"]["min"])
+
+                    posLLH_p = eci2geodetic(pos_o_ * unit_pos, (to_ + dx) * unit_t)
+                    downrange_p = haversine(
+                        lon_origin, lat_origin, posLLH_p[1], posLLH_p[0], 6378137.0
+                    )
+                    jac["t"]["coo"][0].append(iRow)
+                    jac["t"]["coo"][1].append(i)
+                    jac["position"]["coo"][2].append((downrange_p - downrange_c) / dx / waypoint["downrange"]["min"])
+                    iRow += 1
+
+                elif "max" in waypoint["downrange"]:
+                    for j in range(3):
+                        pos_o_[j] += dx
+                        posLLH_p = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
+                        downrange_p = haversine(
+                            lon_origin, lat_origin, posLLH_p[1], posLLH_p[0], 6378137.0
+                        )
+                        pos_o_[j] -= dx
+                        jac["position"]["coo"][0].append(iRow)
+                        jac["position"]["coo"][1].append((a + i) * 3 + j)
+                        jac["position"]["coo"][2].append((downrange_p - downrange_c) / dx / -waypoint["downrange"]["max"])
+
+                    posLLH_p = eci2geodetic(pos_o_ * unit_pos, (to_ + dx) * unit_t)
+                    downrange_p = haversine(
+                        lon_origin, lat_origin, posLLH_p[1], posLLH_p[0], 6378137.0
+                    )
+                    jac["t"]["coo"][0].append(iRow)
+                    jac["t"]["coo"][1].append(i)
+                    jac["position"]["coo"][2].append((downrange_p - downrange_c) / dx / -waypoint["downrange"]["max"])
+                    iRow += 1
+
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
+
+    return jac
 
 
 def equality_jac_user(xdict, pdict, unitdict, condition):
