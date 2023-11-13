@@ -2099,9 +2099,9 @@ def inequality_antenna(xdict, pdict, unitdict, condition):
 
                 elevation_min = antenna["elevation_min"][section_name]
                 a = pdict["ps_params"][i]["index_start"]
-                pos_ = pos_[a + i]
+                pos_o_ = pos_[a + i]
                 to_ = t[i]
-                sin_elv = sin_elevation(pos_, to_, posECEF_ANT, unit_pos, unit_t)
+                sin_elv = sin_elevation(pos_o_, to_, posECEF_ANT, unit_pos, unit_t)
                 con.append(sin_elv - np.sin(elevation_min * np.pi / 180.0))
 
     if len(con) == 0:
