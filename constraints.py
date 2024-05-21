@@ -76,10 +76,9 @@ def dynamics_velocity(
 
     return acc_eci / units[2]
 
+
 @jit(nopython=True)
-def dynamics_velocity_NoAir(
-    mass_e, pos_eci_e, vel_eci_e, quat_eci2body, param, units
-):
+def dynamics_velocity_NoAir(mass_e, pos_eci_e, vel_eci_e, quat_eci2body, param, units):
     """Equation of motion of velocity."""
 
     mass = mass_e * units[0]
@@ -98,6 +97,7 @@ def dynamics_velocity_NoAir(
         acc_eci[i] = gravity_eci + (thrust_eci) / mass[i]
 
     return acc_eci / units[2]
+
 
 @jit(nopython=True)
 def dynamics_quaternion(quat_eci2body, u_e, unit_u):
@@ -572,9 +572,7 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
 
         def dynamics(mass, pos, vel, quat, t):
             if param[2] == 0.0:
-                return dynamics_velocity_NoAir(
-                    mass, pos, vel, quat, param, units
-                )
+                return dynamics_velocity_NoAir(mass, pos, vel, quat, param, units)
             else:
                 return dynamics_velocity(
                     mass,
