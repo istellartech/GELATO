@@ -629,25 +629,26 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                 jac["position"]["coo"][1].extend([(a + i + j + 1) * 3 + k] * 3)
                 jac["position"]["coo"][2].extend(rh_pos.tolist())
 
-            for k in range(3):
-                vel_i_[j + 1, k] += dx
-                f_p = dynamics(
-                    mass_i_[1:],
-                    pos_i_[1:],
-                    vel_i_[1:],
-                    quat_i_[1:],
-                    t_nodes,
-                )
-                vel_i_[j + 1, k] -= dx
-                submat_vel[j * 3, (j + 1) * 3 + k] += (
-                    -(f_p[j, 0] - f_center[j, 0]) / dx * (tf - to) * unit_t / 2.0
-                )  # rh acc_x vel
-                submat_vel[j * 3 + 1, (j + 1) * 3 + k] += (
-                    -(f_p[j, 1] - f_center[j, 1]) / dx * (tf - to) * unit_t / 2.0
-                )  # rh acc_x vel
-                submat_vel[j * 3 + 2, (j + 1) * 3 + k] += (
-                    -(f_p[j, 2] - f_center[j, 2]) / dx * (tf - to) * unit_t / 2.0
-                )  # rh acc_x vel
+            if param[2] > 0.0:
+                for k in range(3):
+                    vel_i_[j + 1, k] += dx
+                    f_p = dynamics(
+                        mass_i_[1:],
+                        pos_i_[1:],
+                        vel_i_[1:],
+                        quat_i_[1:],
+                        t_nodes,
+                    )
+                    vel_i_[j + 1, k] -= dx
+                    submat_vel[j * 3, (j + 1) * 3 + k] += (
+                        -(f_p[j, 0] - f_center[j, 0]) / dx * (tf - to) * unit_t / 2.0
+                    )  # rh acc_x vel
+                    submat_vel[j * 3 + 1, (j + 1) * 3 + k] += (
+                        -(f_p[j, 1] - f_center[j, 1]) / dx * (tf - to) * unit_t / 2.0
+                    )  # rh acc_x vel
+                    submat_vel[j * 3 + 2, (j + 1) * 3 + k] += (
+                        -(f_p[j, 2] - f_center[j, 2]) / dx * (tf - to) * unit_t / 2.0
+                    )  # rh acc_x vel
 
             for k in range(4):
                 quat_i_[j + 1, k] += dx
