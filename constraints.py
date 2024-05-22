@@ -78,12 +78,12 @@ def dynamics_velocity(
 
 
 @jit(nopython=True)
-def dynamics_velocity_NoAir(mass_e, pos_eci_e, vel_eci_e, quat_eci2body, param, units):
+def dynamics_velocity_NoAir(mass_e, pos_eci_e, quat_eci2body, param, units):
     """Equation of motion of velocity."""
 
     mass = mass_e * units[0]
     pos_eci = pos_eci_e * units[1]
-    acc_eci = np.zeros(vel_eci_e.shape)
+    acc_eci = np.zeros(pos_eci_e.shape)
 
     thrust_vac = param[0]
 
@@ -481,7 +481,6 @@ def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
                 dynamics_velocity_NoAir(
                     mass_i_[1:],
                     pos_i_[1:],
-                    vel_i_[1:],
                     quat_i_[1:],
                     param,
                     units,
@@ -572,7 +571,7 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
 
         def dynamics(mass, pos, vel, quat, t):
             if param[2] == 0.0:
-                return dynamics_velocity_NoAir(mass, pos, vel, quat, param, units)
+                return dynamics_velocity_NoAir(mass, pos, quat, param, units)
             else:
                 return dynamics_velocity(
                     mass,
