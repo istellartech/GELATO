@@ -27,7 +27,7 @@ from math import sin, cos, asin, atan2, sqrt, radians, degrees
 import numpy as np
 from numpy.linalg import norm
 from numba import jit
-from USStandardAtmosphere import *
+from USStandardAtmosphere_p import *
 from coordinate import *
 
 
