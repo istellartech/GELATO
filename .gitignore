@@ -1,6 +1,8 @@
 __pycache__/*
-examples/*
+example/*
 figures/*
 input/*
 output/*
 *.png
+data/*
+test/*
