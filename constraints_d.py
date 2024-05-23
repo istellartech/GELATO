@@ -1,0 +1,618 @@
+#
+# The MIT License
+#
+# Copyright (c) 2022 Interstellar Technologies Inc.
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files
+# (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+
+import numpy as np
+from dynamics import dynamics_velocity, dynamics_velocity_NoAir, dynamics_quaternion
+
+
+def equality_dynamics_mass(xdict, pdict, unitdict, condition):
+    """Equality constraint about dynamics of mass."""
+
+    con = []
+
+    unit_mass = unitdict["mass"]
+    unit_t = unitdict["t"]
+    mass_ = xdict["mass"]
+    t = xdict["t"]
+
+    num_sections = pdict["num_sections"]
+
+    for i in range(num_sections):
+        a = pdict["ps_params"][i]["index_start"]
+        n = pdict["ps_params"][i]["nodes"]
+        b = a + n
+        mass_i_ = mass_[a + i : b + i + 1]
+        to = t[i]
+        tf = t[i + 1]
+        # t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
+
+        if pdict["params"][i]["engineOn"]:
+            lh = pdict["ps_params"][i]["D"].dot(mass_i_)
+            rh = np.full(
+                n,
+                -pdict["params"][i]["massflow"] / unit_mass * (tf - to) * unit_t / 2.0,
+            )  # dynamics_mass
+            con.append(lh - rh)
+        else:
+            con.append(mass_i_[1:] - mass_i_[0])
+
+    return np.concatenate(con, axis=None)
+
+
+def equality_jac_dynamics_mass(xdict, pdict, unitdict, condition):
+    """Jacobian of equality_dynamics_mass."""
+
+    jac = {}
+
+    unit_mass = unitdict["mass"]
+    unit_t = unitdict["t"]
+    num_sections = pdict["num_sections"]
+
+    jac["mass"] = {"coo": [[], [], []], "shape": (pdict["N"], pdict["M"])}
+    jac["t"] = {"coo": [[], [], []], "shape": (pdict["N"], num_sections + 1)}
+
+    for i in range(num_sections):
+        a = pdict["ps_params"][i]["index_start"]
+        n = pdict["ps_params"][i]["nodes"]
+        b = a + n
+
+        if pdict["params"][i]["engineOn"]:
+
+            jac["mass"]["coo"][0].extend(sum([[i] * (n + 1) for i in range(a, b)], []))
+            jac["mass"]["coo"][1].extend(list(range(a + i, b + i + 1)) * (n))
+            jac["mass"]["coo"][2].extend(
+                pdict["ps_params"][i]["D"].ravel(order="C").tolist()
+            )
+
+            jac["t"]["coo"][0].extend(list(range(a, b)))
+            jac["t"]["coo"][1].extend([i] * n)
+            jac["t"]["coo"][2].extend(
+                [-pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0] * n
+            )  # rh(to)
+            jac["t"]["coo"][0].extend(list(range(a, b)))
+            jac["t"]["coo"][1].extend([i + 1] * n)
+            jac["t"]["coo"][2].extend(
+                [pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0] * n
+            )  # rh(tf)
+
+        else:
+            jac["mass"]["coo"][0].extend(list(range(a, b)))
+            jac["mass"]["coo"][1].extend([a + i] * n)
+            jac["mass"]["coo"][2].extend([-1.0] * n)
+            jac["mass"]["coo"][0].extend(list(range(a, b)))
+            jac["mass"]["coo"][1].extend(list(range(a + i + 1, b + i + 1)))
+            jac["mass"]["coo"][2].extend([1.0] * n)
+
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
+
+    return jac
+
+
+def equality_dynamics_position(xdict, pdict, unitdict, condition):
+    """Equality constraint about dynamics of position."""
+
+    con = []
+
+    unit_pos = unitdict["position"]
+    unit_vel = unitdict["velocity"]
+    unit_t = unitdict["t"]
+    pos_ = xdict["position"].reshape(-1, 3)
+    vel_ = xdict["velocity"].reshape(-1, 3)
+    t = xdict["t"]
+
+    num_sections = pdict["num_sections"]
+
+    param = np.zeros(5)
+
+    for i in range(num_sections):
+        a = pdict["ps_params"][i]["index_start"]
+        n = pdict["ps_params"][i]["nodes"]
+        b = a + n
+        pos_i_ = pos_[a + i : b + i + 1]
+        vel_i_ = vel_[a + i : b + i + 1]
+        to = t[i]
+        tf = t[i + 1]
+        # t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
+
+        param[0] = pdict["params"][i]["thrust"]
+        param[1] = pdict["params"][i]["massflow"]
+        param[2] = pdict["params"][i]["reference_area"]
+        param[4] = pdict["params"][i]["nozzle_area"]
+
+        lh = pdict["ps_params"][i]["D"].dot(pos_i_)
+        rh = (
+            vel_i_[1:] * unit_vel * (tf - to) * unit_t / 2.0 / unit_pos
+        )  # dynamics_position
+        con.append((lh - rh).ravel())
+
+    return np.concatenate(con, axis=None)
+
+
+def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
+    """Jacobian of equality_dynamics_position."""
+
+    jac = {}
+
+    unit_pos = unitdict["position"]
+    unit_vel = unitdict["velocity"]
+    unit_t = unitdict["t"]
+    vel_ = xdict["velocity"].reshape(-1, 3)
+    t = xdict["t"]
+
+    num_sections = pdict["num_sections"]
+
+    jac["position"] = {"coo": [[], [], []], "shape": (pdict["N"] * 3, pdict["M"] * 3)}
+    jac["velocity"] = {"coo": [[], [], []], "shape": (pdict["N"] * 3, pdict["M"] * 3)}
+    jac["t"] = {"coo": [[], [], []], "shape": (pdict["N"] * 3, num_sections + 1)}
+
+    for i in range(num_sections):
+        a = pdict["ps_params"][i]["index_start"]
+        n = pdict["ps_params"][i]["nodes"]
+        b = a + n
+        vel_i_ = vel_[a + i : b + i + 1]
+        to = t[i]
+        tf = t[i + 1]
+
+        submat_pos = np.zeros(
+            (n * 3, (n + 1) * 3)
+        )  # jac["position"][a*3:b*3, (a+i)*3:(b+i+1)*3]
+        submat_pos[::3, ::3] = pdict["ps_params"][i]["D"]
+        submat_pos[1::3, 1::3] = pdict["ps_params"][i]["D"]
+        submat_pos[2::3, 2::3] = pdict["ps_params"][i]["D"]
+
+        rh_vel = -unit_vel * (tf - to) * unit_t / 2.0 / unit_pos  # rh vel
+        jac["velocity"]["coo"][0].extend(list(range(a * 3, b * 3)))
+        jac["velocity"]["coo"][1].extend(list(range((a + i + 1) * 3, (b + i + 1) * 3)))
+        jac["velocity"]["coo"][2].extend([rh_vel] * (n * 3))
+
+        rh_to = vel_i_[1:].ravel() * unit_vel * unit_t / 2.0 / unit_pos  # rh to
+        rh_tf = -rh_to  # rh tf
+        jac["t"]["coo"][0].extend(sum([[k] * 2 for k in range(a * 3, b * 3)], []))
+        jac["t"]["coo"][1].extend([i, i + 1] * n * 3)
+        jac["t"]["coo"][2].extend(sum([[rh_to[k], rh_tf[k]] for k in range(n * 3)], []))
+
+        jac["position"]["coo"][0].extend(
+            sum([[k] * ((n + 1) * 3) for k in range(a * 3, b * 3)], [])
+        )
+        jac["position"]["coo"][1].extend(
+            list(range((a + i) * 3, (b + i + 1) * 3)) * (n * 3)
+        )
+        jac["position"]["coo"][2].extend(submat_pos.ravel().tolist())
+
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
+
+    return jac
+
+
+def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
+    """Equality constraint about dynamics of velocity."""
+
+    con = []
+
+    unit_mass = unitdict["mass"]
+    unit_pos = unitdict["position"]
+    unit_vel = unitdict["velocity"]
+    unit_t = unitdict["t"]
+    mass_ = xdict["mass"]
+    pos_ = xdict["position"].reshape(-1, 3)
+    vel_ = xdict["velocity"].reshape(-1, 3)
+    quat_ = xdict["quaternion"].reshape(-1, 4)
+    t = xdict["t"]
+
+    units = np.array([unit_mass, unit_pos, unit_vel])
+
+    num_sections = pdict["num_sections"]
+
+    param = np.zeros(5)
+
+    for i in range(num_sections):
+        a = pdict["ps_params"][i]["index_start"]
+        n = pdict["ps_params"][i]["nodes"]
+        b = a + n
+        mass_i_ = mass_[a + i : b + i + 1]
+        pos_i_ = pos_[a + i : b + i + 1]
+        vel_i_ = vel_[a + i : b + i + 1]
+        quat_i_ = quat_[a + i : b + i + 1]
+        to = t[i]
+        tf = t[i + 1]
+        t_nodes = (
+            pdict["ps_params"][i]["tau"] * (tf - to) * unit_t / 2.0
+            + (tf + to) * unit_t / 2.0
+        )
+
+        param[0] = pdict["params"][i]["thrust"]
+        param[1] = pdict["params"][i]["massflow"]
+        param[2] = pdict["params"][i]["reference_area"]
+        param[4] = pdict["params"][i]["nozzle_area"]
+
+        wind = pdict["wind_table"]
+        ca = pdict["ca_table"]
+
+        lh = pdict["ps_params"][i]["D"].dot(vel_i_)
+        if param[2] == 0.0:
+            rh = (
+                dynamics_velocity_NoAir(
+                    mass_i_[1:],
+                    pos_i_[1:],
+                    quat_i_[1:],
+                    param,
+                    units,
+                )
+                * (tf - to)
+                * unit_t
+                / 2.0
+            )
+        else:
+            rh = (
+                dynamics_velocity(
+                    mass_i_[1:],
+                    pos_i_[1:],
+                    vel_i_[1:],
+                    quat_i_[1:],
+                    t_nodes,
+                    param,
+                    wind,
+                    ca,
+                    units,
+                )
+                * (tf - to)
+                * unit_t
+                / 2.0
+            )
+        con.append((lh - rh).ravel())
+
+    return np.concatenate(con, axis=None)
+
+
+def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
+    """Jacobian of equality_dynamics_velocity."""
+
+    jac = {}
+    dx = 1.0e-8
+
+    unit_mass = unitdict["mass"]
+    unit_pos = unitdict["position"]
+    unit_vel = unitdict["velocity"]
+    unit_t = unitdict["t"]
+    mass_ = xdict["mass"]
+    pos_ = xdict["position"].reshape(-1, 3)
+    vel_ = xdict["velocity"].reshape(-1, 3)
+    quat_ = xdict["quaternion"].reshape(-1, 4)
+    t = xdict["t"]
+
+    units = np.array([unit_mass, unit_pos, unit_vel])
+
+    num_sections = pdict["num_sections"]
+
+    param = np.zeros(5)
+
+    jac["mass"] = {"coo": [[], [], []], "shape": (pdict["N"] * 3, pdict["M"])}
+    jac["position"] = {"coo": [[], [], []], "shape": (pdict["N"] * 3, pdict["M"] * 3)}
+    jac["velocity"] = {"coo": [[], [], []], "shape": (pdict["N"] * 3, pdict["M"] * 3)}
+    jac["quaternion"] = {"coo": [[], [], []], "shape": (pdict["N"] * 3, pdict["M"] * 4)}
+    jac["t"] = {"coo": [[], [], []], "shape": (pdict["N"] * 3, num_sections + 1)}
+
+    for i in range(num_sections):
+        a = pdict["ps_params"][i]["index_start"]
+        n = pdict["ps_params"][i]["nodes"]
+        b = a + n
+        mass_i_ = mass_[a + i : b + i + 1]
+        pos_i_ = pos_[a + i : b + i + 1]
+        vel_i_ = vel_[a + i : b + i + 1]
+        quat_i_ = quat_[a + i : b + i + 1]
+        to = t[i]
+        tf = t[i + 1]
+        t_nodes = (
+            pdict["ps_params"][i]["tau"] * (tf - to) * unit_t / 2.0
+            + (tf + to) * unit_t / 2.0
+        )
+
+        param[0] = pdict["params"][i]["thrust"]
+        param[1] = pdict["params"][i]["massflow"]
+        param[2] = pdict["params"][i]["reference_area"]
+        param[4] = pdict["params"][i]["nozzle_area"]
+
+        wind = pdict["wind_table"]
+        ca = pdict["ca_table"]
+
+        submat_vel = np.zeros(
+            (n * 3, (n + 1) * 3)
+        )  # jac["velocity"][a*3:b*3, (a+i)*3:(b+i+1)*3]
+        submat_vel[::3, ::3] = pdict["ps_params"][i]["D"]
+        submat_vel[1::3, 1::3] = pdict["ps_params"][i]["D"]
+        submat_vel[2::3, 2::3] = pdict["ps_params"][i]["D"]
+
+        def dynamics(mass, pos, vel, quat, t):
+            if param[2] == 0.0:
+                return dynamics_velocity_NoAir(mass, pos, quat, param, units)
+            else:
+                return dynamics_velocity(
+                    mass,
+                    pos,
+                    vel,
+                    quat,
+                    t,
+                    param,
+                    wind,
+                    ca,
+                    units,
+                )
+
+        f_center = dynamics(
+            mass_i_[1:],
+            pos_i_[1:],
+            vel_i_[1:],
+            quat_i_[1:],
+            t_nodes,
+        )
+
+        for j in range(n):
+            mass_i_[j + 1] += dx
+            f_p = dynamics(
+                mass_i_[1:],
+                pos_i_[1:],
+                vel_i_[1:],
+                quat_i_[1:],
+                t_nodes,
+            )
+            mass_i_[j + 1] -= dx
+            rh_mass = (
+                -(f_p[j] - f_center[j]) / dx * (tf - to) * unit_t / 2.0
+            )  # rh acc mass
+            jac["mass"]["coo"][0].extend(list(range((a + j) * 3, (a + j + 1) * 3)))
+            jac["mass"]["coo"][1].extend([(a + i + j + 1)] * 3)
+            jac["mass"]["coo"][2].extend(rh_mass.tolist())
+
+            for k in range(3):
+                pos_i_[j + 1, k] += dx
+                f_p = dynamics(
+                    mass_i_[1:],
+                    pos_i_[1:],
+                    vel_i_[1:],
+                    quat_i_[1:],
+                    t_nodes,
+                )
+                pos_i_[j + 1, k] -= dx
+                rh_pos = (
+                    -(f_p[j] - f_center[j]) / dx * (tf - to) * unit_t / 2.0
+                )  # rh acc pos
+                jac["position"]["coo"][0].extend(
+                    list(range((a + j) * 3, (a + j + 1) * 3))
+                )
+                jac["position"]["coo"][1].extend([(a + i + j + 1) * 3 + k] * 3)
+                jac["position"]["coo"][2].extend(rh_pos.tolist())
+
+            if param[2] > 0.0:
+                for k in range(3):
+                    vel_i_[j + 1, k] += dx
+                    f_p = dynamics(
+                        mass_i_[1:],
+                        pos_i_[1:],
+                        vel_i_[1:],
+                        quat_i_[1:],
+                        t_nodes,
+                    )
+                    vel_i_[j + 1, k] -= dx
+                    submat_vel[j * 3, (j + 1) * 3 + k] += (
+                        -(f_p[j, 0] - f_center[j, 0]) / dx * (tf - to) * unit_t / 2.0
+                    )  # rh acc_x vel
+                    submat_vel[j * 3 + 1, (j + 1) * 3 + k] += (
+                        -(f_p[j, 1] - f_center[j, 1]) / dx * (tf - to) * unit_t / 2.0
+                    )  # rh acc_x vel
+                    submat_vel[j * 3 + 2, (j + 1) * 3 + k] += (
+                        -(f_p[j, 2] - f_center[j, 2]) / dx * (tf - to) * unit_t / 2.0
+                    )  # rh acc_x vel
+
+            for k in range(4):
+                quat_i_[j + 1, k] += dx
+                f_p = dynamics(
+                    mass_i_[1:],
+                    pos_i_[1:],
+                    vel_i_[1:],
+                    quat_i_[1:],
+                    t_nodes,
+                )
+                quat_i_[j + 1, k] -= dx
+                rh_quat = (
+                    -(f_p[j] - f_center[j]) / dx * (tf - to) * unit_t / 2.0
+                )  # rh acc quat
+                jac["quaternion"]["coo"][0].extend(
+                    list(range((a + j) * 3, (a + j + 1) * 3))
+                )
+                jac["quaternion"]["coo"][1].extend([(a + i + j + 1) * 4 + k] * 3)
+                jac["quaternion"]["coo"][2].extend(rh_quat.tolist())
+
+        rh_to = f_center.ravel() * unit_t / 2.0  # rh to
+        rh_tf = -rh_to  # rh tf
+        jac["t"]["coo"][0].extend(sum([[k] * 2 for k in range(a * 3, b * 3)], []))
+        jac["t"]["coo"][1].extend([i, i + 1] * n * 3)
+        jac["t"]["coo"][2].extend(sum([[rh_to[k], rh_tf[k]] for k in range(3 * n)], []))
+
+        jac["velocity"]["coo"][0].extend(
+            sum([[k] * ((n + 1) * 3) for k in range(a * 3, b * 3)], [])
+        )
+        jac["velocity"]["coo"][1].extend(
+            list(range((a + i) * 3, (b + i + 1) * 3)) * (n * 3)
+        )
+        jac["velocity"]["coo"][2].extend(submat_vel.ravel().tolist())
+
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
+
+    return jac
+
+
+def equality_dynamics_quaternion(xdict, pdict, unitdict, condition):
+    """Equality constraint about dynamics of quaternion."""
+
+    con = []
+
+    unit_u = unitdict["u"]
+    unit_t = unitdict["t"]
+    quat_ = xdict["quaternion"].reshape(-1, 4)
+    u_ = xdict["u"].reshape(-1, 3)
+    t = xdict["t"]
+
+    num_sections = pdict["num_sections"]
+
+    for i in range(num_sections):
+        a = pdict["ps_params"][i]["index_start"]
+        n = pdict["ps_params"][i]["nodes"]
+        b = a + n
+        quat_i_ = quat_[a + i : b + i + 1]
+        u_i_ = u_[a:b]
+        to = t[i]
+        tf = t[i + 1]
+        # t_nodes = pdict["ps_params"][i]["tau"] * (tf-to) / 2.0 + (tf+to) / 2.0
+
+        if pdict["params"][i]["attitude"] in ["hold", "vertical"]:
+            con.append((quat_i_[1:] - quat_i_[0]).ravel())
+        else:
+            lh = pdict["ps_params"][i]["D"].dot(quat_i_)
+            rh = (
+                dynamics_quaternion(quat_i_[1:], u_i_, unit_u)
+                * (tf - to)
+                * unit_t
+                / 2.0
+            )
+            con.append((lh - rh).ravel())
+
+    return np.concatenate(con, axis=None)
+
+
+def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
+    """Jacobian of equality_dynamics_quaternion."""
+
+    jac = {}
+    dx = 1.0e-8
+
+    unit_u = unitdict["u"]
+    unit_t = unitdict["t"]
+    quat_ = xdict["quaternion"].reshape(-1, 4)
+    u_ = xdict["u"].reshape(-1, 3)
+    t = xdict["t"]
+
+    num_sections = pdict["num_sections"]
+
+    jac["quaternion"] = {"coo": [[], [], []], "shape": (pdict["N"] * 4, pdict["M"] * 4)}
+    jac["u"] = {"coo": [[], [], []], "shape": (pdict["N"] * 4, pdict["N"] * 3)}
+    jac["t"] = {"coo": [[], [], []], "shape": (pdict["N"] * 4, num_sections + 1)}
+
+    for i in range(num_sections):
+        a = pdict["ps_params"][i]["index_start"]
+        n = pdict["ps_params"][i]["nodes"]
+        b = a + n
+        quat_i_ = quat_[a + i : b + i + 1]
+        u_i_ = u_[a:b]
+        to = t[i]
+        tf = t[i + 1]
+
+        if pdict["params"][i]["attitude"] in ["hold", "vertical"]:
+
+            jac["quaternion"]["coo"][0].extend(list(range(a * 4, b * 4)))
+            jac["quaternion"]["coo"][1].extend(
+                list(range((a + i) * 4, (a + i + 1) * 4)) * n
+            )
+            jac["quaternion"]["coo"][2].extend([-1.0] * (4 * n))
+
+            jac["quaternion"]["coo"][0].extend(list(range(a * 4, b * 4)))
+            jac["quaternion"]["coo"][1].extend(
+                list(range((a + i + 1) * 4, (b + i + 1) * 4))
+            )
+            jac["quaternion"]["coo"][2].extend([1.0] * (4 * n))
+
+        else:
+            submat_quat = np.zeros(
+                (n * 4, (n + 1) * 4)
+            )  # jac["quaternion"][a*4:b*4, (a+i)*4:(b+i+1)*4]
+            submat_quat[::4, ::4] = pdict["ps_params"][i]["D"]
+            submat_quat[1::4, 1::4] = pdict["ps_params"][i]["D"]
+            submat_quat[2::4, 2::4] = pdict["ps_params"][i]["D"]
+            submat_quat[3::4, 3::4] = pdict["ps_params"][i]["D"]
+
+            f_center = dynamics_quaternion(quat_i_[1:], u_i_, unit_u)
+
+            for j in range(n):
+
+                for k in range(4):
+                    quat_i_[j + 1, k] += dx
+                    f_p = dynamics_quaternion(quat_i_[1:], u_i_, unit_u)
+                    submat_quat[j * 4, (j + 1) * 4 + k] += (
+                        -(f_p[j, 0] - f_center[j, 0]) / dx * (tf - to) * unit_t / 2.0
+                    )  # rh q0 quat
+                    submat_quat[j * 4 + 1, (j + 1) * 4 + k] += (
+                        -(f_p[j, 1] - f_center[j, 1]) / dx * (tf - to) * unit_t / 2.0
+                    )  # rh q1 quat
+                    submat_quat[j * 4 + 2, (j + 1) * 4 + k] += (
+                        -(f_p[j, 2] - f_center[j, 2]) / dx * (tf - to) * unit_t / 2.0
+                    )  # rh q2 quat
+                    submat_quat[j * 4 + 3, (j + 1) * 4 + k] += (
+                        -(f_p[j, 3] - f_center[j, 3]) / dx * (tf - to) * unit_t / 2.0
+                    )  # rh q3 quat
+                    quat_i_[j + 1, k] -= dx
+
+                for k in range(3):
+                    u_i_[j, k] += dx
+                    f_p = dynamics_quaternion(quat_i_[1:], u_i_, unit_u)
+                    u_i_[j, k] -= dx
+
+                    rh_pos = (
+                        -(f_p[j] - f_center[j]) / dx * (tf - to) * unit_t / 2.0
+                    )  # rh q0 quat
+                    jac["u"]["coo"][0].extend(list(range((a + j) * 4, (a + j + 1) * 4)))
+                    jac["u"]["coo"][1].extend([(a + j) * 3 + k] * 4)
+                    jac["u"]["coo"][2].extend(rh_pos.tolist())
+
+            rh_to = f_center.ravel() * unit_t / 2.0  # rh to
+            rh_tf = -rh_to  # rh tf
+            jac["t"]["coo"][0].extend(sum([[k] * 2 for k in range(a * 4, b * 4)], []))
+            jac["t"]["coo"][1].extend([i, i + 1] * n * 4)
+            jac["t"]["coo"][2].extend(
+                sum([[rh_to[k], rh_tf[k]] for k in range(4 * n)], [])
+            )
+
+            jac["quaternion"]["coo"][0].extend(
+                sum([[k] * ((n + 1) * 4) for k in range(a * 4, b * 4)], [])
+            )
+            jac["quaternion"]["coo"][1].extend(
+                list(range((a + i) * 4, (b + i + 1) * 4)) * (n * 4)
+            )
+            jac["quaternion"]["coo"][2].extend(submat_quat.ravel().tolist())
+
+    for key in jac.keys():
+        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
+        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
+        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
+
+    return jac
+

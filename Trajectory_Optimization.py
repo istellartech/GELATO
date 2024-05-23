@@ -31,12 +31,11 @@ import numpy as np
 import pandas as pd
 from pyoptsparse import IPOPT, SNOPT, Optimization
 
-from utils import *
 from coordinate import *
 from initialize_output import *
-from constraints import *
-from PSfunctions import *
-from USStandardAtmosphere import *
+from constraints_d import equality_dynamics_mass, equality_dynamics_position, equality_dynamics_velocity, equality_dynamics_quaternion, equality_jac_dynamics_mass, equality_jac_dynamics_position, equality_jac_dynamics_velocity, equality_jac_dynamics_quaternion
+from constraints_c import *
+from PSfunctions import nodes_LGR, differentiation_matrix_LGR
 
 version = "0.7.3"
 
