@@ -32,7 +32,8 @@ import pandas as pd
 from pyoptsparse import IPOPT, SNOPT, Optimization
 
 from coordinate import *
-from initialize_output import *
+from initialize import initialize_xdict_6DoF_from_file, initialize_xdict_6DoF_2
+from output_result import output_result
 from constraints_a import equality_init, equality_time, equality_knot_LGR, equality_6DoF_LGR_terminal, equality_jac_init, equality_jac_time, equality_jac_knot_LGR, equality_jac_6DoF_LGR_terminal, inequality_time, inequality_jac_time
 from constraints_b import inequality_mass, inequality_jac_mass, inequality_kickturn, inequality_jac_kickturn, equality_6DoF_rate, equality_jac_6DoF_rate
 from constraints_c import inequality_max_alpha, inequality_jac_max_alpha, inequality_max_q, inequality_jac_max_q, inequality_max_qalpha, inequality_jac_max_qalpha
@@ -498,6 +499,6 @@ print("".join(res_info[1:]))
 with open("output/{}-optResult.txt".format(settings["name"]), mode="w") as fout:
     fout.write("".join(res_info))
 
-out = output_6DoF(sol.xStar, unitdict, tx_res, tu_res, pdict)
+out = output_result(sol.xStar, unitdict, tx_res, tu_res, pdict)
 
 out.to_csv("output/{}-trajectoryResult.csv".format(settings["name"]), index=False)
