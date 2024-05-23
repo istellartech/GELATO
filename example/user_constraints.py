@@ -24,7 +24,7 @@
 #
 
 import numpy as np
-from coordinate import orbital_elements
+from coordinate_c import orbital_elements
 
 def get_value(xdict, pdict, unitdict, section_name, key):
     """

@@ -26,7 +26,7 @@
 from numba import jit
 import numpy as np
 from numpy.linalg import norm
-from coordinate import quatrot, conj, quatmult, vel_eci2ecef, quat_nedg2eci, ecef2geodetic, ecef2eci, gravity
+from coordinate_p import quatrot, conj, quatmult, vel_eci2ecef, quat_nedg2eci, ecef2geodetic, ecef2eci, gravity
 from USStandardAtmosphere_p import airdensity_at, airpressure_at, geopotential_altitude, speed_of_sound
 from utils import wind_ned
 

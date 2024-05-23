@@ -29,7 +29,7 @@ from scipy.interpolate import interp1d
 from utils import *
 from PSfunctions import *
 from USStandardAtmosphere_c import *
-from coordinate import *
+from coordinate_c import *
 from tools.plot_output import display_6DoF
 from output_result import output_result
 

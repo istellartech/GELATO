@@ -28,7 +28,7 @@ import numpy as np
 from numpy.linalg import norm
 from numba import jit
 from USStandardAtmosphere_p import *
-from coordinate import *
+from coordinate_p import *
 
 
 @jit("f8(f8,f8,f8,f8,f8)", nopython=True)
