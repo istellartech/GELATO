@@ -23,6 +23,9 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+# constraints_d.py
+# constraints about dynamics
+
 import numpy as np
 from dynamics import dynamics_velocity, dynamics_velocity_NoAir, dynamics_quaternion
 
