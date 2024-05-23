@@ -33,8 +33,14 @@ from pyoptsparse import IPOPT, SNOPT, Optimization
 
 from coordinate import *
 from initialize_output import *
+from constraints_a import equality_init, equality_time, equality_knot_LGR, equality_6DoF_LGR_terminal, equality_jac_init, equality_jac_time, equality_jac_knot_LGR, equality_jac_6DoF_LGR_terminal, inequality_time, inequality_jac_time
+from constraints_b import inequality_mass, inequality_jac_mass, inequality_kickturn, inequality_jac_kickturn, equality_6DoF_rate, equality_jac_6DoF_rate
+from constraints_c import inequality_max_alpha, inequality_jac_max_alpha, inequality_max_q, inequality_jac_max_q, inequality_max_qalpha, inequality_jac_max_qalpha
 from constraints_d import equality_dynamics_mass, equality_dynamics_position, equality_dynamics_velocity, equality_dynamics_quaternion, equality_jac_dynamics_mass, equality_jac_dynamics_position, equality_jac_dynamics_velocity, equality_jac_dynamics_quaternion
-from constraints_c import *
+from constraints_e import equality_posLLH, equality_jac_posLLH, inequality_posLLH, inequality_jac_posLLH, equality_IIP, equality_jac_IIP, inequality_IIP, inequality_jac_IIP, inequality_antenna, inequality_jac_antenna
+from user_constraints import equality_user, inequality_user
+from constraints_u import equality_jac_user, inequality_jac_user
+from cost_gradient import cost_6DoF, cost_jac
 from PSfunctions import nodes_LGR, differentiation_matrix_LGR
 
 version = "0.7.3"
