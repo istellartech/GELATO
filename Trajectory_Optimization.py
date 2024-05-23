@@ -31,7 +31,7 @@ import numpy as np
 import pandas as pd
 from pyoptsparse import IPOPT, SNOPT, Optimization
 
-from coordinate import *
+from coordinate_c import *
 from initialize import initialize_xdict_6DoF_from_file, initialize_xdict_6DoF_2
 from output_result import output_result
 from constraints_a import equality_init, equality_time, equality_knot_LGR, equality_6DoF_LGR_terminal, equality_jac_init, equality_jac_time, equality_jac_knot_LGR, equality_jac_6DoF_LGR_terminal, inequality_time, inequality_jac_time

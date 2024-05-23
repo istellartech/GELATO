@@ -29,7 +29,7 @@
 import numpy as np
 from numba import jit
 from utils import dynamic_pressure_pa, angle_of_attack_all_rad, angle_of_attack_ab_rad
-from coordinate import *
+from coordinate_p import *
 
 
 

@@ -28,7 +28,7 @@ import pandas as pd
 from utils import *
 from PSfunctions import *
 from USStandardAtmosphere_c import *
-from coordinate import *
+from coordinate_c import *
 from tools.IIP import posLLH_IIP_FAA
 from tools.downrange import distance_vincenty
 
