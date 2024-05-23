@@ -11,3 +11,4 @@ all: utils
 utils: utils
 	$(CC) $(CFLAGS) $(PYBIND) $(SRCS) src/pybind_USStandardAtmosphere.cpp -o USStandardAtmosphere_c$(PYCONFIG)
 	$(CC) $(CFLAGS) $(PYBIND) $(SRCS) src/pybind_coordinate.cpp -o coordinate_c$(PYCONFIG)
+	$(CC) $(CFLAGS) $(PYBIND) $(SRCS) src/pybind_dynamics.cpp -o dynamics_c$(PYCONFIG)
