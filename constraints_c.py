@@ -27,13 +27,11 @@
 # constraints about aerodynamic conditions
 
 import numpy as np
-from numba import jit
-from utils_p import dynamic_pressure_pa, angle_of_attack_all_rad, angle_of_attack_ab_rad
-from coordinate_p import *
+from utils_c import dynamic_pressure_pa, angle_of_attack_all_rad, angle_of_attack_ab_rad
+from coordinate_c import *
 
 
 
-@jit(nopython=True)
 def dynamic_pressure_dimless(pos_eci_e, vel_eci_e, t_e, wind, units):
     """Returns dynamic pressure normalized by its maximum value."""
     pos_eci = pos_eci_e * units[0]
@@ -42,7 +40,6 @@ def dynamic_pressure_dimless(pos_eci_e, vel_eci_e, t_e, wind, units):
     return dynamic_pressure_pa(pos_eci, vel_eci, t, wind) / units[3]
 
 
-@jit(nopython=True)
 def dynamic_pressure_array_dimless(pos, vel, t, wind, units):
     """Returns array of dynamic pressure for each state values."""
     return np.array(
@@ -53,7 +50,6 @@ def dynamic_pressure_array_dimless(pos, vel, t, wind, units):
     )
 
 
-@jit(nopython=True)
 def angle_of_attack_all_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
     """Returns angle of attack normalized by its maximum value."""
     pos_eci = pos_eci_e * units[0]
@@ -62,7 +58,6 @@ def angle_of_attack_all_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
     return angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind) / units[3]
 
 
-@jit(nopython=True)
 def angle_of_attack_ab_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
     """Returns pitch and yaw angles of attack normalized by
     their maximum values.
@@ -73,7 +68,6 @@ def angle_of_attack_ab_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
     return angle_of_attack_ab_rad(pos_eci, vel_eci, quat, t, wind) / units[3]
 
 
-@jit(nopython=True)
 def aoa_zerolift_array_dimless(pos, vel, quat, t, wind, units):
     """Returns array of angle of attack for each state values."""
     return np.array(
@@ -84,7 +78,6 @@ def aoa_zerolift_array_dimless(pos, vel, quat, t, wind, units):
     )
 
 
-@jit(nopython=True)
 def q_alpha_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
     """Returns Q-alpha normalized by its maximum value."""
     pos_eci = pos_eci_e * units[0]
@@ -97,7 +90,6 @@ def q_alpha_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
     )
 
 
-@jit(nopython=True)
 def q_alpha_array_dimless(pos, vel, quat, t, wind, units):
     """Returns array of Q-alpha for each state values."""
     return np.array(

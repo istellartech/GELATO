@@ -25,10 +25,8 @@
 
 import numpy as np
 from numpy import tan, arcsin, arctan2, sqrt
-from numba import jit
 
 
-@jit(nopython=True)
 def posLLH_IIP_FAA(posECEF_, velECEF_, fill_na=True, n_iter=5):
     a = 6378137
     mu = 3.986004418e14
