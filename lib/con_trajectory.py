@@ -30,7 +30,7 @@
 import sys
 import numpy as np
 from numba import jit
-from utils import *
+from utils_p import *
 from coordinate_p import conj, quatrot, normalize
 
 
