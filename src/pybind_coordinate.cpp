@@ -27,4 +27,5 @@ PYBIND11_MODULE(coordinate_c, m) {
     m.def("dcm_from_thrustvector", &dcm_from_thrustvector, "direction cosine matrix from thrust vector");
     m.def("eci2geodetic", &eci2geodetic, "convert ECI to geodetic");
     m.def("orbital_elements", &orbital_elements, "orbital elements from ECI position and velocity");
+    m.def("distance_vincenty", &distance_vincenty, "Vincenty's formulae for geodesic distance");
 }
