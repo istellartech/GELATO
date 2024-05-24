@@ -20,7 +20,7 @@ This program uses the libraries below:
  - NumPy
  - SciPy
  - pandas
- - Numba
+ - pybind11
  - simplekml
  - pyoptsparse (see below before installation)
 
@@ -42,6 +42,7 @@ Prepare input files in the root directory of the repository.
 
 Run
 ```
+make
 python3 Trajectory_Optimization.py [setting file name]
 ```
 
