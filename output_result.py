@@ -31,8 +31,7 @@ from utils_c import *
 from PSfunctions import *
 from USStandardAtmosphere_c import *
 from coordinate_c import *
-from tools.IIP import posLLH_IIP_FAA
-from tools.downrange import distance_vincenty
+from IIP_c import posLLH_IIP_FAA
 
 def output_result(xdict, unitdict, tx_res, tu_res, pdict):
     """Returns DataFrame that contains optimization results.

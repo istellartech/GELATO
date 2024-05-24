@@ -125,5 +125,10 @@ double dynamic_pressure_pa(vec3d pos_eci, vec3d vel_eci, double t, matXd wind) {
 
 }
 
+double q_alpha_pa_rad(vec3d pos_eci, vec3d vel_eci, vec4d quat, double t, matXd wind) {
+  double alpha = angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind);
+  double q = dynamic_pressure_pa(pos_eci, vel_eci, t, wind);
+  return q * alpha;
+}
 
 #endif // SRC_WRAPPER_UTILS_HPP_

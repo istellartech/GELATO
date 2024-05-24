@@ -55,7 +55,7 @@ std::pair<double, double> Earth::distance_vincenty(Vector3d observer_LLH,
   // Input: [lat, lon, alt], [lat, lon, alt] ([rad, m])
   // Output: downrange [m], Azimuth start->end [rad]
 
-  int itr_limit = 5000;
+  int itr_limit = 100;
 
   if (observer_LLH(0) == target_LLH(0) && observer_LLH(1) == target_LLH(1)) {
     return std::make_pair(0.0, 0.0);

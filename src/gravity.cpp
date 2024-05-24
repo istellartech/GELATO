@@ -15,7 +15,6 @@ Eigen::Vector3d gravityECI(Eigen::Vector3d posECI_) {
   double a = 6378137.0;          // Equatorial radius [m]
   double one_f = 298.257223563;  // Inverse flattening [-]
   double mu = 3.986004418e14;    // Gravitational constant [m3/s2]
-  double omega = 7.292115e-5;    // Angular velocity [rad/s]
   double barC20 =
       -0.484165371736e-3;  // Normalized Gravitational Coefficient \bar{C}_{20}
 

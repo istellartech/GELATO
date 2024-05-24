@@ -185,4 +185,14 @@ Eigen::Matrix<double, 6, 1> orbital_elements(vec3d pos_eci, vec3d vel_eci) {
   return elem;
 }
 
+double distance_vincenty(double lat_origin, double lon_origin, 
+                         double lat_target, double lon_target) {
+  
+  std::pair <double, double>dist_azimuth = Earth::distance_vincenty(
+      Eigen::Vector3d(lat_origin * M_PI / 180.0, lon_origin * M_PI / 180.0, 0.0),
+      Eigen::Vector3d(lat_target * M_PI / 180.0, lon_target * M_PI / 180.0, 0.0));
+
+  return dist_azimuth.first;
+}
+
 #endif  // SRC_WRAPPER_COORDINATE_HPP_
