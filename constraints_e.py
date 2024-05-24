@@ -28,7 +28,7 @@
 
 
 import numpy as np
-from utils import *
+from utils_c import *
 from coordinate_c import geodetic2ecef, eci2ecef, normalize, quatrot, quat_nedg2ecef, vel_eci2ecef, eci2geodetic
 from tools.IIP import posLLH_IIP_FAA
 from tools.downrange import distance_vincenty

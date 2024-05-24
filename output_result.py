@@ -25,7 +25,7 @@
 
 import numpy as np
 import pandas as pd
-from utils import *
+from utils_c import *
 from PSfunctions import *
 from USStandardAtmosphere_c import *
 from coordinate_c import *

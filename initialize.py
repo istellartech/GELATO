@@ -26,7 +26,7 @@
 import sys
 import numpy as np
 from scipy.interpolate import interp1d
-from utils import *
+from utils_c import *
 from PSfunctions import *
 from USStandardAtmosphere_c import *
 from coordinate_c import *
