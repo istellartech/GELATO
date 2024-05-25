@@ -125,9 +125,7 @@ def inequality_kickturn(xdict, pdict, unitdict, condition):
     num_sections = pdict["num_sections"]
 
     for i in range(num_sections - 1):
-        ua = pdict["ps_params"].index_start_u(i)
-        n = pdict["ps_params"].nodes(i)
-        ub = ua + n
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         u_i_ = u_[ua:ub]
 
         # kick turn
@@ -150,9 +148,7 @@ def inequality_jac_kickturn(xdict, pdict, unitdict, condition):
 
     nRow = 0
     for i in range(num_sections - 1):
-        ua = pdict["ps_params"].index_start_u(i)
-        n = pdict["ps_params"].nodes(i)
-        ub = ua + n
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
 
         # kick turn
         if "kick" in pdict["params"][i]["attitude"]:
@@ -187,11 +183,7 @@ def equality_6DoF_rate(xdict, pdict, unitdict, condition):
     num_sections = pdict["num_sections"]
 
     for i in range(num_sections):
-        ua = pdict["ps_params"].index_start_u(i)
-        xa = ua + i
-        n = pdict["ps_params"].nodes(i)
-        ub = ua + n
-        xb = xa + n + 1
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         pos_i_ = pos_[xa:xb]
         quat_i_ = quat_[xa:xb]
         u_i_ = u_[ua:ub]
@@ -256,11 +248,7 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
     iRow = 0
 
     for i in range(num_sections):
-        ua = pdict["ps_params"].index_start_u(i)
-        xa = ua + i
-        n = pdict["ps_params"].nodes(i)
-        ub = ua + n
-        xb = xa + n + 1 
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         pos_i_ = pos_[xa:xb]
         quat_i_ = quat_[xa:xb]
 

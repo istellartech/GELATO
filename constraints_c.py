@@ -107,7 +107,7 @@ def inequality_max_alpha(xdict, pdict, unitdict, condition):
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_t = unitdict["t"]
-    units = np.array([unit_pos, unit_vel, unit_t, 1.0])
+    units = [unit_pos, unit_vel, unit_t, 1.0]
 
     pos_ = xdict["position"].reshape(-1, 3)
     vel_ = xdict["velocity"].reshape(-1, 3)
@@ -120,16 +120,13 @@ def inequality_max_alpha(xdict, pdict, unitdict, condition):
     wind = pdict["wind_table"]
 
     for i in range(num_sections - 1):
-        xa = pdict["ps_params"].index_start_x(i)
-        n = pdict["ps_params"].nodes(i)
-        xb = xa + n + 1
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         pos_i_ = pos_[xa:xb]
         vel_i_ = vel_[xa:xb]
         quat_i_ = quat_[xa:xb]
 
         to = t[i]
         tf = t[i + 1]
-        t_i_ = pdict["ps_params"].time_nodes(i, to, tf)
         section_name = pdict["params"][i]["name"]
 
         # angle of attack
@@ -137,6 +134,7 @@ def inequality_max_alpha(xdict, pdict, unitdict, condition):
             aoa_max = condition["AOA_max"][section_name]["value"] * np.pi / 180.0
             units[3] = aoa_max
             if condition["AOA_max"][section_name]["range"] == "all":
+                t_i_ = pdict["ps_params"].time_nodes(i, to, tf)
                 con.append(
                     1.0
                     - aoa_zerolift_array_dimless(
@@ -165,7 +163,7 @@ def inequality_max_q(xdict, pdict, unitdict, condition):
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_t = unitdict["t"]
-    units = np.array([unit_pos, unit_vel, unit_t, 1.0])
+    units = [unit_pos, unit_vel, unit_t, 1.0]
 
     pos_ = xdict["position"].reshape(-1, 3)
     vel_ = xdict["velocity"].reshape(-1, 3)
@@ -177,15 +175,12 @@ def inequality_max_q(xdict, pdict, unitdict, condition):
     wind = pdict["wind_table"]
 
     for i in range(num_sections - 1):
-        xa = pdict["ps_params"].index_start_x(i)
-        n = pdict["ps_params"].nodes(i)
-        xb = xa + n + 1
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         pos_i_ = pos_[xa:xb]
         vel_i_ = vel_[xa:xb]
         
         to = t[i]
         tf = t[i + 1]
-        t_i_ = pdict["ps_params"].time_nodes(i, to, tf)
         section_name = pdict["params"][i]["name"]
 
         # max-Q
@@ -193,6 +188,7 @@ def inequality_max_q(xdict, pdict, unitdict, condition):
             q_max = condition["dynamic_pressure_max"][section_name]["value"]
             units[3] = q_max
             if condition["dynamic_pressure_max"][section_name]["range"] == "all":
+                t_i_ = pdict["ps_params"].time_nodes(i, to, tf)
                 con.append(
                     1.0
                     - dynamic_pressure_array_dimless(pos_i_, vel_i_, t_i_, wind, units)
@@ -219,7 +215,7 @@ def inequality_max_qalpha(xdict, pdict, unitdict, condition):
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_t = unitdict["t"]
-    units = np.array([unit_pos, unit_vel, unit_t, 1.0])
+    units = [unit_pos, unit_vel, unit_t, 1.0]
 
     pos_ = xdict["position"].reshape(-1, 3)
     vel_ = xdict["velocity"].reshape(-1, 3)
@@ -233,16 +229,13 @@ def inequality_max_qalpha(xdict, pdict, unitdict, condition):
 
     for i in range(num_sections - 1):
 
-        xa = pdict["ps_params"].index_start_x(i)
-        n = pdict["ps_params"].nodes(i)
-        xb = xa + n + 1
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         pos_i_ = pos_[xa:xb]
         vel_i_ = vel_[xa:xb]
         quat_i_ = quat_[xa:xb]
 
         to = t[i]
         tf = t[i + 1]
-        t_i_ = pdict["ps_params"].time_nodes(i, to, tf)
         section_name = pdict["params"][i]["name"]
 
         # max-Qalpha
@@ -250,6 +243,7 @@ def inequality_max_qalpha(xdict, pdict, unitdict, condition):
             qalpha_max = condition["Q_alpha_max"][section_name]["value"] * np.pi / 180.0
             units[3] = qalpha_max
             if condition["Q_alpha_max"][section_name]["range"] == "all":
+                t_i_ = pdict["ps_params"].time_nodes(i, to, tf)
                 con.append(
                     1.0
                     - q_alpha_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units)
@@ -275,7 +269,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_t = unitdict["t"]
-    units = np.array([unit_pos, unit_vel, unit_t, 1.0])
+    units = [unit_pos, unit_vel, unit_t, 1.0]
 
     pos_ = xdict["position"].reshape(-1, 3)
     vel_ = xdict["velocity"].reshape(-1, 3)
@@ -307,9 +301,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
 
         # angle of attack
         if section_name in condition["AOA_max"]:
-            xa = pdict["ps_params"].index_start_x(i)
-            n = pdict["ps_params"].nodes(i)
-            xb = xa + n + 1
+            ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
             pos_i_ = pos_[xa:xb]
             vel_i_ = vel_[xa:xb]
             quat_i_ = quat_[xa:xb]
@@ -399,7 +391,7 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_t = unitdict["t"]
-    units = np.array([unit_pos, unit_vel, unit_t, 1.0])
+    units = [unit_pos, unit_vel, unit_t, 1.0]
 
     pos_ = xdict["position"].reshape(-1, 3)
     vel_ = xdict["velocity"].reshape(-1, 3)
@@ -430,9 +422,7 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
 
         # angle of attack
         if section_name in condition["dynamic_pressure_max"]:
-            xa = pdict["ps_params"].index_start_x(i)
-            n = pdict["ps_params"].nodes(i)
-            xb = xa + n + 1
+            ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
             pos_i_ = pos_[xa:xb]
             vel_i_ = vel_[xa:xb]
 
@@ -510,7 +500,7 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_t = unitdict["t"]
-    units = np.array([unit_pos, unit_vel, unit_t, 1.0])
+    units = [unit_pos, unit_vel, unit_t, 1.0]
 
     pos_ = xdict["position"].reshape(-1, 3)
     vel_ = xdict["velocity"].reshape(-1, 3)
@@ -542,9 +532,7 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
 
         # angle of attack
         if section_name in condition["Q_alpha_max"]:
-            xa = pdict["ps_params"].index_start_x(i)
-            n = pdict["ps_params"].nodes(i)
-            xb = xa + n + 1
+            ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
             pos_i_ = pos_[xa:xb]
             vel_i_ = vel_[xa:xb]
             quat_i_ = quat_[xa:xb]
@@ -621,4 +609,3 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
         jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
 
     return jac
-

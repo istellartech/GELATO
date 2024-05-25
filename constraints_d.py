@@ -43,9 +43,7 @@ def equality_dynamics_mass(xdict, pdict, unitdict, condition):
     num_sections = pdict["num_sections"]
 
     for i in range(num_sections):
-        xa = pdict["ps_params"].index_start_x(i)
-        n = pdict["ps_params"].nodes(i)
-        xb = xa + n + 1
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         mass_i_ = mass_[xa:xb]
         to = t[i]
         tf = t[i + 1]
@@ -77,11 +75,7 @@ def equality_jac_dynamics_mass(xdict, pdict, unitdict, condition):
     jac["t"] = {"coo": [[], [], []], "shape": (pdict["N"], num_sections + 1)}
 
     for i in range(num_sections):
-        ua = pdict["ps_params"].index_start_u(i)
-        xa = ua + i
-        n = pdict["ps_params"].nodes(i)
-        ub = ua + n
-        xb = xa + n + 1
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
 
         if pdict["params"][i]["engineOn"]:
 
@@ -135,11 +129,7 @@ def equality_dynamics_position(xdict, pdict, unitdict, condition):
     param = np.zeros(5)
 
     for i in range(num_sections):
-        ua = pdict["ps_params"].index_start_u(i)
-        xa = ua + i
-        n = pdict["ps_params"].nodes(i)
-        ub = ua + n
-        xb = xa + n + 1
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         pos_i_ = pos_[xa:xb]
         vel_i_ = vel_[xa:xb]
 
@@ -179,11 +169,7 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
     jac["t"] = {"coo": [[], [], []], "shape": (pdict["N"] * 3, num_sections + 1)}
 
     for i in range(num_sections):
-        ua = pdict["ps_params"].index_start_u(i)
-        xa = ua + i
-        n = pdict["ps_params"].nodes(i)
-        ub = ua + n
-        xb = xa + n + 1
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         vel_i_ = vel_[xa:xb]
         to = t[i]
         tf = t[i + 1]
@@ -244,11 +230,7 @@ def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
     param = np.zeros(5)
 
     for i in range(num_sections):
-        ua = pdict["ps_params"].index_start_u(i)
-        xa = ua + i
-        n = pdict["ps_params"].nodes(i)
-        ub = ua + n
-        xb = xa + n + 1
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         mass_i_ = mass_[xa:xb]
         pos_i_ = pos_[xa:xb]
         vel_i_ = vel_[xa:xb]
@@ -331,11 +313,7 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
     jac["t"] = {"coo": [[], [], []], "shape": (pdict["N"] * 3, num_sections + 1)}
 
     for i in range(num_sections):
-        ua = pdict["ps_params"].index_start_u(i)
-        xa = ua + i
-        n = pdict["ps_params"].nodes(i)
-        ub = ua + n
-        xb = xa + n + 1
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         mass_i_ = mass_[xa:xb]
         pos_i_ = pos_[xa:xb]
         vel_i_ = vel_[xa:xb]
@@ -495,11 +473,7 @@ def equality_dynamics_quaternion(xdict, pdict, unitdict, condition):
     num_sections = pdict["num_sections"]
 
     for i in range(num_sections):
-        ua = pdict["ps_params"].index_start_u(i)
-        xa = ua + i
-        n = pdict["ps_params"].nodes(i)
-        ub = ua + n
-        xb = xa + n + 1
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         quat_i_ = quat_[xa:xb]
         u_i_ = u_[ua:ub]
         
@@ -541,11 +515,7 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
     jac["t"] = {"coo": [[], [], []], "shape": (pdict["N"] * 4, num_sections + 1)}
 
     for i in range(num_sections):
-        ua = pdict["ps_params"].index_start_u(i)
-        xa = ua + i
-        n = pdict["ps_params"].nodes(i)
-        ub = ua + n
-        xb = xa + n + 1
+        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         quat_i_ = quat_[xa:xb]
         u_i_ = u_[ua:ub]
         to = t[i]
