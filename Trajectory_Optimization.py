@@ -42,7 +42,6 @@ from constraints_e import equality_posLLH, equality_jac_posLLH, inequality_posLL
 from user_constraints import equality_user, inequality_user
 from constraints_u import equality_jac_user, inequality_jac_user
 from cost_gradient import cost_6DoF, cost_jac
-from PSfunctions import nodes_LGR, differentiation_matrix_LGR
 from SectionParameters import PSparams
 
 version = "0.7.3"
@@ -165,6 +164,7 @@ unitdict = {
     "t": unit_t,
 }
 
+pdict["dx"] = 1.0e-8
 
 condition = {**settings["TerminalCondition"], **settings["FlightConstraint"]}
 condition["init"] = {}
