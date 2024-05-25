@@ -283,7 +283,7 @@ def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
 
     return np.concatenate(con, axis=None)
 
-
+@profile
 def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
     """Jacobian of equality_dynamics_velocity."""
 
@@ -408,15 +408,9 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                         t_nodes,
                     )
                     vel_i_[j + 1, k] -= dx
-                    submat_vel[j * 3, (j + 1) * 3 + k] += (
-                        -(f_p[j, 0] - f_center[j, 0]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh acc_x vel
-                    submat_vel[j * 3 + 1, (j + 1) * 3 + k] += (
-                        -(f_p[j, 1] - f_center[j, 1]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh acc_x vel
-                    submat_vel[j * 3 + 2, (j + 1) * 3 + k] += (
-                        -(f_p[j, 2] - f_center[j, 2]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh acc_x vel
+                    submat_vel[j * 3 : j * 3 + 3, (j + 1) * 3 + k] += (
+                        -(f_p[j] - f_center[j]) / dx * (tf - to) * unit_t / 2.0
+                    )  # rh acc vel
 
             for k in range(4):
                 quat_i_[j + 1, k] += dx
@@ -495,7 +489,7 @@ def equality_dynamics_quaternion(xdict, pdict, unitdict, condition):
 
     return np.concatenate(con, axis=None)
 
-
+@profile
 def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
     """Jacobian of equality_dynamics_quaternion."""
 
@@ -551,18 +545,9 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
                 for k in range(4):
                     quat_i_[j + 1, k] += dx
                     f_p = dynamics_quaternion(quat_i_[1:], u_i_, unit_u)
-                    submat_quat[j * 4, (j + 1) * 4 + k] += (
-                        -(f_p[j, 0] - f_center[j, 0]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh q0 quat
-                    submat_quat[j * 4 + 1, (j + 1) * 4 + k] += (
-                        -(f_p[j, 1] - f_center[j, 1]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh q1 quat
-                    submat_quat[j * 4 + 2, (j + 1) * 4 + k] += (
-                        -(f_p[j, 2] - f_center[j, 2]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh q2 quat
-                    submat_quat[j * 4 + 3, (j + 1) * 4 + k] += (
-                        -(f_p[j, 3] - f_center[j, 3]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh q3 quat
+                    submat_quat[j * 4 : j * 4 + 4, (j + 1) * 4 + k] += (
+                        -(f_p[j] - f_center[j]) / dx * (tf - to) * unit_t / 2.0
+                    )  # rh quat
                     quat_i_[j + 1, k] -= dx
 
                 for k in range(3):
