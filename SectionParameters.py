@@ -45,3 +45,9 @@ class PSparams:
         if i < 0 or i >= self._num_sections:
             raise ValueError('Index out of range')
         return self._num_nodes[i]
+    
+    def time_nodes(self, i, to, tf):
+        t = np.zeros(self.nodes(i) + 1)
+        t[0] = to
+        t[1:] = self.tau(i) * (tf - to) / 2 + (tf + to) / 2
+        return t

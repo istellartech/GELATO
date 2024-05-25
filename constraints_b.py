@@ -190,12 +190,14 @@ def equality_6DoF_rate(xdict, pdict, unitdict, condition):
     num_sections = pdict["num_sections"]
 
     for i in range(num_sections):
-        a = pdict["ps_params"].index_start_u(i)
+        ua = pdict["ps_params"].index_start_u(i)
+        xa = ua + i
         n = pdict["ps_params"].nodes(i)
-        b = a + n
-        pos_i_ = pos_[a + i : b + i + 1]
-        quat_i_ = quat_[a + i : b + i + 1]
-        u_i_ = u_[a:b]
+        ub = ua + n
+        xb = xa + n + 1
+        pos_i_ = pos_[xa:xb]
+        quat_i_ = quat_[xa:xb]
+        u_i_ = u_[ua:ub]
 
         # rate constraint
 
@@ -219,7 +221,7 @@ def equality_6DoF_rate(xdict, pdict, unitdict, condition):
 
         # same-rate : pitch/yaw is the same as previous section, roll ANGLE is zero
         elif att == "same-rate":
-            uf_prev = u_[a - 1]
+            uf_prev = u_[ua - 1]
             con.append(u_i_[:, 1] - uf_prev[1])
             con.append(u_i_[:, 2] - uf_prev[2])
             con.append(roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:]))
