@@ -205,7 +205,7 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
             )
 
     for i in range(1, num_sections):
-        a = pdict["ps_params"].index_start_u(i)
+        xa = pdict["ps_params"].index_start_x(i)
 
         param[0] = pdict["params"][i]["thrust"]
         param[1] = pdict["params"][i]["massflow"]
@@ -213,8 +213,8 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
         param[4] = pdict["params"][i]["nozzle_area"]
 
         # knotting constraints
-        mass_init_ = mass_[a + i]
-        mass_prev_ = mass_[a + i - 1]
+        mass_init_ = mass_[xa]
+        mass_prev_ = mass_[xa - 1]
         if not (i in section_sep_list):
             con.append(
                 mass_init_
@@ -222,16 +222,16 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
                 + pdict["params"][i]["mass_jettison"] / unitdict["mass"]
             )
 
-        pos_init_ = pos_[a + i]
-        pos_prev_ = pos_[a + i - 1]
+        pos_init_ = pos_[xa]
+        pos_prev_ = pos_[xa - 1]
         con.append(pos_init_ - pos_prev_)
 
-        vel_init_ = vel_[a + i]
-        vel_prev_ = vel_[a + i - 1]
+        vel_init_ = vel_[xa]
+        vel_prev_ = vel_[xa - 1]
         con.append(vel_init_ - vel_prev_)
 
-        quat_init_ = quat_[a + i]
-        quat_prev_ = quat_[a + i - 1]
+        quat_init_ = quat_[xa]
+        quat_prev_ = quat_[xa - 1]
         con.append(quat_init_ - quat_prev_)
 
     return np.concatenate(con, axis=None)
@@ -278,35 +278,35 @@ def equality_jac_knot_LGR(xdict, pdict, unitdict, condition):
             iRow += 1
 
     for i in range(1, num_sections):
-        a = pdict["ps_params"].index_start_u(i)
+        xa = pdict["ps_params"].index_start_x(i)
 
         if not (i in section_sep_list):
             jac["mass"]["coo"][0].extend([iRow, iRow])
-            jac["mass"]["coo"][1].extend([a + i - 1, a + i])
+            jac["mass"]["coo"][1].extend([xa - 1, xa])
             jac["mass"]["coo"][2].extend([-1.0, 1.0])
             iRow += 1
 
         jac["position"]["coo"][0].extend(list(range(iRow, iRow + 3)))
-        jac["position"]["coo"][1].extend(list(range((a + i - 1) * 3, (a + i) * 3)))
+        jac["position"]["coo"][1].extend(list(range((xa - 1) * 3, (xa) * 3)))
         jac["position"]["coo"][2].extend([-1.0] * 3)
         jac["position"]["coo"][0].extend(list(range(iRow, iRow + 3)))
-        jac["position"]["coo"][1].extend(list(range((a + i) * 3, (a + i + 1) * 3)))
+        jac["position"]["coo"][1].extend(list(range((xa) * 3, (xa + 1) * 3)))
         jac["position"]["coo"][2].extend([1.0] * 3)
         iRow += 3
 
         jac["velocity"]["coo"][0].extend(list(range(iRow, iRow + 3)))
-        jac["velocity"]["coo"][1].extend(list(range((a + i - 1) * 3, (a + i) * 3)))
+        jac["velocity"]["coo"][1].extend(list(range((xa - 1) * 3, (xa) * 3)))
         jac["velocity"]["coo"][2].extend([-1.0] * 3)
         jac["velocity"]["coo"][0].extend(list(range(iRow, iRow + 3)))
-        jac["velocity"]["coo"][1].extend(list(range((a + i) * 3, (a + i + 1) * 3)))
+        jac["velocity"]["coo"][1].extend(list(range((xa) * 3, (xa + 1) * 3)))
         jac["velocity"]["coo"][2].extend([1.0] * 3)
         iRow += 3
 
         jac["quaternion"]["coo"][0].extend(list(range(iRow, iRow + 4)))
-        jac["quaternion"]["coo"][1].extend(list(range((a + i - 1) * 4, (a + i) * 4)))
+        jac["quaternion"]["coo"][1].extend(list(range((xa - 1) * 4, (xa) * 4)))
         jac["quaternion"]["coo"][2].extend([-1.0] * 4)
         jac["quaternion"]["coo"][0].extend(list(range(iRow, iRow + 4)))
-        jac["quaternion"]["coo"][1].extend(list(range((a + i) * 4, (a + i + 1) * 4)))
+        jac["quaternion"]["coo"][1].extend(list(range((xa) * 4, (xa + 1) * 4)))
         jac["quaternion"]["coo"][2].extend([1.0] * 4)
         iRow += 4
 

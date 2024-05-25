@@ -120,19 +120,16 @@ def inequality_max_alpha(xdict, pdict, unitdict, condition):
     wind = pdict["wind_table"]
 
     for i in range(num_sections - 1):
-        a = pdict["ps_params"].index_start_u(i)
+        xa = pdict["ps_params"].index_start_x(i)
         n = pdict["ps_params"].nodes(i)
-        b = a + n
+        xb = xa + n + 1
+        pos_i_ = pos_[xa:xb]
+        vel_i_ = vel_[xa:xb]
+        quat_i_ = quat_[xa:xb]
 
-        pos_i_ = pos_[a + i : b + i + 1]
-        vel_i_ = vel_[a + i : b + i + 1]
-        quat_i_ = quat_[a + i : b + i + 1]
         to = t[i]
         tf = t[i + 1]
-        t_i_ = np.zeros(n + 1)
-        t_i_[0] = to
-        t_i_[1:] = pdict["ps_params"].tau(i) * (tf - to) / 2.0 + (tf + to) / 2.0
-
+        t_i_ = pdict["ps_params"].time_nodes(i, to, tf)
         section_name = pdict["params"][i]["name"]
 
         # angle of attack
@@ -180,18 +177,15 @@ def inequality_max_q(xdict, pdict, unitdict, condition):
     wind = pdict["wind_table"]
 
     for i in range(num_sections - 1):
-        a = pdict["ps_params"].index_start_u(i)
+        xa = pdict["ps_params"].index_start_x(i)
         n = pdict["ps_params"].nodes(i)
-        b = a + n
-
-        pos_i_ = pos_[a + i : b + i + 1]
-        vel_i_ = vel_[a + i : b + i + 1]
+        xb = xa + n + 1
+        pos_i_ = pos_[xa:xb]
+        vel_i_ = vel_[xa:xb]
+        
         to = t[i]
         tf = t[i + 1]
-        t_i_ = np.zeros(n + 1)
-        t_i_[0] = to
-        t_i_[1:] = pdict["ps_params"].tau(i) * (tf - to) / 2.0 + (tf + to) / 2.0
-
+        t_i_ = pdict["ps_params"].time_nodes(i, to, tf)
         section_name = pdict["params"][i]["name"]
 
         # max-Q
@@ -238,19 +232,17 @@ def inequality_max_qalpha(xdict, pdict, unitdict, condition):
     wind = pdict["wind_table"]
 
     for i in range(num_sections - 1):
-        a = pdict["ps_params"].index_start_u(i)
-        n = pdict["ps_params"].nodes(i)
-        b = a + n
 
-        pos_i_ = pos_[a + i : b + i + 1]
-        vel_i_ = vel_[a + i : b + i + 1]
-        quat_i_ = quat_[a + i : b + i + 1]
+        xa = pdict["ps_params"].index_start_x(i)
+        n = pdict["ps_params"].nodes(i)
+        xb = xa + n + 1
+        pos_i_ = pos_[xa:xb]
+        vel_i_ = vel_[xa:xb]
+        quat_i_ = quat_[xa:xb]
+
         to = t[i]
         tf = t[i + 1]
-        t_i_ = np.zeros(n + 1)
-        t_i_[0] = to
-        t_i_[1:] = pdict["ps_params"].tau(i) * (tf - to) / 2.0 + (tf + to) / 2.0
-
+        t_i_ = pdict["ps_params"].time_nodes(i, to, tf)
         section_name = pdict["params"][i]["name"]
 
         # max-Qalpha
@@ -315,18 +307,16 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
 
         # angle of attack
         if section_name in condition["AOA_max"]:
-            a = pdict["ps_params"].index_start_u(i)
+            xa = pdict["ps_params"].index_start_x(i)
             n = pdict["ps_params"].nodes(i)
-            b = a + n
+            xb = xa + n + 1
+            pos_i_ = pos_[xa:xb]
+            vel_i_ = vel_[xa:xb]
+            quat_i_ = quat_[xa:xb]
 
-            pos_i_ = pos_[a + i : b + i + 1]
-            vel_i_ = vel_[a + i : b + i + 1]
-            quat_i_ = quat_[a + i : b + i + 1]
             to = t[i]
             tf = t[i + 1]
-            t_i_ = np.zeros(n + 1)
-            t_i_[0] = to
-            t_i_[1:] = pdict["ps_params"].tau(i) * (tf - to) / 2.0 + (tf + to) / 2.0
+            t_i_ = pdict["ps_params"].time_nodes(i, to, tf)
             t_i_p1_ = np.zeros(n + 1)
             t_i_p2_ = np.zeros(n + 1)
 
@@ -341,16 +331,9 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
             f_c = aoa_zerolift_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units)
 
             to_p = to + dx
-            t_i_p1_[0] = to_p
-            t_i_p1_[1:] = (
-                pdict["ps_params"].tau(i) * (tf - to_p) / 2.0 + (tf + to_p) / 2.0
-            )
-
+            t_i_p1_ = pdict["ps_params"].time_nodes(i, to_p, tf)
             tf_p = tf + dx
-            t_i_p2_[0] = to
-            t_i_p2_[1:] = (
-                pdict["ps_params"].tau(i) * (tf_p - to) / 2.0 + (tf_p + to) / 2.0
-            )
+            t_i_p2_ = pdict["ps_params"].time_nodes(i, to, tf_p)
 
             for k in nk:
                 for j in range(3):
@@ -360,7 +343,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
                     )
                     pos_i_[k, j] -= dx
                     jac["position"]["coo"][0].append(iRow + k)
-                    jac["position"]["coo"][1].append((a + i + k) * 3 + j)
+                    jac["position"]["coo"][1].append((xa + k) * 3 + j)
                     jac["position"]["coo"][2].append(-(f_p - f_c[k]) / dx)
 
                 for j in range(3):
@@ -370,7 +353,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
                     )
                     vel_i_[k, j] -= dx
                     jac["velocity"]["coo"][0].append(iRow + k)
-                    jac["velocity"]["coo"][1].append((a + i + k) * 3 + j)
+                    jac["velocity"]["coo"][1].append((xa + k) * 3 + j)
                     jac["velocity"]["coo"][2].append(-(f_p - f_c[k]) / dx)
 
                 for j in range(4):
@@ -380,7 +363,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
                     )
                     quat_i_[k, j] -= dx
                     jac["quaternion"]["coo"][0].append(iRow + k)
-                    jac["quaternion"]["coo"][1].append((a + i + k) * 4 + j)
+                    jac["quaternion"]["coo"][1].append((xa + k) * 4 + j)
                     jac["quaternion"]["coo"][2].append(-(f_p - f_c[k]) / dx)
 
                 f_p = angle_of_attack_all_dimless(
@@ -447,19 +430,15 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
 
         # angle of attack
         if section_name in condition["dynamic_pressure_max"]:
-            a = pdict["ps_params"].index_start_u(i)
+            xa = pdict["ps_params"].index_start_x(i)
             n = pdict["ps_params"].nodes(i)
-            b = a + n
+            xb = xa + n + 1
+            pos_i_ = pos_[xa:xb]
+            vel_i_ = vel_[xa:xb]
 
-            pos_i_ = pos_[a + i : b + i + 1]
-            vel_i_ = vel_[a + i : b + i + 1]
             to = t[i]
             tf = t[i + 1]
-            t_i_ = np.zeros(n + 1)
-            t_i_[0] = to
-            t_i_[1:] = pdict["ps_params"].tau(i) * (tf - to) / 2.0 + (tf + to) / 2.0
-            t_i_p1_ = np.zeros(n + 1)
-            t_i_p2_ = np.zeros(n + 1)
+            t_i_ = pdict["ps_params"].time_nodes(i, to, tf)
 
             q_max = condition["dynamic_pressure_max"][section_name]["value"]
             units[3] = q_max
@@ -472,15 +451,10 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
             f_c = dynamic_pressure_array_dimless(pos_i_, vel_i_, t_i_, wind, units)
 
             to_p = to + dx
-            t_i_p1_[0] = to_p
-            t_i_p1_[1:] = (
-                pdict["ps_params"].tau(i) * (tf - to_p) / 2.0 + (tf + to_p) / 2.0
-            )
+            t_i_p1_ = pdict["ps_params"].time_nodes(i, to_p, tf)
             tf_p = tf + dx
-            t_i_p2_[0] = to
-            t_i_p2_[1:] = (
-                pdict["ps_params"].tau(i) * (tf_p - to) / 2.0 + (tf_p + to) / 2.0
-            )
+            t_i_p2_ = pdict["ps_params"].time_nodes(i, to, tf_p)
+
 
             for k in nk:
                 for j in range(3):
@@ -490,7 +464,7 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
                     )
                     pos_i_[k, j] -= dx
                     jac["position"]["coo"][0].append(iRow + k)
-                    jac["position"]["coo"][1].append((a + i + k) * 3 + j)
+                    jac["position"]["coo"][1].append((xa + k) * 3 + j)
                     jac["position"]["coo"][2].append(-(f_p - f_c[k]) / dx)
 
                 for j in range(3):
@@ -500,7 +474,7 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
                     )
                     vel_i_[k, j] -= dx
                     jac["velocity"]["coo"][0].append(iRow + k)
-                    jac["velocity"]["coo"][1].append((a + i + k) * 3 + j)
+                    jac["velocity"]["coo"][1].append((xa + k) * 3 + j)
                     jac["velocity"]["coo"][2].append(-(f_p - f_c[k]) / dx)
 
                 f_p = dynamic_pressure_dimless(
@@ -568,30 +542,21 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
 
         # angle of attack
         if section_name in condition["Q_alpha_max"]:
-            a = pdict["ps_params"].index_start_u(i)
+            xa = pdict["ps_params"].index_start_x(i)
             n = pdict["ps_params"].nodes(i)
-            b = a + n
+            xb = xa + n + 1
+            pos_i_ = pos_[xa:xb]
+            vel_i_ = vel_[xa:xb]
+            quat_i_ = quat_[xa:xb]
 
-            pos_i_ = pos_[a + i : b + i + 1]
-            vel_i_ = vel_[a + i : b + i + 1]
-            quat_i_ = quat_[a + i : b + i + 1]
             to = t[i]
             tf = t[i + 1]
-            t_i_ = np.zeros(n + 1)
-            t_i_[0] = to
-            t_i_[1:] = pdict["ps_params"].tau(i) * (tf - to) / 2.0 + (tf + to) / 2.0
-            t_i_p1_ = np.zeros(n + 1)
-            t_i_p2_ = np.zeros(n + 1)
+            t_i_ = pdict["ps_params"].time_nodes(i, to, tf) 
             to_p = to + dx
-            t_i_p1_[0] = to_p
-            t_i_p1_[1:] = (
-                pdict["ps_params"].tau(i) * (tf - to_p) / 2.0 + (tf + to_p) / 2.0
-            )
+            t_i_p1_ = pdict["ps_params"].time_nodes(i, to_p, tf)
             tf_p = tf + dx
-            t_i_p2_[0] = to
-            t_i_p2_[1:] = (
-                pdict["ps_params"].tau(i) * (tf_p - to) / 2.0 + (tf_p + to) / 2.0
-            )
+            t_i_p2_ = pdict["ps_params"].time_nodes(i, to, tf_p)
+
 
             qalpha_max = condition["Q_alpha_max"][section_name]["value"] * np.pi / 180.0
             units[3] = qalpha_max
@@ -611,7 +576,7 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
                     )
                     pos_i_[k, j] -= dx
                     jac["position"]["coo"][0].append(iRow + k)
-                    jac["position"]["coo"][1].append((a + i + k) * 3 + j)
+                    jac["position"]["coo"][1].append((xa + k) * 3 + j)
                     jac["position"]["coo"][2].append(-(f_p - f_c[k]) / dx)
 
                 for j in range(3):
@@ -621,7 +586,7 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
                     )
                     vel_i_[k, j] -= dx
                     jac["velocity"]["coo"][0].append(iRow + k)
-                    jac["velocity"]["coo"][1].append((a + i + k) * 3 + j)
+                    jac["velocity"]["coo"][1].append((xa + k) * 3 + j)
                     jac["velocity"]["coo"][2].append(-(f_p - f_c[k]) / dx)
 
                 for j in range(4):
@@ -631,7 +596,7 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
                     )
                     quat_i_[k, j] -= dx
                     jac["quaternion"]["coo"][0].append(iRow + k)
-                    jac["quaternion"]["coo"][1].append((a + i + k) * 4 + j)
+                    jac["quaternion"]["coo"][1].append((xa + k) * 4 + j)
                     jac["quaternion"]["coo"][2].append(-(f_p - f_c[k]) / dx)
 
                 f_p = q_alpha_dimless(
