@@ -129,17 +129,19 @@ def inequality_max_alpha(xdict, pdict, unitdict, condition):
     wind = pdict["wind_table"]
 
     for i in range(num_sections - 1):
-        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
-        pos_i_ = pos_[xa:xb]
-        vel_i_ = vel_[xa:xb]
-        quat_i_ = quat_[xa:xb]
-
-        to = t[i]
-        tf = t[i + 1]
         section_name = pdict["params"][i]["name"]
 
         # angle of attack
         if section_name in condition["AOA_max"]:
+
+            ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
+            pos_i_ = pos_[xa:xb]
+            vel_i_ = vel_[xa:xb]
+            quat_i_ = quat_[xa:xb]
+
+            to = t[i]
+            tf = t[i + 1]
+
             aoa_max = condition["AOA_max"][section_name]["value"] * np.pi / 180.0
             units[3] = aoa_max
             if condition["AOA_max"][section_name]["range"] == "all":
@@ -184,16 +186,15 @@ def inequality_max_q(xdict, pdict, unitdict, condition):
     wind = pdict["wind_table"]
 
     for i in range(num_sections - 1):
-        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
-        pos_i_ = pos_[xa:xb]
-        vel_i_ = vel_[xa:xb]
-        
-        to = t[i]
-        tf = t[i + 1]
         section_name = pdict["params"][i]["name"]
-
         # max-Q
         if section_name in condition["dynamic_pressure_max"]:
+
+            ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
+            pos_i_ = pos_[xa:xb]
+            vel_i_ = vel_[xa:xb]
+            to = t[i]
+            tf = t[i + 1]
             q_max = condition["dynamic_pressure_max"][section_name]["value"]
             units[3] = q_max
             if condition["dynamic_pressure_max"][section_name]["range"] == "all":
@@ -238,17 +239,17 @@ def inequality_max_qalpha(xdict, pdict, unitdict, condition):
 
     for i in range(num_sections - 1):
 
-        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
-        pos_i_ = pos_[xa:xb]
-        vel_i_ = vel_[xa:xb]
-        quat_i_ = quat_[xa:xb]
-
-        to = t[i]
-        tf = t[i + 1]
         section_name = pdict["params"][i]["name"]
-
         # max-Qalpha
         if section_name in condition["Q_alpha_max"]:
+
+            ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
+            pos_i_ = pos_[xa:xb]
+            vel_i_ = vel_[xa:xb]
+            quat_i_ = quat_[xa:xb]
+            to = t[i]
+            tf = t[i + 1]
+
             qalpha_max = condition["Q_alpha_max"][section_name]["value"] * np.pi / 180.0
             units[3] = qalpha_max
             if condition["Q_alpha_max"][section_name]["range"] == "all":

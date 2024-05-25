@@ -128,11 +128,10 @@ def inequality_kickturn(xdict, pdict, unitdict, condition):
     num_sections = pdict["num_sections"]
 
     for i in range(num_sections - 1):
-        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
-        u_i_ = u_[ua:ub]
-
         # kick turn
         if "kick" in pdict["params"][i]["attitude"]:
+            ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
+            u_i_ = u_[ua:ub]
             con.append(-u_i_[:, 1])
             # con.append(u_i_[:,1]+0.36)
 
@@ -151,10 +150,10 @@ def inequality_jac_kickturn(xdict, pdict, unitdict, condition):
 
     nRow = 0
     for i in range(num_sections - 1):
-        ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
 
         # kick turn
         if "kick" in pdict["params"][i]["attitude"]:
+            ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
             row.extend(range(nRow, nRow + n))
             col.extend(range(ua * 3 + 1, ub * 3 + 1, 3))
             data.extend([-1.0] * n)
