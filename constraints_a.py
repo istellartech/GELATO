@@ -374,7 +374,7 @@ def equality_jac_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     """Jacobian of equality_terminal."""
 
     jac = {}
-    dx = 1.0e-8
+    dx = pdict["dx"]
 
     f_center = equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition)
 

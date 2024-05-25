@@ -279,7 +279,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_max_alpha."""
 
     jac = {}
-    dx = 1.0e-8
+    dx = pdict["dx"]
 
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
@@ -403,7 +403,7 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_max_q."""
 
     jac = {}
-    dx = 1.0e-8
+    dx = pdict["dx"]
 
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
@@ -513,7 +513,7 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_max_qalpha."""
 
     jac = {}
-    dx = 1.0e-8
+    dx = pdict["dx"]
 
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
@@ -555,7 +555,7 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
 
             to = t[i]
             tf = t[i + 1]
-            t_i_ = pdict["ps_params"].time_nodes(i, to, tf) 
+            t_i_ = pdict["ps_params"].time_nodes(i, to, tf)
             to_p = to + dx
             t_i_p1_ = pdict["ps_params"].time_nodes(i, to_p, tf)
             tf_p = tf + dx

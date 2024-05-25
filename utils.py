@@ -216,7 +216,7 @@ def jac_fd(con, xdict, pdict, unitdict, condition):
     """
 
     jac = {}
-    dx = 1.0e-8
+    dx = pdict["dx"]
     g_base = con(xdict, pdict, unitdict, condition)
     if hasattr(g_base, "__len__"):
         nRows = len(g_base)

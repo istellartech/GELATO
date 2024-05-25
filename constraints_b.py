@@ -128,10 +128,10 @@ def inequality_kickturn(xdict, pdict, unitdict, condition):
     num_sections = pdict["num_sections"]
 
     for i in range(num_sections - 1):
-        a = pdict["ps_params"].index_start_u(i)
+        ua = pdict["ps_params"].index_start_u(i)
         n = pdict["ps_params"].nodes(i)
-        b = a + n
-        u_i_ = u_[a:b]
+        ub = ua + n
+        u_i_ = u_[ua:ub]
 
         # kick turn
         if "kick" in pdict["params"][i]["attitude"]:
@@ -153,14 +153,14 @@ def inequality_jac_kickturn(xdict, pdict, unitdict, condition):
 
     nRow = 0
     for i in range(num_sections - 1):
-        a = pdict["ps_params"].index_start_u(i)
+        ua = pdict["ps_params"].index_start_u(i)
         n = pdict["ps_params"].nodes(i)
-        b = a + n
+        ub = ua + n
 
         # kick turn
         if "kick" in pdict["params"][i]["attitude"]:
             row.extend(range(nRow, nRow + n))
-            col.extend(range(a * 3 + 1, b * 3 + 1, 3))
+            col.extend(range(ua * 3 + 1, ub * 3 + 1, 3))
             data.extend([-1.0] * n)
             nRow += n
 
@@ -241,7 +241,7 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
     """Jacobian of equality_rate."""
 
     jac = {}
-    dx = 1.0e-8
+    dx = pdict["dx"]
 
     unit_pos = unitdict["position"]
 
@@ -259,11 +259,13 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
     iRow = 0
 
     for i in range(num_sections):
-        a = pdict["ps_params"].index_start_u(i)
+        ua = pdict["ps_params"].index_start_u(i)
+        xa = ua + i
         n = pdict["ps_params"].nodes(i)
-        b = a + n
-        pos_i_ = pos_[a + i : b + i + 1]
-        quat_i_ = quat_[a + i : b + i + 1]
+        ub = ua + n
+        xb = xa + n + 1 
+        pos_i_ = pos_[xa:xb]
+        quat_i_ = quat_[xa:xb]
 
         # rate constraint
 
@@ -271,42 +273,42 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
         # attitude hold : angular velocity is zero
         if att in ["hold", "vertical"]:
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n * 3)))
-            jac["u"]["coo"][1].extend(list(range(a * 3, (a + n) * 3)))
+            jac["u"]["coo"][1].extend(list(range(ua * 3, (ua + n) * 3)))
             jac["u"]["coo"][2].extend([1.0] * (n * 3))
             iRow += n * 3
 
         # kick-turn : pitch rate constant, roll/yaw rate is zero
         elif att == "kick-turn" or att == "pitch":
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend(list(range(a * 3, (a + n) * 3, 3)))
+            jac["u"]["coo"][1].extend(list(range(ua * 3, (ua + n) * 3, 3)))
             jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend(list(range(a * 3 + 2, (a + n) * 3 + 2, 3)))
+            jac["u"]["coo"][1].extend(list(range(ua * 3 + 2, (ua + n) * 3 + 2, 3)))
             jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
-            jac["u"]["coo"][1].extend([a * 3 + 1] * (n - 1))
+            jac["u"]["coo"][1].extend([ua * 3 + 1] * (n - 1))
             jac["u"]["coo"][2].extend([-1.0] * (n - 1))
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
-            jac["u"]["coo"][1].extend(list(range((a + 1) * 3 + 1, (a + n) * 3 + 1, 3)))
+            jac["u"]["coo"][1].extend(list(range((ua + 1) * 3 + 1, (ua + n) * 3 + 1, 3)))
             jac["u"]["coo"][2].extend([1.0] * (n - 1))
             iRow += n - 1
 
         # pitch-yaw : pitch/yaw constant, roll ANGLE is zero
         elif att == "pitch-yaw":
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
-            jac["u"]["coo"][1].extend([a * 3 + 1] * (n - 1))
+            jac["u"]["coo"][1].extend([ua * 3 + 1] * (n - 1))
             jac["u"]["coo"][2].extend([-1.0] * (n - 1))
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
-            jac["u"]["coo"][1].extend(list(range((a + 1) * 3 + 1, (a + n) * 3 + 1, 3)))
+            jac["u"]["coo"][1].extend(list(range((ua + 1) * 3 + 1, (ua + n) * 3 + 1, 3)))
             jac["u"]["coo"][2].extend([1.0] * (n - 1))
             iRow += n - 1
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
-            jac["u"]["coo"][1].extend([a * 3 + 2] * (n - 1))
+            jac["u"]["coo"][1].extend([ua * 3 + 2] * (n - 1))
             jac["u"]["coo"][2].extend([-1.0] * (n - 1))
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
-            jac["u"]["coo"][1].extend(list(range((a + 1) * 3 + 2, (a + n) * 3 + 2, 3)))
+            jac["u"]["coo"][1].extend(list(range((ua + 1) * 3 + 2, (ua + n) * 3 + 2, 3)))
             jac["u"]["coo"][2].extend([1.0] * (n - 1))
             iRow += n - 1
             for k in range(n):
@@ -316,31 +318,31 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
                     f_p = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
                     pos_i_[k + 1, j] -= dx
                     jac["position"]["coo"][0].append(iRow + k)
-                    jac["position"]["coo"][1].append((a + i + 1 + k) * 3 + j)
+                    jac["position"]["coo"][1].append((xa + 1 + k) * 3 + j)
                     jac["position"]["coo"][2].append((f_p - f_c) / dx)
                 for j in range(4):
                     quat_i_[k + 1, j] += dx
                     f_p = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
                     quat_i_[k + 1, j] -= dx
                     jac["quaternion"]["coo"][0].append(iRow + k)
-                    jac["quaternion"]["coo"][1].append((a + i + 1 + k) * 4 + j)
+                    jac["quaternion"]["coo"][1].append((xa + 1 + k) * 4 + j)
                     jac["quaternion"]["coo"][2].append((f_p - f_c) / dx)
             iRow += n
 
         # same-rate : pitch/yaw is the same as previous section, roll ANGLE is zero
         elif att == "same-rate":
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend([a * 3 - 2] * n)
+            jac["u"]["coo"][1].extend([ua * 3 - 2] * n)
             jac["u"]["coo"][2].extend([-1.0] * n)
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend(list(range(a * 3 + 1, (a + n) * 3 + 1, 3)))
+            jac["u"]["coo"][1].extend(list(range(ua * 3 + 1, (ua + n) * 3 + 1, 3)))
             jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend([a * 3 - 1] * n)
+            jac["u"]["coo"][1].extend([ua * 3 - 1] * n)
             jac["u"]["coo"][2].extend([-1.0] * n)
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend(list(range(a * 3 + 2, (a + n) * 3 + 2, 3)))
+            jac["u"]["coo"][1].extend(list(range(ua * 3 + 2, (ua + n) * 3 + 2, 3)))
             jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
             for k in range(n):
@@ -350,21 +352,21 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
                     f_p = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
                     pos_i_[k + 1, j] -= dx
                     jac["position"]["coo"][0].append(iRow + k)
-                    jac["position"]["coo"][1].append((a + i + 1 + k) * 3 + j)
+                    jac["position"]["coo"][1].append((xa + 1 + k) * 3 + j)
                     jac["position"]["coo"][2].append((f_p - f_c) / dx)
                 for j in range(4):
                     quat_i_[k + 1, j] += dx
                     f_p = yb_r_dot(pos_i_[k + 1] * unit_pos, quat_i_[k + 1])
                     quat_i_[k + 1, j] -= dx
                     jac["quaternion"]["coo"][0].append(iRow + k)
-                    jac["quaternion"]["coo"][1].append((a + i + 1 + k) * 4 + j)
+                    jac["quaternion"]["coo"][1].append((xa + 1 + k) * 4 + j)
                     jac["quaternion"]["coo"][2].append((f_p - f_c) / dx)
             iRow += n
 
         # zero-lift-turn or free : roll hold
         elif att == "zero-lift-turn" or att == "free":
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend(list(range(a * 3, (a + n) * 3, 3)))
+            jac["u"]["coo"][1].extend(list(range(ua * 3, (ua + n) * 3, 3)))
             jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
 

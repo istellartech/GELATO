@@ -86,7 +86,7 @@ def inequality_jac_antenna(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_antenna."""
 
     jac = {}
-    dx = 1.0e-8
+    dx = pdict["dx"]
 
     unit_pos = unitdict["position"]
     unit_t = unitdict["t"]
@@ -193,7 +193,7 @@ def equality_IIP(xdict, pdict, unitdict, condition):
 def equality_jac_IIP(xdict, pdict, unitdict, condition):
     """Jacobian of equality_IIP."""
     jac = {}
-    dx = 1.0e-8
+    dx = pdict["dx"]
 
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
@@ -392,7 +392,7 @@ def inequality_IIP(xdict, pdict, unitdict, condition):
 def inequality_jac_IIP(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_IIP."""
     jac = {}
-    dx = 1.0e-8
+    dx = pdict["dx"]
 
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
@@ -672,7 +672,7 @@ def equality_jac_posLLH(xdict, pdict, unitdict, condition):
     """Jacobian of equality_posLLH."""
 
     jac = {}
-    dx = 1.0e-8
+    dx = pdict["dx"]
 
     unit_pos = unitdict["position"]
     unit_t = unitdict["t"]
@@ -828,7 +828,7 @@ def inequality_jac_posLLH(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_posLLH."""
 
     jac = {}
-    dx = 1.0e-8
+    dx = pdict["dx"]
 
     unit_pos = unitdict["position"]
     unit_t = unitdict["t"]
