@@ -198,14 +198,14 @@ def equality_knot_LGR(xdict, pdict, unitdict, condition):
                 + stage["mass_propellant"]
                 + sum([item["mass"] for item in stage["dropMass"].values()])
             )
-            index_ig = pdict["ps_params"][section_ig]["index_start"] + section_ig
-            index_sep = pdict["ps_params"][section_sep]["index_start"] + section_sep
+            index_ig = pdict["ps_params"].index_start_x(section_ig)
+            index_sep = pdict["ps_params"].index_start_x(section_sep)
             con.append(
                 mass_[index_ig] - mass_[index_sep] - mass_stage / unitdict["mass"]
             )
 
     for i in range(1, num_sections):
-        a = pdict["ps_params"][i]["index_start"]
+        a = pdict["ps_params"].index_start_u(i)
 
         param[0] = pdict["params"][i]["thrust"]
         param[1] = pdict["params"][i]["massflow"]
@@ -270,15 +270,15 @@ def equality_jac_knot_LGR(xdict, pdict, unitdict, condition):
             section_sep_list.append(section_sep)
 
             # mass after separation
-            index_ig = pdict["ps_params"][section_ig]["index_start"] + section_ig
-            index_sep = pdict["ps_params"][section_sep]["index_start"] + section_sep
+            index_ig = pdict["ps_params"].index_start_x(section_ig)
+            index_sep = pdict["ps_params"].index_start_x(section_sep)
             jac["mass"]["coo"][0].extend([iRow, iRow])
             jac["mass"]["coo"][1].extend([index_ig, index_sep])
             jac["mass"]["coo"][2].extend([1.0, -1.0])
             iRow += 1
 
     for i in range(1, num_sections):
-        a = pdict["ps_params"][i]["index_start"]
+        a = pdict["ps_params"].index_start_u(i)
 
         if not (i in section_sep_list):
             jac["mass"]["coo"][0].extend([iRow, iRow])

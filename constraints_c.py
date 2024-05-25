@@ -120,8 +120,8 @@ def inequality_max_alpha(xdict, pdict, unitdict, condition):
     wind = pdict["wind_table"]
 
     for i in range(num_sections - 1):
-        a = pdict["ps_params"][i]["index_start"]
-        n = pdict["ps_params"][i]["nodes"]
+        a = pdict["ps_params"].index_start_u(i)
+        n = pdict["ps_params"].nodes(i)
         b = a + n
 
         pos_i_ = pos_[a + i : b + i + 1]
@@ -131,7 +131,7 @@ def inequality_max_alpha(xdict, pdict, unitdict, condition):
         tf = t[i + 1]
         t_i_ = np.zeros(n + 1)
         t_i_[0] = to
-        t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf - to) / 2.0 + (tf + to) / 2.0
+        t_i_[1:] = pdict["ps_params"].tau(i) * (tf - to) / 2.0 + (tf + to) / 2.0
 
         section_name = pdict["params"][i]["name"]
 
@@ -180,8 +180,8 @@ def inequality_max_q(xdict, pdict, unitdict, condition):
     wind = pdict["wind_table"]
 
     for i in range(num_sections - 1):
-        a = pdict["ps_params"][i]["index_start"]
-        n = pdict["ps_params"][i]["nodes"]
+        a = pdict["ps_params"].index_start_u(i)
+        n = pdict["ps_params"].nodes(i)
         b = a + n
 
         pos_i_ = pos_[a + i : b + i + 1]
@@ -190,7 +190,7 @@ def inequality_max_q(xdict, pdict, unitdict, condition):
         tf = t[i + 1]
         t_i_ = np.zeros(n + 1)
         t_i_[0] = to
-        t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf - to) / 2.0 + (tf + to) / 2.0
+        t_i_[1:] = pdict["ps_params"].tau(i) * (tf - to) / 2.0 + (tf + to) / 2.0
 
         section_name = pdict["params"][i]["name"]
 
@@ -238,8 +238,8 @@ def inequality_max_qalpha(xdict, pdict, unitdict, condition):
     wind = pdict["wind_table"]
 
     for i in range(num_sections - 1):
-        a = pdict["ps_params"][i]["index_start"]
-        n = pdict["ps_params"][i]["nodes"]
+        a = pdict["ps_params"].index_start_u(i)
+        n = pdict["ps_params"].nodes(i)
         b = a + n
 
         pos_i_ = pos_[a + i : b + i + 1]
@@ -249,7 +249,7 @@ def inequality_max_qalpha(xdict, pdict, unitdict, condition):
         tf = t[i + 1]
         t_i_ = np.zeros(n + 1)
         t_i_[0] = to
-        t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf - to) / 2.0 + (tf + to) / 2.0
+        t_i_[1:] = pdict["ps_params"].tau(i) * (tf - to) / 2.0 + (tf + to) / 2.0
 
         section_name = pdict["params"][i]["name"]
 
@@ -315,8 +315,8 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
 
         # angle of attack
         if section_name in condition["AOA_max"]:
-            a = pdict["ps_params"][i]["index_start"]
-            n = pdict["ps_params"][i]["nodes"]
+            a = pdict["ps_params"].index_start_u(i)
+            n = pdict["ps_params"].nodes(i)
             b = a + n
 
             pos_i_ = pos_[a + i : b + i + 1]
@@ -326,7 +326,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
             tf = t[i + 1]
             t_i_ = np.zeros(n + 1)
             t_i_[0] = to
-            t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf - to) / 2.0 + (tf + to) / 2.0
+            t_i_[1:] = pdict["ps_params"].tau(i) * (tf - to) / 2.0 + (tf + to) / 2.0
             t_i_p1_ = np.zeros(n + 1)
             t_i_p2_ = np.zeros(n + 1)
 
@@ -343,13 +343,13 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
             to_p = to + dx
             t_i_p1_[0] = to_p
             t_i_p1_[1:] = (
-                pdict["ps_params"][i]["tau"] * (tf - to_p) / 2.0 + (tf + to_p) / 2.0
+                pdict["ps_params"].tau(i) * (tf - to_p) / 2.0 + (tf + to_p) / 2.0
             )
 
             tf_p = tf + dx
             t_i_p2_[0] = to
             t_i_p2_[1:] = (
-                pdict["ps_params"][i]["tau"] * (tf_p - to) / 2.0 + (tf_p + to) / 2.0
+                pdict["ps_params"].tau(i) * (tf_p - to) / 2.0 + (tf_p + to) / 2.0
             )
 
             for k in nk:
@@ -447,8 +447,8 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
 
         # angle of attack
         if section_name in condition["dynamic_pressure_max"]:
-            a = pdict["ps_params"][i]["index_start"]
-            n = pdict["ps_params"][i]["nodes"]
+            a = pdict["ps_params"].index_start_u(i)
+            n = pdict["ps_params"].nodes(i)
             b = a + n
 
             pos_i_ = pos_[a + i : b + i + 1]
@@ -457,7 +457,7 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
             tf = t[i + 1]
             t_i_ = np.zeros(n + 1)
             t_i_[0] = to
-            t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf - to) / 2.0 + (tf + to) / 2.0
+            t_i_[1:] = pdict["ps_params"].tau(i) * (tf - to) / 2.0 + (tf + to) / 2.0
             t_i_p1_ = np.zeros(n + 1)
             t_i_p2_ = np.zeros(n + 1)
 
@@ -474,12 +474,12 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
             to_p = to + dx
             t_i_p1_[0] = to_p
             t_i_p1_[1:] = (
-                pdict["ps_params"][i]["tau"] * (tf - to_p) / 2.0 + (tf + to_p) / 2.0
+                pdict["ps_params"].tau(i) * (tf - to_p) / 2.0 + (tf + to_p) / 2.0
             )
             tf_p = tf + dx
             t_i_p2_[0] = to
             t_i_p2_[1:] = (
-                pdict["ps_params"][i]["tau"] * (tf_p - to) / 2.0 + (tf_p + to) / 2.0
+                pdict["ps_params"].tau(i) * (tf_p - to) / 2.0 + (tf_p + to) / 2.0
             )
 
             for k in nk:
@@ -568,8 +568,8 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
 
         # angle of attack
         if section_name in condition["Q_alpha_max"]:
-            a = pdict["ps_params"][i]["index_start"]
-            n = pdict["ps_params"][i]["nodes"]
+            a = pdict["ps_params"].index_start_u(i)
+            n = pdict["ps_params"].nodes(i)
             b = a + n
 
             pos_i_ = pos_[a + i : b + i + 1]
@@ -579,18 +579,18 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
             tf = t[i + 1]
             t_i_ = np.zeros(n + 1)
             t_i_[0] = to
-            t_i_[1:] = pdict["ps_params"][i]["tau"] * (tf - to) / 2.0 + (tf + to) / 2.0
+            t_i_[1:] = pdict["ps_params"].tau(i) * (tf - to) / 2.0 + (tf + to) / 2.0
             t_i_p1_ = np.zeros(n + 1)
             t_i_p2_ = np.zeros(n + 1)
             to_p = to + dx
             t_i_p1_[0] = to_p
             t_i_p1_[1:] = (
-                pdict["ps_params"][i]["tau"] * (tf - to_p) / 2.0 + (tf + to_p) / 2.0
+                pdict["ps_params"].tau(i) * (tf - to_p) / 2.0 + (tf + to_p) / 2.0
             )
             tf_p = tf + dx
             t_i_p2_[0] = to
             t_i_p2_[1:] = (
-                pdict["ps_params"][i]["tau"] * (tf_p - to) / 2.0 + (tf_p + to) / 2.0
+                pdict["ps_params"].tau(i) * (tf_p - to) / 2.0 + (tf_p + to) / 2.0
             )
 
             qalpha_max = condition["Q_alpha_max"][section_name]["value"] * np.pi / 180.0

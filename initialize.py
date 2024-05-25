@@ -263,7 +263,7 @@ def initialize_xdict_6DoF_2(
     for i in range(num_sections):
         to = pdict["params"][i]["time"]
         tf = pdict["params"][i]["timeFinishAt"]
-        tau = pdict["ps_params"][i]["tau"]
+        tau = pdict["ps_params"].tau(i)
 
         if mode == "LG" or mode == "LGR":
             tau_x = np.hstack((-1.0, tau))
@@ -297,7 +297,7 @@ def initialize_xdict_6DoF_2(
                     pdict["params"][i]["yawrate_init"],
                 ]
             ]
-            * pdict["ps_params"][i]["nodes"]
+            * pdict["ps_params"].nodes(i)
             for i in range(num_sections)
         ]
     )
@@ -346,7 +346,7 @@ def initialize_xdict_6DoF_from_file(
     for i in range(num_sections):
         to = pdict["params"][i]["time"]
         tf = pdict["params"][i]["timeFinishAt"]
-        tau = pdict["ps_params"][i]["tau"]
+        tau = pdict["ps_params"].tau(i)
 
         if mode == "LG" or mode == "LGR":
             tau_x = np.hstack((-1.0, tau))
