@@ -47,14 +47,12 @@ class PSparams:
             raise ValueError('Index out of range')
         return self._num_nodes[i]
 
-    @profile
     def time_nodes(self, i, to, tf):
         t = np.zeros(self._num_nodes[i] + 1)
         t[0] = to
         t[1:] = self.tau(i) * (tf - to) / 2 + (tf + to) / 2
         return t
 
-    @profile
     def get_index(self, section):
         """get set of index for a given section.
 

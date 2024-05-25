@@ -23,7 +23,9 @@ rm -r output
 mkdir output
 for file in `find . -maxdepth 1 -name '*.json'`; do
     echo $file
-    python3 Trajectory_Optimization.py $file
+    python3 -m cProfile -o gelato.prof Trajectory_Optimization.py $file
+    #kernprof -l -o gelato.lprof Trajectory_Optimization.py $file
+    #python -m line_profiler gelato.lprof > gelato.lprof.txt
 done
 
 if [[ $1 =~ ^s3:// ]]; then
