@@ -43,6 +43,7 @@ from user_constraints import equality_user, inequality_user
 from constraints_u import equality_jac_user, inequality_jac_user
 from cost_gradient import cost_6DoF, cost_jac
 from PSfunctions import nodes_LGR, differentiation_matrix_LGR
+from SectionParameters import PSparams
 
 version = "0.7.3"
 
@@ -123,18 +124,14 @@ assert len(nodes) == len(pdict["params"]) - 1
 
 N = sum(nodes)
 
-D = [differentiation_matrix_LGR(n) for n in nodes]
-tau = [nodes_LGR(n) for n in nodes]
 index = [0]
 k = 0
 for n in nodes:
     k += n
     index.append(k)
 
-pdict["ps_params"] = [
-    {"index_start": index[i], "nodes": nodes[i], "D": D[i], "tau": tau[i]}
-    for i in range(num_sections)
-]
+pdict["ps_params"] = PSparams(nodes)
+
 pdict["wind_table"] = wind_table
 pdict["ca_table"] = ca_table
 pdict["N"] = N
@@ -452,11 +449,11 @@ tx_res = np.array([])
 for i in range(num_sections):
     to = sol.xStar["t"][i]
     tf = sol.xStar["t"][i + 1]
-    tau_x = np.hstack((-1.0, pdict["ps_params"][i]["tau"]))
+    tau_x = np.hstack((-1.0, pdict["ps_params"].tau(i)))
     tu_res = np.hstack(
         (
             tu_res,
-            (pdict["ps_params"][i]["tau"] * (tf - to) / 2 + (tf + to) / 2)
+            (pdict["ps_params"].tau(i) * (tf - to) / 2 + (tf + to) / 2)
             * unitdict["t"],
         )
     )

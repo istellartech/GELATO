@@ -137,8 +137,8 @@ def output_result(xdict, unitdict, tx_res, tu_res, pdict):
         nozzleArea_m2 = pdict["params"][section]["nozzle_area"]
         if (
             i
-            >= pdict["ps_params"][section]["index_start"]
-            + pdict["ps_params"][section]["nodes"]
+            >= pdict["ps_params"].index_start_u(section)
+            + pdict["ps_params"].nodes(section)
             + section
         ):
             out["event"][i] = pdict["params"][section + 1]["name"]

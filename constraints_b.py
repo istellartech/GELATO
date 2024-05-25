@@ -66,8 +66,8 @@ def inequality_mass(xdict, pdict, unitdict, condition):
             if value["name"] == stage["cutoff_at"]
         ][0]
 
-        mass_ig = mass_[pdict["ps_params"][section_ig]["index_start"] + section_ig]
-        mass_co = mass_[pdict["ps_params"][section_co]["index_start"] + section_co]
+        mass_ig = mass_[pdict["ps_params"].index_start_x(section_ig)]
+        mass_co = mass_[pdict["ps_params"].index_start_x(section_co)]
 
         d_mass = stage["mass_propellant"]
         if stage["dropMass"] is not None:
@@ -102,8 +102,8 @@ def inequality_jac_mass(xdict, pdict, unitdict, condition):
         row.extend([counter, counter])
         col.extend(
             [
-                pdict["ps_params"][section_ig]["index_start"] + section_ig,
-                pdict["ps_params"][section_co]["index_start"] + section_co,
+                pdict["ps_params"].index_start_x(section_ig),
+                pdict["ps_params"].index_start_x(section_co),
             ]
         )
         counter += 1
@@ -128,8 +128,8 @@ def inequality_kickturn(xdict, pdict, unitdict, condition):
     num_sections = pdict["num_sections"]
 
     for i in range(num_sections - 1):
-        a = pdict["ps_params"][i]["index_start"]
-        n = pdict["ps_params"][i]["nodes"]
+        a = pdict["ps_params"].index_start_u(i)
+        n = pdict["ps_params"].nodes(i)
         b = a + n
         u_i_ = u_[a:b]
 
@@ -153,8 +153,8 @@ def inequality_jac_kickturn(xdict, pdict, unitdict, condition):
 
     nRow = 0
     for i in range(num_sections - 1):
-        a = pdict["ps_params"][i]["index_start"]
-        n = pdict["ps_params"][i]["nodes"]
+        a = pdict["ps_params"].index_start_u(i)
+        n = pdict["ps_params"].nodes(i)
         b = a + n
 
         # kick turn
@@ -190,8 +190,8 @@ def equality_6DoF_rate(xdict, pdict, unitdict, condition):
     num_sections = pdict["num_sections"]
 
     for i in range(num_sections):
-        a = pdict["ps_params"][i]["index_start"]
-        n = pdict["ps_params"][i]["nodes"]
+        a = pdict["ps_params"].index_start_u(i)
+        n = pdict["ps_params"].nodes(i)
         b = a + n
         pos_i_ = pos_[a + i : b + i + 1]
         quat_i_ = quat_[a + i : b + i + 1]
@@ -257,8 +257,8 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
     iRow = 0
 
     for i in range(num_sections):
-        a = pdict["ps_params"][i]["index_start"]
-        n = pdict["ps_params"][i]["nodes"]
+        a = pdict["ps_params"].index_start_u(i)
+        n = pdict["ps_params"].nodes(i)
         b = a + n
         pos_i_ = pos_[a + i : b + i + 1]
         quat_i_ = quat_[a + i : b + i + 1]

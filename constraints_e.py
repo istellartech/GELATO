@@ -70,7 +70,7 @@ def inequality_antenna(xdict, pdict, unitdict, condition):
             if section_name in antenna["elevation_min"]:
 
                 elevation_min = antenna["elevation_min"][section_name]
-                a = pdict["ps_params"][i]["index_start"]
+                a = pdict["ps_params"].index_start_u(i)
                 pos_o_ = pos_[a + i]
                 to_ = t[i]
                 sin_elv = sin_elevation(pos_o_, to_, posECEF_ANT, unit_pos, unit_t)
@@ -114,7 +114,7 @@ def inequality_jac_antenna(xdict, pdict, unitdict, condition):
             section_name = pdict["params"][i]["name"]
             if section_name in antenna["elevation_min"]:
 
-                a = pdict["ps_params"][i]["index_start"]
+                a = pdict["ps_params"].index_start_u(i)
                 pos_o_ = pos_[a + i]
                 to_ = t[i]
                 f_c = sin_elevation(pos_o_, to_, posECEF_ANT, unit_pos, unit_t)
@@ -167,7 +167,7 @@ def equality_IIP(xdict, pdict, unitdict, condition):
         if section_name in condition["waypoint"]:
 
             waypoint = condition["waypoint"][section_name]
-            a = pdict["ps_params"][i]["index_start"]
+            a = pdict["ps_params"].index_start_u(i)
             pos = pos_[a + i] * unit_pos
             vel = vel_[a + i] * unit_vel
             to = t[i] * unit_t
@@ -226,7 +226,7 @@ def equality_jac_IIP(xdict, pdict, unitdict, condition):
         if section_name in condition["waypoint"]:
 
             waypoint = condition["waypoint"][section_name]
-            a = pdict["ps_params"][i]["index_start"]
+            a = pdict["ps_params"].index_start_u(i)
             pos_o_ = pos_[a + i]
             vel_o_ = vel_[a + i]
             to_ = t_[i]
@@ -358,7 +358,7 @@ def inequality_IIP(xdict, pdict, unitdict, condition):
         if section_name in condition["waypoint"]:
 
             waypoint = condition["waypoint"][section_name]
-            a = pdict["ps_params"][i]["index_start"]
+            a = pdict["ps_params"].index_start_u(i)
             pos = pos_[a + i] * unit_pos
             vel = vel_[a + i] * unit_vel
             to = t[i] * unit_t
@@ -425,7 +425,7 @@ def inequality_jac_IIP(xdict, pdict, unitdict, condition):
         if section_name in condition["waypoint"]:
 
             waypoint = condition["waypoint"][section_name]
-            a = pdict["ps_params"][i]["index_start"]
+            a = pdict["ps_params"].index_start_u(i)
             pos_o_ = pos_[a + i]
             vel_o_ = vel_[a + i]
             to_ = t_[i]
@@ -644,7 +644,7 @@ def equality_posLLH(xdict, pdict, unitdict, condition):
         if section_name in condition["waypoint"]:
 
             waypoint = condition["waypoint"][section_name]
-            a = pdict["ps_params"][i]["index_start"]
+            a = pdict["ps_params"].index_start_u(i)
             pos = pos_[a + i] * unit_pos
             to = t[i] * unit_t
             posLLH = eci2geodetic(pos, to)
@@ -701,7 +701,7 @@ def equality_jac_posLLH(xdict, pdict, unitdict, condition):
         if section_name in condition["waypoint"]:
 
             waypoint = condition["waypoint"][section_name]
-            a = pdict["ps_params"][i]["index_start"]
+            a = pdict["ps_params"].index_start_u(i)
             pos_o_ = pos_[a + i]
             to_ = t_[i]
             posLLH_c = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
@@ -792,7 +792,7 @@ def inequality_posLLH(xdict, pdict, unitdict, condition):
         if section_name in condition["waypoint"]:
 
             waypoint = condition["waypoint"][section_name]
-            a = pdict["ps_params"][i]["index_start"]
+            a = pdict["ps_params"].index_start_u(i)
             pos = pos_[a + i] * unit_pos
             to = t[i] * unit_t
             posLLH = eci2geodetic(pos, to)
@@ -857,7 +857,7 @@ def inequality_jac_posLLH(xdict, pdict, unitdict, condition):
         if section_name in condition["waypoint"]:
 
             waypoint = condition["waypoint"][section_name]
-            a = pdict["ps_params"][i]["index_start"]
+            a = pdict["ps_params"].index_start_u(i)
             pos_o_ = pos_[a + i]
             to_ = t_[i]
             posLLH_c = eci2geodetic(pos_o_ * unit_pos, to_ * unit_t)
