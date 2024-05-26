@@ -74,6 +74,47 @@ def dynamics_velocity(
 
 
 @jit(nopython=True)
+def dynamics_velocity_single(
+    mass_e, pos_eci_e, vel_eci_e, quat_eci2body, t, param, wind_table, CA_table, units
+):
+    """Equation of motion of velocity."""
+
+    mass = mass_e * units[0]
+    pos_eci = pos_eci_e * units[1]
+    vel_eci = vel_eci_e * units[2]
+    acc_eci = np.zeros(vel_eci_e.shape)
+
+    thrust_vac = param[0]
+    air_area = param[2]
+    nozzle_area = param[4]
+
+    pos_llh = ecef2geodetic(pos_eci[0], pos_eci[1], pos_eci[2])
+    altitude = geopotential_altitude(pos_llh[2])
+    rho = airdensity_at(altitude)
+    p = airpressure_at(altitude)
+
+    vel_ecef = vel_eci2ecef(vel_eci, pos_eci, t)
+    vel_wind_ned = wind_ned(altitude, wind_table)
+
+    vel_wind_eci = quatrot(quat_nedg2eci(pos_eci, t), vel_wind_ned)
+    vel_air_eci = ecef2eci(vel_ecef, t) - vel_wind_eci
+    mach_number = norm(vel_air_eci) / speed_of_sound(altitude)
+
+    ca = np.interp(mach_number, CA_table[:, 0], CA_table[:, 1])
+
+    aeroforce_eci = 0.5 * rho * norm(vel_air_eci) * -vel_air_eci * air_area * ca
+
+    thrust = thrust_vac - nozzle_area * p
+    thrustdir_eci = quatrot(conj(quat_eci2body), np.array([1.0, 0.0, 0.0]))
+    thrust_eci = thrustdir_eci * thrust
+    gravity_eci = gravity(pos_eci)
+
+    acc_eci = gravity_eci + (thrust_eci + aeroforce_eci) / mass
+
+    return acc_eci / units[2]
+
+
+@jit(nopython=True)
 def dynamics_velocity_NoAir(mass_e, pos_eci_e, quat_eci2body, param, units):
     """Equation of motion of velocity."""
 
@@ -96,6 +137,26 @@ def dynamics_velocity_NoAir(mass_e, pos_eci_e, quat_eci2body, param, units):
 
 
 @jit(nopython=True)
+def dynamics_velocity_NoAir_single(mass_e, pos_eci_e, quat_eci2body, param, units):
+    """Equation of motion of velocity."""
+
+    mass = mass_e * units[0]
+    pos_eci = pos_eci_e * units[1]
+    acc_eci = np.zeros(pos_eci_e.shape)
+
+    thrust_vac = param[0]
+
+    thrust = thrust_vac
+    thrustdir_eci = quatrot(conj(quat_eci2body), np.array([1.0, 0.0, 0.0]))
+    thrust_eci = thrustdir_eci * thrust
+    gravity_eci = gravity(pos_eci)
+
+    acc_eci = gravity_eci + (thrust_eci) / mass
+
+    return acc_eci / units[2]
+
+
+@jit(nopython=True)
 def dynamics_quaternion(quat_eci2body, u_e, unit_u):
     """Equation of motion of quaternion."""
 
@@ -108,3 +169,15 @@ def dynamics_quaternion(quat_eci2body, u_e, unit_u):
 
     return d_quat
 
+
+@jit(nopython=True)
+def dynamics_quaternion_single(quat_eci2body, u_e, unit_u):
+    """Equation of motion of quaternion."""
+
+    u = u_e * unit_u
+
+    d_quat = np.zeros(quat_eci2body.shape)
+    omega_rps_body = np.deg2rad(np.array([0.0, u[0], u[1], u[2]]))
+    d_quat = 0.5 * quatmult(quat_eci2body, omega_rps_body)
+
+    return d_quat
