@@ -28,7 +28,7 @@
 
 from itertools import chain, repeat
 import numpy as np
-from dynamics_c import dynamics_velocity, dynamics_velocity_NoAir, dynamics_quaternion
+from dynamics_c import dynamics_velocity, dynamics_velocity_NoAir, dynamics_quaternion, dynamics_velocity_single, dynamics_velocity_NoAir_single, dynamics_quaternion_single
 
 
 def equality_dynamics_mass(xdict, pdict, unitdict, condition):
@@ -342,9 +342,13 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
         submat_vel[1::3, 1::3] = pdict["ps_params"].D(i)
         submat_vel[2::3, 2::3] = pdict["ps_params"].D(i)
 
+        @profile
         def dynamics(mass, pos, vel, quat, t):
             if param[2] == 0.0:
-                return dynamics_velocity_NoAir(mass, pos, quat, param, units)
+                if hasattr(mass, "__len__"):
+                    return dynamics_velocity_NoAir(mass, pos, quat, param, units)
+                else:
+                    return dynamics_velocity_NoAir_single(mass, pos, quat, param, units)
             else:
                 return dynamics_velocity(
                     mass, pos, vel, quat, t, param, wind, ca, units
