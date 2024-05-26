@@ -28,7 +28,7 @@
 
 import numpy as np
 from numba import jit
-from utils import dynamic_pressure_pa, angle_of_attack_all_rad, angle_of_attack_ab_rad
+from utils import dynamic_pressure_pa, angle_of_attack_all_rad, q_alpha_pa_rad, dynamic_pressure_array_pa, angle_of_attack_all_array_rad, q_alpha_array_pa_rad
 from coordinate import *
 
 
@@ -43,14 +43,12 @@ def dynamic_pressure_dimless(pos_eci_e, vel_eci_e, t_e, wind, units):
 
 
 @jit(nopython=True)
-def dynamic_pressure_array_dimless(pos, vel, t, wind, units):
+def dynamic_pressure_array_dimless(pos_eci_e, vel_eci_e, t_e, wind, units):
     """Returns array of dynamic pressure for each state values."""
-    return np.array(
-        [
-            dynamic_pressure_dimless(pos[i], vel[i], t[i], wind, units)
-            for i in range(len(t))
-        ]
-    )
+    pos_eci = pos_eci_e * units[0]
+    vel_eci = vel_eci_e * units[1]
+    t = t_e * units[2]
+    return dynamic_pressure_array_pa(pos_eci, vel_eci, t, wind) / units[3]
 
 
 @jit(nopython=True)
@@ -62,26 +60,12 @@ def angle_of_attack_all_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
     return angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind) / units[3]
 
 
-@jit(nopython=True)
-def angle_of_attack_ab_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
-    """Returns pitch and yaw angles of attack normalized by
-    their maximum values.
-    """
+def angle_of_attack_all_array_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
+    """Returns array of angle of attack for each state values."""
     pos_eci = pos_eci_e * units[0]
     vel_eci = vel_eci_e * units[1]
     t = t_e * units[2]
-    return angle_of_attack_ab_rad(pos_eci, vel_eci, quat, t, wind) / units[3]
-
-
-@jit(nopython=True)
-def aoa_zerolift_array_dimless(pos, vel, quat, t, wind, units):
-    """Returns array of angle of attack for each state values."""
-    return np.array(
-        [
-            angle_of_attack_all_dimless(pos[i], vel[i], quat[i], t[i], wind, units)
-            for i in range(len(t))
-        ]
-    )
+    return angle_of_attack_all_array_rad(pos_eci, vel_eci, quat, t, wind) / units[3]
 
 
 @jit(nopython=True)
@@ -97,14 +81,14 @@ def q_alpha_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
     )
 
 
-@jit(nopython=True)
-def q_alpha_array_dimless(pos, vel, quat, t, wind, units):
+def q_alpha_array_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
     """Returns array of Q-alpha for each state values."""
-    return np.array(
-        [
-            q_alpha_dimless(pos[i], vel[i], quat[i], t[i], wind, units)
-            for i in range(len(t))
-        ]
+    pos_eci = pos_eci_e * units[0]
+    vel_eci = vel_eci_e * units[1]
+    t = t_e * units[2]
+    return (
+        q_alpha_array_pa_rad(pos_eci, vel_eci, quat, t, wind)
+        / units[3]
     )
 
 
@@ -148,7 +132,7 @@ def inequality_max_alpha(xdict, pdict, unitdict, condition):
                 t_i_ = pdict["ps_params"].time_nodes(i, to, tf)
                 con.append(
                     1.0
-                    - aoa_zerolift_array_dimless(
+                    - angle_of_attack_all_array_dimless(
                         pos_i_, vel_i_, quat_i_, t_i_, wind, units
                     )
                 )
@@ -327,7 +311,6 @@ def inequality_length_max_qalpha(xdict, pdict, unitdict, condition):
     return res
 
 
-@profile
 def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_max_alpha."""
 
@@ -384,7 +367,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
             elif condition["AOA_max"][section_name]["range"] == "initial":
                 nk = [0]
 
-            f_c = aoa_zerolift_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units)
+            f_c = angle_of_attack_all_array_dimless(pos_i_, vel_i_, quat_i_, t_i_, wind, units)
 
             to_p = to + dx
             t_i_p1_ = pdict["ps_params"].time_nodes(i, to_p, tf)
@@ -393,7 +376,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
 
             for j in range(3):
                 pos_i_[nk, j] += dx
-                f_p = aoa_zerolift_array_dimless(
+                f_p = angle_of_attack_all_array_dimless(
                     pos_i_[nk], vel_i_[nk], quat_i_[nk], t_i_[nk], wind, units
                 )
                 pos_i_[nk, j] -= dx
@@ -404,7 +387,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
 
             for j in range(3):
                 vel_i_[nk, j] += dx
-                f_p = aoa_zerolift_array_dimless(
+                f_p = angle_of_attack_all_array_dimless(
                     pos_i_[nk], vel_i_[nk], quat_i_[nk], t_i_[nk], wind, units
                 )
                 vel_i_[nk, j] -= dx
@@ -415,7 +398,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
 
             for j in range(4):
                 quat_i_[nk, j] += dx
-                f_p = aoa_zerolift_array_dimless(
+                f_p = angle_of_attack_all_array_dimless(
                     pos_i_[nk], vel_i_[nk], quat_i_[nk], t_i_[nk], wind, units
                 )
                 quat_i_[nk, j] -= dx
@@ -424,7 +407,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
                     jac["quaternion"]["coo"][1].append((xa + k) * 4 + j)
                     jac["quaternion"]["coo"][2].append(-(f_p[k] - f_c[k]) / dx)
 
-            f_p = aoa_zerolift_array_dimless(
+            f_p = angle_of_attack_all_array_dimless(
                 pos_i_[nk], vel_i_[nk], quat_i_[nk], t_i_p1_[nk], wind, units
             )
             for k in nk:
@@ -432,7 +415,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
                 jac["t"]["coo"][1].append(i)
                 jac["t"]["coo"][2].append(-(f_p[k] - f_c[k]) / dx)
 
-            f_p = aoa_zerolift_array_dimless(
+            f_p = angle_of_attack_all_array_dimless(
                 pos_i_[nk], vel_i_[nk], quat_i_[nk], t_i_p2_[nk], wind, units
             )
             for k in nk:
@@ -449,7 +432,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
 
     return jac
 
-@profile
+
 def inequality_jac_max_q(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_max_q."""
 
@@ -558,7 +541,6 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
     return jac
 
 
-@profile
 def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_max_qalpha."""
 
