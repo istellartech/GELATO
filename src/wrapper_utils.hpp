@@ -85,6 +85,16 @@ double angle_of_attack_all_rad(vec3d pos_eci, vec3d vel_eci, vec4d quat, double 
   }
 }
 
+vecXd angle_of_attack_all_array_rad(matXd pos_eci, matXd vel_eci, matXd quat, vecXd t, matXd wind) {
+  int n = pos_eci.rows();
+  vecXd alpha(n);
+
+  for (int i = 0; i < n; i++) {
+    alpha(i) = angle_of_attack_all_rad(pos_eci.row(i), vel_eci.row(i), quat.row(i), t(i), wind);
+  }
+
+  return alpha;
+}
 
 Eigen::Vector2d angle_of_attack_ab_rad(vec3d pos_eci, vec3d vel_eci, vec4d quat, double t, matXd wind) {
 
@@ -110,6 +120,17 @@ Eigen::Vector2d angle_of_attack_ab_rad(vec3d pos_eci, vec3d vel_eci, vec4d quat,
   }
 }
 
+Eigen::MatrixXd angle_of_attack_ab_array_rad(matXd pos_eci, matXd vel_eci, matXd quat, vecXd t, matXd wind) {
+  int n = pos_eci.rows();
+  Eigen::MatrixXd alpha(n, 2);
+
+  for (int i = 0; i < n; i++) {
+    alpha.row(i) = angle_of_attack_ab_rad(pos_eci.row(i), vel_eci.row(i), quat.row(i), t(i), wind);
+  }
+
+  return alpha;
+}
+
 double dynamic_pressure_pa(vec3d pos_eci, vec3d vel_eci, double t, matXd wind) {
 
   vec3d pos_llh = ecef2geodetic(pos_eci[0], pos_eci[1], pos_eci[2]);
@@ -125,10 +146,32 @@ double dynamic_pressure_pa(vec3d pos_eci, vec3d vel_eci, double t, matXd wind) {
 
 }
 
+Eigen::VectorXd dynamic_pressure_array_pa(matXd pos_eci, matXd vel_eci, vecXd t, matXd wind) {
+  int n = pos_eci.rows();
+  Eigen::VectorXd q(n);
+
+  for (int i = 0; i < n; i++) {
+    q(i) = dynamic_pressure_pa(pos_eci.row(i), vel_eci.row(i), t(i), wind);
+  }
+
+  return q;
+}
+
 double q_alpha_pa_rad(vec3d pos_eci, vec3d vel_eci, vec4d quat, double t, matXd wind) {
   double alpha = angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind);
   double q = dynamic_pressure_pa(pos_eci, vel_eci, t, wind);
   return q * alpha;
+}
+
+Eigen::VectorXd q_alpha_array_pa_rad(matXd pos_eci, matXd vel_eci, matXd quat, vecXd t, matXd wind) {
+  int n = pos_eci.rows();
+  Eigen::VectorXd q_alpha(n);
+
+  for (int i = 0; i < n; i++) {
+    q_alpha(i) = q_alpha_pa_rad(pos_eci.row(i), vel_eci.row(i), quat.row(i), t(i), wind);
+  }
+
+  return q_alpha;
 }
 
 #endif // SRC_WRAPPER_UTILS_HPP_
