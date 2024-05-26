@@ -260,7 +260,65 @@ def inequality_max_qalpha(xdict, pdict, unitdict, condition):
     else:
         return np.concatenate(con, axis=None)
 
+def inequality_length_max_alpha(xdict, pdict, unitdict, condition):
+    """Length of inequality_max_alpha."""
+    res = 0
 
+    num_sections = pdict["num_sections"]
+
+    for i in range(num_sections - 1):
+
+        section_name = pdict["params"][i]["name"]
+        # max-Qalpha
+        if section_name in condition["AOA_max"]:
+
+            if condition["AOA_max"][section_name]["range"] == "all":
+                res += (pdict["ps_params"].nodes(i) + 1)
+            elif condition["AOA_max"][section_name]["range"] == "initial":
+                res += 1
+
+    return res
+
+def inequality_length_max_q(xdict, pdict, unitdict, condition):
+    """Length of inequality_max_q."""
+    res = 0
+
+    num_sections = pdict["num_sections"]
+
+    for i in range(num_sections - 1):
+
+        section_name = pdict["params"][i]["name"]
+        # max-Qalpha
+        if section_name in condition["dynamic_pressure_max"]:
+
+            if condition["dynamic_pressure_max"][section_name]["range"] == "all":
+                res += (pdict["ps_params"].nodes(i) + 1)
+            elif condition["dynamic_pressure_max"][section_name]["range"] == "initial":
+                res += 1
+
+    return res
+
+def inequality_length_max_qalpha(xdict, pdict, unitdict, condition):
+    """Length of inequality_max_qalpha."""
+    res = 0
+
+    num_sections = pdict["num_sections"]
+
+    for i in range(num_sections - 1):
+
+        section_name = pdict["params"][i]["name"]
+        # max-Qalpha
+        if section_name in condition["Q_alpha_max"]:
+
+            if condition["Q_alpha_max"][section_name]["range"] == "all":
+                res += (pdict["ps_params"].nodes(i) + 1)
+            elif condition["Q_alpha_max"][section_name]["range"] == "initial":
+                res += 1
+
+    return res
+
+
+@profile
 def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_max_alpha."""
 
@@ -281,13 +339,9 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
     wind = pdict["wind_table"]
     num_sections = pdict["num_sections"]
 
-    f_center = inequality_max_alpha(xdict, pdict, unitdict, condition)
-    if hasattr(f_center, "__len__"):
-        nRow = len(f_center)
-    elif f_center is None:
+    nRow = inequality_length_max_alpha(xdict, pdict, unitdict, condition)
+    if nRow == 0:
         return None
-    else:
-        nRow = 1
 
     jac["position"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 3)}
     jac["velocity"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 3)}
@@ -382,7 +436,7 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
 
     return jac
 
-
+@profile
 def inequality_jac_max_q(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_max_q."""
 
@@ -402,13 +456,9 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
     wind = pdict["wind_table"]
     num_sections = pdict["num_sections"]
 
-    f_center = inequality_max_q(xdict, pdict, unitdict, condition)
-    if hasattr(f_center, "__len__"):
-        nRow = len(f_center)
-    elif f_center is None:
+    nRow = inequality_length_max_q(xdict, pdict, unitdict, condition)
+    if nRow == 0:
         return None
-    else:
-        nRow = 1
 
     jac["position"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 3)}
     jac["velocity"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 3)}
@@ -492,6 +542,7 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
     return jac
 
 
+@profile
 def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_max_qalpha."""
 
@@ -512,13 +563,9 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
     wind = pdict["wind_table"]
     num_sections = pdict["num_sections"]
 
-    f_center = inequality_max_qalpha(xdict, pdict, unitdict, condition)
-    if hasattr(f_center, "__len__"):
-        nRow = len(f_center)
-    elif f_center is None:
+    nRow = inequality_length_max_qalpha(xdict, pdict, unitdict, condition)
+    if nRow == 0:
         return None
-    else:
-        nRow = 1
 
     jac["position"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 3)}
     jac["velocity"] = {"coo": [[], [], []], "shape": (nRow, pdict["M"] * 3)}
