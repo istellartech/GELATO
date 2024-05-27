@@ -594,8 +594,26 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
             t_nodes,
         )
 
+        # mass
+        mass_i_[1:] += dx
+        f_p = dynamics(
+            mass_i_[1:],
+            pos_i_[1:],
+            vel_i_[1:],
+            quat_i_[1:],
+            t_nodes,
+        )
+        mass_i_[1:] -= dx
+
+        rh_mass = -(f_p - f_center) / dx * (tf - to) * unit_t / 2.0  # rh acc mass
         for j in range(n):
-            mass_i_[j + 1] += dx
+            jac["mass"]["coo"][0].extend(list(range((a + j) * 3, (a + j + 1) * 3)))
+            jac["mass"]["coo"][1].extend([(a + i + j + 1)] * 3)
+            jac["mass"]["coo"][2].extend(rh_mass[j].tolist())
+
+        # position
+        for k in range(3):
+            pos_i_[1:, k] += dx
             f_p = dynamics(
                 mass_i_[1:],
                 pos_i_[1:],
@@ -603,56 +621,20 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                 quat_i_[1:],
                 t_nodes,
             )
-            mass_i_[j + 1] -= dx
-            rh_mass = (
-                -(f_p[j] - f_center[j]) / dx * (tf - to) * unit_t / 2.0
-            )  # rh acc mass
-            jac["mass"]["coo"][0].extend(list(range((a + j) * 3, (a + j + 1) * 3)))
-            jac["mass"]["coo"][1].extend([(a + i + j + 1)] * 3)
-            jac["mass"]["coo"][2].extend(rh_mass.tolist())
+            pos_i_[1:, k] -= dx
+            rh_pos = -(f_p - f_center) / dx * (tf - to) * unit_t / 2.0  # rh acc pos
 
-            for k in range(3):
-                pos_i_[j + 1, k] += dx
-                f_p = dynamics(
-                    mass_i_[1:],
-                    pos_i_[1:],
-                    vel_i_[1:],
-                    quat_i_[1:],
-                    t_nodes,
-                )
-                pos_i_[j + 1, k] -= dx
-                rh_pos = (
-                    -(f_p[j] - f_center[j]) / dx * (tf - to) * unit_t / 2.0
-                )  # rh acc pos
+            for j in range(n):
                 jac["position"]["coo"][0].extend(
                     list(range((a + j) * 3, (a + j + 1) * 3))
                 )
                 jac["position"]["coo"][1].extend([(a + i + j + 1) * 3 + k] * 3)
-                jac["position"]["coo"][2].extend(rh_pos.tolist())
+                jac["position"]["coo"][2].extend(rh_pos[j].tolist())
 
-            if param[2] > 0.0:
-                for k in range(3):
-                    vel_i_[j + 1, k] += dx
-                    f_p = dynamics(
-                        mass_i_[1:],
-                        pos_i_[1:],
-                        vel_i_[1:],
-                        quat_i_[1:],
-                        t_nodes,
-                    )
-                    vel_i_[j + 1, k] -= dx
-                    submat_vel[j * 3, (j + 1) * 3 + k] += (
-                        -(f_p[j, 0] - f_center[j, 0]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh acc_x vel
-                    submat_vel[j * 3 + 1, (j + 1) * 3 + k] += (
-                        -(f_p[j, 1] - f_center[j, 1]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh acc_x vel
-                    submat_vel[j * 3 + 2, (j + 1) * 3 + k] += (
-                        -(f_p[j, 2] - f_center[j, 2]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh acc_x vel
-
-            for k in range(4):
-                quat_i_[j + 1, k] += dx
+        # velocity
+        if param[2] > 0.0:
+            for k in range(3):
+                vel_i_[1:, k] += dx
                 f_p = dynamics(
                     mass_i_[1:],
                     pos_i_[1:],
@@ -660,15 +642,30 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                     quat_i_[1:],
                     t_nodes,
                 )
-                quat_i_[j + 1, k] -= dx
-                rh_quat = (
-                    -(f_p[j] - f_center[j]) / dx * (tf - to) * unit_t / 2.0
-                )  # rh acc quat
+                vel_i_[1:, k] -= dx
+                rh_vel = -(f_p - f_center) / dx * (tf - to) * unit_t / 2.0
+                for j in range(n):
+                    submat_vel[j * 3 : j * 3 + 3, (j + 1) * 3 + k] += rh_vel[j]
+
+        # quaternion
+        for k in range(4):
+            quat_i_[1:, k] += dx
+            f_p = dynamics(
+                mass_i_[1:],
+                pos_i_[1:],
+                vel_i_[1:],
+                quat_i_[1:],
+                t_nodes,
+            )
+            quat_i_[1:, k] -= dx
+            rh_quat = -(f_p - f_center) / dx * (tf - to) * unit_t / 2.0  # rh acc quat
+
+            for j in range(n):
                 jac["quaternion"]["coo"][0].extend(
                     list(range((a + j) * 3, (a + j + 1) * 3))
                 )
                 jac["quaternion"]["coo"][1].extend([(a + i + j + 1) * 4 + k] * 3)
-                jac["quaternion"]["coo"][2].extend(rh_quat.tolist())
+                jac["quaternion"]["coo"][2].extend(rh_quat[j].tolist())
 
         rh_to = f_center.ravel() * unit_t / 2.0  # rh to
         rh_tf = -rh_to  # rh tf
@@ -783,36 +780,25 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
 
             f_center = dynamics_quaternion(quat_i_[1:], u_i_, unit_u)
 
-            for j in range(n):
+            # quaternion
+            for k in range(4):
+                quat_i_[1:, k] += dx
+                f_p = dynamics_quaternion(quat_i_[1:], u_i_, unit_u)
+                quat_i_[1:, k] -= dx
+                rh_quat = -(f_p - f_center) / dx * (tf - to) * unit_t / 2.0
+                for j in range(n):
+                    submat_quat[j * 4 : j * 4 + 4, (j + 1) * 4 + k] += rh_quat[j]
 
-                for k in range(4):
-                    quat_i_[j + 1, k] += dx
-                    f_p = dynamics_quaternion(quat_i_[1:], u_i_, unit_u)
-                    submat_quat[j * 4, (j + 1) * 4 + k] += (
-                        -(f_p[j, 0] - f_center[j, 0]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh q0 quat
-                    submat_quat[j * 4 + 1, (j + 1) * 4 + k] += (
-                        -(f_p[j, 1] - f_center[j, 1]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh q1 quat
-                    submat_quat[j * 4 + 2, (j + 1) * 4 + k] += (
-                        -(f_p[j, 2] - f_center[j, 2]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh q2 quat
-                    submat_quat[j * 4 + 3, (j + 1) * 4 + k] += (
-                        -(f_p[j, 3] - f_center[j, 3]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh q3 quat
-                    quat_i_[j + 1, k] -= dx
-
-                for k in range(3):
-                    u_i_[j, k] += dx
-                    f_p = dynamics_quaternion(quat_i_[1:], u_i_, unit_u)
-                    u_i_[j, k] -= dx
-
-                    rh_pos = (
-                        -(f_p[j] - f_center[j]) / dx * (tf - to) * unit_t / 2.0
-                    )  # rh q0 quat
+            # u (angular velocity)
+            for k in range(3):
+                u_i_[:, k] += dx
+                f_p = dynamics_quaternion(quat_i_[1:], u_i_, unit_u)
+                u_i_[:, k] -= dx
+                rh_u = -(f_p - f_center) / dx * (tf - to) * unit_t / 2.0
+                for j in range(n):
                     jac["u"]["coo"][0].extend(list(range((a + j) * 4, (a + j + 1) * 4)))
                     jac["u"]["coo"][1].extend([(a + j) * 3 + k] * 4)
-                    jac["u"]["coo"][2].extend(rh_pos.tolist())
+                    jac["u"]["coo"][2].extend(rh_u[j].tolist())
 
             rh_to = f_center.ravel() * unit_t / 2.0  # rh to
             rh_tf = -rh_to  # rh tf
