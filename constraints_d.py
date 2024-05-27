@@ -441,14 +441,38 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                 jac["quaternion"]["coo"][1].extend([(xa + j + 1) * 4 + k] * 3)
                 jac["quaternion"]["coo"][2].extend(rh_quat[j].tolist())
 
-        #t_o
-        rh_to = f_center.ravel() * unit_t / 2.0  # rh to
+        #t_o, t_f
+        to_p = to + dx
+
+        if param[2] > 0.0:
+            t_i_p1_ = pdict["ps_params"].time_nodes(i, to_p, tf)
+            f_p = dynamics(
+                mass_i_[1:],
+                pos_i_[1:],
+                vel_i_[1:],
+                quat_i_[1:],
+                t_i_p1_[1:],
+            )
+            rh_to = -(f_p * (tf - to_p) - f_center * (tf - to)).ravel() / dx * unit_t / 2.0 
+            tf_p = tf + dx
+            t_i_p2_ = pdict["ps_params"].time_nodes(i, to, tf_p)
+            f_p = dynamics(
+                mass_i_[1:],
+                pos_i_[1:],
+                vel_i_[1:],
+                quat_i_[1:],
+                t_i_p2_[1:],
+            )
+            rh_tf = -(f_p * (tf_p - to) - f_center * (tf - to)).ravel() / dx * unit_t / 2.0
+        else:
+            rh_to = f_center.ravel() * unit_t / 2.0
+            rh_tf = -rh_to
+
         jac["t"]["coo"][0].extend(list(range(ua * 3, ub * 3)))
         jac["t"]["coo"][1].extend([i] * n * 3)
         jac["t"]["coo"][2].extend(rh_to.tolist())
 
         #t_f
-        rh_tf = -rh_to  # rh tf
         jac["t"]["coo"][0].extend(list(range(ua * 3, ub * 3)))
         jac["t"]["coo"][1].extend([i + 1] * n * 3)
         jac["t"]["coo"][2].extend(rh_tf.tolist())
