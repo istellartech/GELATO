@@ -144,10 +144,8 @@ vec4d quat_from_euler(double az, double el, double ro) {
 vec3d gravity(vec3d pos) { return gravityECI(pos); }
 
 vec4d quat_nedg2body(vec4d quat_eci2body, vec3d pos_eci, double t) {
-  Eigen::Quaterniond q(quat_eci2body[0], quat_eci2body[1], quat_eci2body[2],
-                       quat_eci2body[3]);
-  Eigen::Quaterniond q_out = Coordinate::quat_ned2body(q, pos_eci, t);
-  return vec4d(q_out.w(), q_out.x(), q_out.y(), q_out.z());
+  vec4d q = quat_eci2nedg(pos_eci, t);
+  return quatmult(conj(q), quat_eci2body);
 }
 
 vec3d euler_from_quat(vec4d q) {
