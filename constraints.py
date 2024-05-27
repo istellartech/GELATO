@@ -511,7 +511,6 @@ def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
     return np.concatenate(con, axis=None)
 
 
-@profile
 def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
     """Jacobian of equality_dynamics_velocity."""
 
@@ -727,7 +726,6 @@ def equality_dynamics_quaternion(xdict, pdict, unitdict, condition):
     return np.concatenate(con, axis=None)
 
 
-@profile
 def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
     """Jacobian of equality_dynamics_quaternion."""
 
@@ -1621,7 +1619,6 @@ def inequality_max_qalpha(xdict, pdict, unitdict, condition):
         return np.concatenate(con, axis=None)
 
 
-@profile
 def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_max_alpha."""
 
@@ -1755,7 +1752,6 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
     return jac
 
 
-@profile
 def inequality_jac_max_q(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_max_q."""
 
@@ -1875,7 +1871,6 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
     return jac
 
 
-@profile
 def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_max_qalpha."""
 
