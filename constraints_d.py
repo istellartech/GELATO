@@ -186,11 +186,17 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
         jac["velocity"]["coo"][1].extend(list(range((xa + 1) * 3, xb * 3)))
         jac["velocity"]["coo"][2].extend([rh_vel] * (n * 3))
 
+        #t_o
         rh_to = vel_i_[1:].ravel() * unit_vel * unit_t / 2.0 / unit_pos  # rh to
+        jac["t"]["coo"][0].extend(list(range(ua * 3, ub * 3)))
+        jac["t"]["coo"][1].extend([i] * n * 3)
+        jac["t"]["coo"][2].extend(rh_to.tolist())
+
+        #t_f
         rh_tf = -rh_to  # rh tf
-        jac["t"]["coo"][0].extend(sum([[k] * 2 for k in range(ua * 3, ub * 3)], []))
-        jac["t"]["coo"][1].extend([i, i + 1] * n * 3)
-        jac["t"]["coo"][2].extend(sum([[rh_to[k], rh_tf[k]] for k in range(n * 3)], []))
+        jac["t"]["coo"][0].extend(list(range(ua * 3, ub * 3)))
+        jac["t"]["coo"][1].extend([i + 1] * n * 3)
+        jac["t"]["coo"][2].extend(rh_tf.tolist())
 
         jac["position"]["coo"][0].extend(
             sum([[k] * ((n + 1) * 3) for k in range(ua * 3, ub * 3)], [])
@@ -435,11 +441,17 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                 jac["quaternion"]["coo"][1].extend([(xa + j + 1) * 4 + k] * 3)
                 jac["quaternion"]["coo"][2].extend(rh_quat[j].tolist())
 
+        #t_o
         rh_to = f_center.ravel() * unit_t / 2.0  # rh to
+        jac["t"]["coo"][0].extend(list(range(ua * 3, ub * 3)))
+        jac["t"]["coo"][1].extend([i] * n * 3)
+        jac["t"]["coo"][2].extend(rh_to.tolist())
+
+        #t_f
         rh_tf = -rh_to  # rh tf
-        jac["t"]["coo"][0].extend(sum([[k] * 2 for k in range(ua * 3, ub * 3)], []))
-        jac["t"]["coo"][1].extend([i, i + 1] * n * 3)
-        jac["t"]["coo"][2].extend(sum([[rh_to[k], rh_tf[k]] for k in range(3 * n)], []))
+        jac["t"]["coo"][0].extend(list(range(ua * 3, ub * 3)))
+        jac["t"]["coo"][1].extend([i + 1] * n * 3)
+        jac["t"]["coo"][2].extend(rh_tf.tolist())
 
         jac["velocity"]["coo"][0].extend(
             sum([[k] * ((n + 1) * 3) for k in range(ua * 3, ub * 3)], [])
@@ -568,13 +580,17 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
                     jac["u"]["coo"][1].extend([(ua + j) * 3 + k] * 4)
                     jac["u"]["coo"][2].extend(rh_u[j].tolist())
 
+            #t_o
             rh_to = f_center.ravel() * unit_t / 2.0  # rh to
+            jac["t"]["coo"][0].extend(list(range(ua * 4, ub * 4)))
+            jac["t"]["coo"][1].extend([i] * n * 4)
+            jac["t"]["coo"][2].extend(rh_to.tolist())
+
+            #t_f
             rh_tf = -rh_to  # rh tf
-            jac["t"]["coo"][0].extend(sum([[k] * 2 for k in range(ua * 4, ub * 4)], []))
-            jac["t"]["coo"][1].extend([i, i + 1] * n * 4)
-            jac["t"]["coo"][2].extend(
-                sum([[rh_to[k], rh_tf[k]] for k in range(4 * n)], [])
-            )
+            jac["t"]["coo"][0].extend(list(range(ua * 4, ub * 4)))
+            jac["t"]["coo"][1].extend([i + 1] * n * 4)
+            jac["t"]["coo"][2].extend(rh_tf.tolist())
 
             jac["quaternion"]["coo"][0].extend(
                 sum([[k] * ((n + 1) * 4) for k in range(ua * 4, ub * 4)], [])
