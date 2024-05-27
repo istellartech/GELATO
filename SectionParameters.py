@@ -74,3 +74,14 @@ class PSparams:
         xb = xa + n + 1
 
         return ua, ub, xa, xb, n
+
+    def __getitem__(self, i):
+        """get item of PSparams.(back compatibility)"""
+        if i < 0 or i >= self._num_sections:
+            raise ValueError('Index out of range')
+        return {
+            "index_start": self._index_start_u[i],
+            "nodes": self._num_nodes[i],
+            "D": self._D[i],
+            "tau": self._tau[i],
+        }
