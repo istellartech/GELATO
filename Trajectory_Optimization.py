@@ -38,7 +38,7 @@ from constraints import *
 from PSfunctions import *
 from USStandardAtmosphere import *
 
-version = "0.7.2"
+version = "0.7.3"
 
 mission_name = sys.argv[1]
 
