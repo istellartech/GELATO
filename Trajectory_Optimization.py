@@ -44,7 +44,7 @@ from constraints_u import equality_jac_user, inequality_jac_user
 from cost_gradient import cost_6DoF, cost_jac
 from SectionParameters import PSparams
 
-version = "0.7.2"
+version = "0.7.3c"
 
 mission_name = sys.argv[1]
 
