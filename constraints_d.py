@@ -87,26 +87,26 @@ def equality_jac_dynamics_mass(xdict, pdict, unitdict, condition):
             )
             jac["mass"]["coo"][1].extend(list(range(xa, xb)) * (n))
             jac["mass"]["coo"][2].extend(
-                pdict["ps_params"].D(i).ravel(order="C").tolist()
+                pdict["ps_params"].D(i).ravel(order="C")
             )
 
-            jac["t"]["coo"][0].extend(list(range(ua, ub)))
+            jac["t"]["coo"][0].extend(range(ua, ub))
             jac["t"]["coo"][1].extend([i] * n)
             jac["t"]["coo"][2].extend(
                 [-pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0] * n
             )  # rh(to)
-            jac["t"]["coo"][0].extend(list(range(ua, ub)))
+            jac["t"]["coo"][0].extend(range(ua, ub))
             jac["t"]["coo"][1].extend([i + 1] * n)
             jac["t"]["coo"][2].extend(
                 [pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0] * n
             )  # rh(tf)
 
         else:
-            jac["mass"]["coo"][0].extend(list(range(ua, ub)))
+            jac["mass"]["coo"][0].extend(range(ua, ub))
             jac["mass"]["coo"][1].extend([xa] * n)
             jac["mass"]["coo"][2].extend([-1.0] * n)
-            jac["mass"]["coo"][0].extend(list(range(ua, ub)))
-            jac["mass"]["coo"][1].extend(list(range(xa + 1, xb)))
+            jac["mass"]["coo"][0].extend(range(ua, ub))
+            jac["mass"]["coo"][1].extend(range(xa + 1, xb))
             jac["mass"]["coo"][2].extend([1.0] * n)
 
     for key in jac.keys():
@@ -155,7 +155,7 @@ def equality_dynamics_position(xdict, pdict, unitdict, condition):
 
     return np.concatenate(con, axis=None)
 
-@profile
+
 def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
     """Jacobian of equality_dynamics_position."""
 
@@ -187,21 +187,21 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
         submat_pos[2::3, 2::3] = pdict["ps_params"].D(i)
 
         rh_vel = -unit_vel * (tf - to) * unit_t / 2.0 / unit_pos  # rh vel
-        jac["velocity"]["coo"][0].extend(list(range(ua * 3, ub * 3)))
-        jac["velocity"]["coo"][1].extend(list(range((xa + 1) * 3, xb * 3)))
+        jac["velocity"]["coo"][0].extend(range(ua * 3, ub * 3))
+        jac["velocity"]["coo"][1].extend(range((xa + 1) * 3, xb * 3))
         jac["velocity"]["coo"][2].extend([rh_vel] * (n * 3))
 
         #t_o
         rh_to = vel_i_[1:].ravel() * unit_vel * unit_t / 2.0 / unit_pos  # rh to
-        jac["t"]["coo"][0].extend(list(range(ua * 3, ub * 3)))
+        jac["t"]["coo"][0].extend(range(ua * 3, ub * 3))
         jac["t"]["coo"][1].extend([i] * n * 3)
-        jac["t"]["coo"][2].extend(rh_to.tolist())
+        jac["t"]["coo"][2].extend(rh_to)
 
         #t_f
         rh_tf = -rh_to  # rh tf
-        jac["t"]["coo"][0].extend(list(range(ua * 3, ub * 3)))
+        jac["t"]["coo"][0].extend(range(ua * 3, ub * 3))
         jac["t"]["coo"][1].extend([i + 1] * n * 3)
-        jac["t"]["coo"][2].extend(rh_tf.tolist())
+        jac["t"]["coo"][2].extend(rh_tf)
 
         jac["position"]["coo"][0].extend(
             chain.from_iterable(
@@ -211,7 +211,7 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
         jac["position"]["coo"][1].extend(
             list(range(xa * 3, xb * 3)) * (n * 3)
         )
-        jac["position"]["coo"][2].extend(submat_pos.ravel().tolist())
+        jac["position"]["coo"][2].extend(submat_pos.ravel())
 
     for key in jac.keys():
         jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
@@ -296,7 +296,7 @@ def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
 
     return np.concatenate(con, axis=None)
 
-@profile
+
 def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
     """Jacobian of equality_dynamics_velocity."""
 
@@ -386,7 +386,7 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
         jac["mass"]["coo"][1].extend(
             chain.from_iterable(repeat(j, 3) for j in range(xa+1, xb))
         )
-        jac["mass"]["coo"][2].extend(rh_mass.ravel().tolist())
+        jac["mass"]["coo"][2].extend(rh_mass.ravel())
 
 
         #position
@@ -410,7 +410,7 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
             jac["position"]["coo"][1].extend(
                 chain.from_iterable(repeat(j * 3 + k, 3) for j in range(xa+1, xb))
             )
-            jac["position"]["coo"][2].extend(rh_pos.ravel().tolist())
+            jac["position"]["coo"][2].extend(rh_pos.ravel())
 
         #velocity
         if param[2] > 0.0:
@@ -438,7 +438,7 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
         jac["velocity"]["coo"][1].extend(
             list(range(xa * 3, xb * 3)) * (n * 3)
         )
-        jac["velocity"]["coo"][2].extend(submat_vel.ravel().tolist())
+        jac["velocity"]["coo"][2].extend(submat_vel.ravel())
 
         #quaternion
         for k in range(4):
@@ -461,7 +461,7 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
             jac["quaternion"]["coo"][1].extend(
                 chain.from_iterable(repeat(j * 4 + k, 3) for j in range(xa+1, xb))
             )
-            jac["quaternion"]["coo"][2].extend(rh_quat.ravel().tolist())
+            jac["quaternion"]["coo"][2].extend(rh_quat.ravel())
 
         #t_o, t_f
         to_p = to + dx
@@ -490,14 +490,14 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
             rh_to = f_center.ravel() * unit_t / 2.0
             rh_tf = -rh_to
 
-        jac["t"]["coo"][0].extend(list(range(ua * 3, ub * 3)))
+        jac["t"]["coo"][0].extend(range(ua * 3, ub * 3))
         jac["t"]["coo"][1].extend([i] * n * 3)
-        jac["t"]["coo"][2].extend(rh_to.tolist())
+        jac["t"]["coo"][2].extend(rh_to)
 
         #t_f
-        jac["t"]["coo"][0].extend(list(range(ua * 3, ub * 3)))
+        jac["t"]["coo"][0].extend(range(ua * 3, ub * 3))
         jac["t"]["coo"][1].extend([i + 1] * n * 3)
-        jac["t"]["coo"][2].extend(rh_tf.tolist())
+        jac["t"]["coo"][2].extend(rh_tf)
 
     for key in jac.keys():
         jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
@@ -543,7 +543,7 @@ def equality_dynamics_quaternion(xdict, pdict, unitdict, condition):
 
     return np.concatenate(con, axis=None)
 
-@profile
+
 def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
     """Jacobian of equality_dynamics_quaternion."""
 
@@ -571,13 +571,13 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
 
         if pdict["params"][i]["attitude"] in ["hold", "vertical"]:
 
-            jac["quaternion"]["coo"][0].extend(list(range(ua * 4, ub * 4)))
+            jac["quaternion"]["coo"][0].extend(range(ua * 4, ub * 4))
             jac["quaternion"]["coo"][1].extend(
                 list(range(xa * 4, (xa + 1) * 4)) * n
             )
             jac["quaternion"]["coo"][2].extend([-1.0] * (4 * n))
 
-            jac["quaternion"]["coo"][0].extend(list(range(ua * 4, ub * 4)))
+            jac["quaternion"]["coo"][0].extend(range(ua * 4, ub * 4))
             jac["quaternion"]["coo"][1].extend(
                 list(range((xa + 1) * 4, xb * 4))
             )
@@ -613,7 +613,7 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
             jac["quaternion"]["coo"][1].extend(
                 list(range(xa * 4, xb * 4)) * (n * 4)
             )
-            jac["quaternion"]["coo"][2].extend(submat_quat.ravel().tolist())
+            jac["quaternion"]["coo"][2].extend(submat_quat.ravel())
 
             # u (angular velocity)
             for k in range(3):
@@ -629,19 +629,19 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
                 jac["u"]["coo"][1].extend(
                     chain.from_iterable(repeat(j * 3 + k, 4) for j in range(ua, ub))
                 )
-                jac["u"]["coo"][2].extend(rh_u.ravel().tolist())
+                jac["u"]["coo"][2].extend(rh_u.ravel())
 
             #t_o
             rh_to = f_center.ravel() * unit_t / 2.0  # rh to
-            jac["t"]["coo"][0].extend(list(range(ua * 4, ub * 4)))
+            jac["t"]["coo"][0].extend(range(ua * 4, ub * 4))
             jac["t"]["coo"][1].extend([i] * n * 4)
-            jac["t"]["coo"][2].extend(rh_to.tolist())
+            jac["t"]["coo"][2].extend(rh_to)
 
             #t_f
             rh_tf = -rh_to  # rh tf
-            jac["t"]["coo"][0].extend(list(range(ua * 4, ub * 4)))
+            jac["t"]["coo"][0].extend(range(ua * 4, ub * 4))
             jac["t"]["coo"][1].extend([i + 1] * n * 4)
-            jac["t"]["coo"][2].extend(rh_tf.tolist())
+            jac["t"]["coo"][2].extend(rh_tf)
 
 
     for key in jac.keys():
