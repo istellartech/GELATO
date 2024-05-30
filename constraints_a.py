@@ -24,8 +24,8 @@
 #
 
 import numpy as np
-from numpy.linalg import norm
-from math import sqrt, cos, radians
+from math import cos, radians
+from coordinate import angular_momentum, orbit_energy, inclination_rad, angular_momentum_from_altitude, orbit_energy_from_altitude
 
 
 # constraints_a.py
@@ -317,6 +317,7 @@ def equality_jac_knot_LGR(xdict, pdict, unitdict, condition):
 
     return jac
 
+@profile
 def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     """Equality constraint about terminal condition."""
 
@@ -325,51 +326,44 @@ def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
 
-    pos_ = xdict["position"].reshape(-1, 3)
-    vel_ = xdict["velocity"].reshape(-1, 3)
-
     # terminal conditions
 
-    pos_f = pos_[-1] * unit_pos
-    vel_f = vel_[-1] * unit_vel
+    pos_f = xdict["position"][-3:] * unit_pos
+    vel_f = xdict["velocity"][-3:] * unit_vel
 
     GMe = 3.986004418e14
     if (
         condition["altitude_perigee"] is not None
         and condition["altitude_apogee"] is not None
     ):
-        a = (
-            condition["altitude_perigee"] + condition["altitude_apogee"]
-        ) / 2.0 + 6378137.0
-        rp = condition["altitude_perigee"] + 6378137.0
-        vp2 = GMe * (2.0 / rp - 1.0 / a)
-        c2_target = rp * rp * vp2  # squared target angular momentum
-        e_target = -GMe / 2.0 / a  # target orbit energy
+        c_target = angular_momentum_from_altitude(
+            condition["altitude_perigee"],
+            condition["altitude_apogee"],
+        )
+        e_target = orbit_energy_from_altitude(
+            condition["altitude_perigee"],
+            condition["altitude_apogee"],
+        )
     else:
-        c2_target = (condition["radius"] * condition["vel_tangential_geocentric"]) ** 2
+        c_target = (condition["radius"] * condition["vel_tangential_geocentric"])
         vf_target = condition["vel_tangential_geocentric"] / cos(
             radians(condition["flightpath_vel_inertial_geocentric"])
         )
         e_target = vf_target**2 / 2.0 - GMe / condition["radius"]
 
-    c = np.cross(pos_f, vel_f)
-    vf2 = vel_f[0] ** 2 + vel_f[1] ** 2 + vel_f[2] ** 2
-    c2 = c[0] ** 2 + c[1] ** 2 + c[2] ** 2
-    con.append(
-        (vf2 / 2.0 - GMe / norm(pos_f) - e_target) / unit_vel**2
-    )  # orbit energy
-    con.append((c2 - c2_target) / unit_vel**2 / unit_pos**2)  # angular momentum
+    c = angular_momentum(pos_f, vel_f)
+    e = orbit_energy(pos_f, vel_f)
+    con.append((e / e_target) - 1.0)  # orbit energy
+    con.append((c / c_target) - 1.0)  # angular momentum
 
     if condition["inclination"] is not None:
-        con.append(
-            (c[2] - sqrt(c2_target) * cos(radians(condition["inclination"])))
-            / unit_vel
-            / unit_pos
-        )
+        inc = inclination_rad(pos_f, vel_f)
+        inc_target = radians(condition["inclination"])
+        con.append(inc - inc_target)
 
     return np.concatenate(con, axis=None)
 
-
+@profile
 def equality_jac_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     """Jacobian of equality_terminal."""
 
@@ -378,10 +372,9 @@ def equality_jac_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
 
     f_center = equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition)
 
-    if hasattr(f_center, "__len__"):
-        nRow = len(f_center)
-    else:
-        nRow = 1
+    nRow = 2
+    if condition["inclination"] is not None:
+        nRow += 1
 
     nCol = pdict["M"] * 3
     jac["position"] = {"coo": [[], [], []], "shape": (nRow, nCol)}
