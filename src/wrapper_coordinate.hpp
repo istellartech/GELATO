@@ -193,4 +193,47 @@ double distance_vincenty(double lat_origin, double lon_origin,
   return dist_azimuth.first;
 }
 
+vec3d angular_momentum_vec(vec3d pos_eci, vec3d vel_eci) {
+  return pos_eci.cross(vel_eci);
+}
+
+double angular_momentum(vec3d pos_eci, vec3d vel_eci) {
+  return angular_momentum_vec(pos_eci, vel_eci).norm();
+}
+
+double inclination_rad(vec3d pos_eci, vec3d vel_eci) {
+  double ci = angular_momentum_vec(pos_eci, vel_eci)[2] /
+         angular_momentum(pos_eci, vel_eci);
+  return acos(ci);
+}
+
+vec3d laplace_vector(vec3d pos_eci, vec3d vel_eci) {
+  vec3d h = angular_momentum_vec(pos_eci, vel_eci);
+  vec3d r = pos_eci;
+  vec3d v = vel_eci;
+  vec3d e = v.cross(h) - Earth::mu * r / r.norm();
+  return e;
+}
+
+double orbit_energy(vec3d pos_eci, vec3d vel_eci) {
+  double r = pos_eci.norm();
+  double v = vel_eci.norm();
+  return 0.5 * v * v - Earth::mu / r;
+}
+
+double angular_momentum_from_altitude(double ha, double hp) {
+  double ra = Earth::Ra + ha;
+  double rp = Earth::Ra + hp;
+  double a = (ra + rp) / 2.0;
+  double vp = sqrt(Earth::mu * (2.0 / rp - 1.0 / a));
+  return rp * vp;
+}
+
+double orbit_energy_from_altitude(double ha, double hp) {
+  double ra = Earth::Ra + ha;
+  double rp = Earth::Ra + hp;
+  double a = (ra + rp) / 2.0;
+  return -Earth::mu / 2.0 / a;
+}
+
 #endif  // SRC_WRAPPER_COORDINATE_HPP_
