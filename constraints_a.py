@@ -25,7 +25,13 @@
 
 import numpy as np
 from math import cos, radians
-from coordinate import angular_momentum, orbit_energy, inclination_rad, angular_momentum_from_altitude, orbit_energy_from_altitude
+from coordinate import (
+    angular_momentum,
+    orbit_energy,
+    inclination_rad,
+    angular_momentum_from_altitude,
+    orbit_energy_from_altitude,
+)
 
 
 # constraints_a.py
@@ -114,6 +120,7 @@ def equality_jac_init(xdict, pdict, unitdict, condition):
 
     return jac
 
+
 def equality_time(xdict, pdict, unitdict, condition):
     """Equality constraint about time of knots."""
 
@@ -162,6 +169,7 @@ def equality_jac_time(xdict, pdict, unitdict, condition):
     }
 
     return jac
+
 
 def equality_knot_LGR(xdict, pdict, unitdict, condition):
     """Equality constraint about knotting conditions."""
@@ -317,7 +325,7 @@ def equality_jac_knot_LGR(xdict, pdict, unitdict, condition):
 
     return jac
 
-@profile
+
 def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     """Equality constraint about terminal condition."""
 
@@ -345,7 +353,7 @@ def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
             condition["altitude_apogee"],
         )
     else:
-        c_target = (condition["radius"] * condition["vel_tangential_geocentric"])
+        c_target = condition["radius"] * condition["vel_tangential_geocentric"]
         vf_target = condition["vel_tangential_geocentric"] / cos(
             radians(condition["flightpath_vel_inertial_geocentric"])
         )
@@ -363,7 +371,7 @@ def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
 
     return np.concatenate(con, axis=None)
 
-@profile
+
 def equality_jac_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     """Jacobian of equality_terminal."""
 
@@ -395,6 +403,7 @@ def equality_jac_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
         jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
 
     return jac
+
 
 def inequality_time(xdict, pdict, unitdict, condition):
     """Inequality constraint about time at knots."""
@@ -441,5 +450,3 @@ def inequality_jac_time(xdict, pdict, unitdict, condition):
         "shape": (counter, len(xdict["t"])),
     }
     return jac
-
-
