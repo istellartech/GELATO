@@ -322,47 +322,52 @@ def angle_of_attack_all_gradient_dimless(pos_eci_e, vel_eci_e, quat, to, tf, win
         "tf": np.zeros(n),
     }
 
+    pos_ki = pos_eci_e[ki]
+    vel_ki = vel_eci_e[ki]
+    quat_ki = quat[ki]
+
     t_nodes = time_nodes(to, tf)
+    t_ki = t_nodes[ki]
 
     f_c = angle_of_attack_all_array_dimless(
-        pos_eci_e[ki], vel_eci_e[ki], quat[ki], t_nodes[ki], wind, units
+        pos_ki, vel_ki, quat_ki, t_ki, wind, units
     )
 
     for j in range(3):
-        pos_eci_e[ki, j] += dx
+        pos_ki[:, j] += dx
         f_p = angle_of_attack_all_array_dimless(
-            pos_eci_e[ki], vel_eci_e[ki], quat[ki], t_nodes[ki], wind, units
+            pos_ki, vel_ki, quat_ki, t_ki, wind, units
         )
-        pos_eci_e[ki, j] -= dx
+        pos_ki[:, j] -= dx
         grad["position"][:, j] = (f_p - f_c).ravel() / dx
 
     for j in range(3):
-        vel_eci_e[ki, j] += dx
+        vel_ki[:, j] += dx
         f_p = angle_of_attack_all_array_dimless(
-            pos_eci_e[ki], vel_eci_e[ki], quat[ki], t_nodes[ki], wind, units
+            pos_ki, vel_ki, quat_ki, t_ki, wind, units
         )
-        vel_eci_e[ki, j] -= dx
+        vel_ki[:, j] -= dx
         grad["velocity"][:, j] = (f_p - f_c).ravel() / dx
 
     for j in range(4):
-        quat[ki, j] += dx
+        quat_ki[:, j] += dx
         f_p = angle_of_attack_all_array_dimless(
-            pos_eci_e[ki], vel_eci_e[ki], quat[ki], t_nodes[ki], wind, units
+            pos_ki, vel_ki, quat_ki, t_ki, wind, units
         )
-        quat[ki, j] -= dx
+        quat_ki[:, j] -= dx
         grad["quaternion"][:, j] = (f_p - f_c).ravel() / dx
 
     to_p = to + dx
     t_nodes_p1 = time_nodes(to_p, tf)
     f_p = angle_of_attack_all_array_dimless(
-        pos_eci_e[ki], vel_eci_e[ki], quat[ki], t_nodes_p1[ki], wind, units
+        pos_ki, vel_ki, quat_ki, t_nodes_p1[ki], wind, units
     )
     grad["to"] = (f_p - f_c).ravel() / dx
 
     tf_p = tf + dx
     t_nodes_p2 = time_nodes(to, tf_p)
     f_p = angle_of_attack_all_array_dimless(
-        pos_eci_e[ki], vel_eci_e[ki], quat[ki], t_nodes_p2[ki], wind, units
+        pos_ki, vel_ki, quat_ki, t_nodes_p2[ki], wind, units
     )
     grad["tf"] = (f_p - f_c).ravel() / dx
 
@@ -431,25 +436,25 @@ def inequality_jac_max_alpha(xdict, pdict, unitdict, condition):
             )
 
             for j in range(3):
-                jac["position"]["coo"][0].extend(list(range(iRow, iRow + nk)))
-                jac["position"]["coo"][1].extend(list(range(xa * 3 + j, (xa + nk) * 3 + j, 3)))
-                jac["position"]["coo"][2].extend(-dfdx["position"][:, j])
+                jac["position"]["coo"][0].extend(range(iRow, iRow + nk))
+                jac["position"]["coo"][1].extend(range(xa * 3 + j, (xa + nk) * 3 + j, 3))
+            jac["position"]["coo"][2].extend(-dfdx["position"].ravel(order="F"))
 
             for j in range(3):
-                jac["velocity"]["coo"][0].extend(list(range(iRow, iRow + nk)))
-                jac["velocity"]["coo"][1].extend(list(range(xa * 3 + j, (xa + nk) * 3 + j, 3)))
-                jac["velocity"]["coo"][2].extend(-dfdx["velocity"][:, j])
+                jac["velocity"]["coo"][0].extend(range(iRow, iRow + nk))
+                jac["velocity"]["coo"][1].extend(range(xa * 3 + j, (xa + nk) * 3 + j, 3))
+            jac["velocity"]["coo"][2].extend(-dfdx["velocity"].ravel(order="F"))
 
             for j in range(4):
-                jac["quaternion"]["coo"][0].extend(list(range(iRow, iRow + nk)))
-                jac["quaternion"]["coo"][1].extend(list(range(xa * 4 + j, (xa + nk) * 4 + j, 4)))
-                jac["quaternion"]["coo"][2].extend(-dfdx["quaternion"][:, j])
+                jac["quaternion"]["coo"][0].extend(range(iRow, iRow + nk))
+                jac["quaternion"]["coo"][1].extend(range(xa * 4 + j, (xa + nk) * 4 + j, 4))
+            jac["quaternion"]["coo"][2].extend(-dfdx["quaternion"].ravel(order="F"))
 
-            jac["t"]["coo"][0].extend(list(range(iRow, iRow + nk)))
+            jac["t"]["coo"][0].extend(range(iRow, iRow + nk))
             jac["t"]["coo"][1].extend([i] * nk)
             jac["t"]["coo"][2].extend(-dfdx["to"])
 
-            jac["t"]["coo"][0].extend(list(range(iRow, iRow + nk)))
+            jac["t"]["coo"][0].extend(range(iRow, iRow + nk))
             jac["t"]["coo"][1].extend([i + 1] * nk)
             jac["t"]["coo"][2].extend(-dfdx["tf"])
 
@@ -473,39 +478,43 @@ def dynamic_pressure_gradient_dimless(pos_eci_e, vel_eci_e, to, tf, wind, units,
         "tf": np.zeros(n),
     }
 
+    pos_ki = pos_eci_e[ki]
+    vel_ki = vel_eci_e[ki]
+
     t_nodes = time_nodes(to, tf)
+    t_ki = t_nodes[ki]
 
     f_c = dynamic_pressure_array_dimless(
-        pos_eci_e[ki], vel_eci_e[ki], t_nodes[ki], wind, units
+        pos_ki, vel_ki, t_ki, wind, units
     )
 
     for j in range(3):
-        pos_eci_e[ki, j] += dx
+        pos_ki[:, j] += dx
         f_p = dynamic_pressure_array_dimless(
-            pos_eci_e[ki], vel_eci_e[ki], t_nodes[ki], wind, units
+            pos_ki, vel_ki, t_ki, wind, units
         )
-        pos_eci_e[ki, j] -= dx
+        pos_ki[:, j] -= dx
         grad["position"][:, j] = (f_p - f_c).ravel() / dx
 
     for j in range(3):
-        vel_eci_e[ki, j] += dx
+        vel_ki[:, j] += dx
         f_p = dynamic_pressure_array_dimless(
-            pos_eci_e[ki], vel_eci_e[ki], t_nodes[ki], wind, units
+            pos_ki, vel_ki, t_ki, wind, units
         )
-        vel_eci_e[ki, j] -= dx
+        vel_ki[:, j] -= dx
         grad["velocity"][:, j] = (f_p - f_c).ravel() / dx
 
     to_p = to + dx
     t_nodes_p1 = time_nodes(to_p, tf)
     f_p = dynamic_pressure_array_dimless(
-        pos_eci_e[ki], vel_eci_e[ki], t_nodes_p1[ki], wind, units
+        pos_ki, vel_ki, t_nodes_p1[ki], wind, units
     )
     grad["to"] = (f_p - f_c).ravel() / dx
 
     tf_p = tf + dx
     t_nodes_p2 = time_nodes(to, tf_p)
     f_p = dynamic_pressure_array_dimless(
-        pos_eci_e[ki], vel_eci_e[ki], t_nodes_p2[ki], wind, units
+        pos_ki, vel_ki, t_nodes_p2[ki], wind, units
     )
     grad["tf"] = (f_p - f_c).ravel() / dx
 
@@ -572,20 +581,20 @@ def inequality_jac_max_q(xdict, pdict, unitdict, condition):
             )
 
             for j in range(3):
-                jac["position"]["coo"][0].extend(list(range(iRow, iRow + nk)))
-                jac["position"]["coo"][1].extend(list(range(xa * 3 + j, (xa + nk) * 3 + j, 3)))
-                jac["position"]["coo"][2].extend(-dfdx["position"][:, j])
+                jac["position"]["coo"][0].extend(range(iRow, iRow + nk))
+                jac["position"]["coo"][1].extend(range(xa * 3 + j, (xa + nk) * 3 + j, 3))
+            jac["position"]["coo"][2].extend(-dfdx["position"].ravel(order="F"))
 
             for j in range(3):
-                jac["velocity"]["coo"][0].extend(list(range(iRow, iRow + nk)))
-                jac["velocity"]["coo"][1].extend(list(range(xa * 3 + j, (xa + nk) * 3 + j, 3)))
-                jac["velocity"]["coo"][2].extend(-dfdx["velocity"][:, j])
+                jac["velocity"]["coo"][0].extend(range(iRow, iRow + nk))
+                jac["velocity"]["coo"][1].extend(range(xa * 3 + j, (xa + nk) * 3 + j, 3))
+            jac["velocity"]["coo"][2].extend(-dfdx["velocity"].ravel(order="F"))
 
-            jac["t"]["coo"][0].extend(list(range(iRow, iRow + nk)))
+            jac["t"]["coo"][0].extend(range(iRow, iRow + nk))
             jac["t"]["coo"][1].extend([i] * nk)
             jac["t"]["coo"][2].extend(-dfdx["to"])
 
-            jac["t"]["coo"][0].extend(list(range(iRow, iRow + nk)))
+            jac["t"]["coo"][0].extend(range(iRow, iRow + nk))
             jac["t"]["coo"][1].extend([i + 1] * nk)
             jac["t"]["coo"][2].extend(-dfdx["tf"])
 
@@ -610,47 +619,52 @@ def q_alpha_gradient_dimless(pos_eci_e, vel_eci_e, quat, to, tf, wind, units, ti
         "tf": np.zeros(n),
     }
 
+    pos_ki = pos_eci_e[ki]
+    vel_ki = vel_eci_e[ki]
+    quat_ki = quat[ki]
+
     t_nodes = time_nodes(to, tf)
+    t_ki = t_nodes[ki]
 
     f_c = q_alpha_array_dimless(
-        pos_eci_e[ki], vel_eci_e[ki], quat[ki], t_nodes[ki], wind, units
+        pos_ki, vel_ki, quat_ki, t_ki, wind, units
     )
 
     for j in range(3):
-        pos_eci_e[ki, j] += dx
+        pos_ki[:, j] += dx
         f_p = q_alpha_array_dimless(
-            pos_eci_e[ki], vel_eci_e[ki], quat[ki], t_nodes[ki], wind, units
+            pos_ki, vel_ki, quat_ki, t_ki, wind, units
         )
-        pos_eci_e[ki, j] -= dx
+        pos_ki[:, j] -= dx
         grad["position"][:, j] = (f_p - f_c).ravel() / dx
 
     for j in range(3):
-        vel_eci_e[ki, j] += dx
+        vel_ki[:, j] += dx
         f_p = q_alpha_array_dimless(
-            pos_eci_e[ki], vel_eci_e[ki], quat[ki], t_nodes[ki], wind, units
+            pos_ki, vel_ki, quat_ki, t_ki, wind, units
         )
-        vel_eci_e[ki, j] -= dx
+        vel_ki[:, j] -= dx
         grad["velocity"][:, j] = (f_p - f_c).ravel() / dx
 
     for j in range(4):
-        quat[ki, j] += dx
+        quat_ki[:, j] += dx
         f_p = q_alpha_array_dimless(
-            pos_eci_e[ki], vel_eci_e[ki], quat[ki], t_nodes[ki], wind, units
+            pos_ki, vel_ki, quat_ki, t_ki, wind, units
         )
-        quat[ki, j] -= dx
+        quat_ki[:, j] -= dx
         grad["quaternion"][:, j] = (f_p - f_c).ravel() / dx
 
     to_p = to + dx
     t_nodes_p1 = time_nodes(to_p, tf)
     f_p = q_alpha_array_dimless(
-        pos_eci_e[ki], vel_eci_e[ki], quat[ki], t_nodes_p1[ki], wind, units
+        pos_ki, vel_ki, quat_ki, t_nodes_p1[ki], wind, units
     )
     grad["to"] = (f_p - f_c).ravel() / dx
 
     tf_p = tf + dx
     t_nodes_p2 = time_nodes(to, tf_p)
     f_p = q_alpha_array_dimless(
-        pos_eci_e[ki], vel_eci_e[ki], quat[ki], t_nodes_p2[ki], wind, units
+        pos_ki, vel_ki, quat_ki, t_nodes_p2[ki], wind, units
     )
     grad["tf"] = (f_p - f_c).ravel() / dx
 
@@ -719,26 +733,26 @@ def inequality_jac_max_qalpha(xdict, pdict, unitdict, condition):
                 pos_i_, vel_i_, quat_i_, to, tf, wind, units, time_nodes, dx, ki
             )
             for j in range(3):
-                jac["position"]["coo"][0].extend(list(range(iRow, iRow + nk)))
-                jac["position"]["coo"][1].extend(list(range(xa * 3 + j, (xa + nk) * 3 + j, 3)))
-                jac["position"]["coo"][2].extend(-dfdx["position"][:, j])
+                jac["position"]["coo"][0].extend(range(iRow, iRow + nk))
+                jac["position"]["coo"][1].extend(range(xa * 3 + j, (xa + nk) * 3 + j, 3))
+            jac["position"]["coo"][2].extend(-dfdx["position"].ravel(order="F"))
 
             for j in range(3):
-                jac["velocity"]["coo"][0].extend(list(range(iRow, iRow + nk)))
-                jac["velocity"]["coo"][1].extend(list(range(xa * 3 + j, (xa + nk) * 3 + j, 3)))
-                jac["velocity"]["coo"][2].extend(-dfdx["velocity"][:, j])
+                jac["velocity"]["coo"][0].extend(range(iRow, iRow + nk))
+                jac["velocity"]["coo"][1].extend(range(xa * 3 + j, (xa + nk) * 3 + j, 3))
+            jac["velocity"]["coo"][2].extend(-dfdx["velocity"].ravel(order="F"))
 
             for j in range(4):
-                jac["quaternion"]["coo"][0].extend(list(range(iRow, iRow + nk)))
-                jac["quaternion"]["coo"][1].extend(list(range(xa * 4 + j, (xa + nk) * 4 + j, 4)))
-                jac["quaternion"]["coo"][2].extend(-dfdx["quaternion"][:, j])
+                jac["quaternion"]["coo"][0].extend(range(iRow, iRow + nk))
+                jac["quaternion"]["coo"][1].extend(range(xa * 4 + j, (xa + nk) * 4 + j, 4))
+            jac["quaternion"]["coo"][2].extend(-dfdx["quaternion"].ravel(order="F"))
 
 
-            jac["t"]["coo"][0].extend(list(range(iRow, iRow + nk)))
+            jac["t"]["coo"][0].extend(range(iRow, iRow + nk))
             jac["t"]["coo"][1].extend([i] * nk)
             jac["t"]["coo"][2].extend(-dfdx["to"])
 
-            jac["t"]["coo"][0].extend(list(range(iRow, iRow + nk)))
+            jac["t"]["coo"][0].extend(range(iRow, iRow + nk))
             jac["t"]["coo"][1].extend([i + 1] * nk)
             jac["t"]["coo"][2].extend(-dfdx["tf"])
 
