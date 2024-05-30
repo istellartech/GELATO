@@ -267,6 +267,28 @@ def equality_length_6DoF_rate(xdict, pdict, unitdict, condition):
 
     return res
 
+@profile
+def roll_direction_array_gradient(pos, quat, unit_pos, dx):
+    grad = {
+        "position": np.zeros((len(pos), 3)),
+        "quaternion": np.zeros((len(pos), 4)),
+    }
+
+    f_c = roll_direction_array(pos * unit_pos, quat)
+
+    for j in range(3):
+        pos[:, j] += dx
+        f_p = roll_direction_array(pos * unit_pos, quat)
+        pos[:, j] -= dx
+        grad["position"][:, j] = (f_p - f_c) / dx
+
+    for j in range(4):
+        quat[:, j] += dx
+        f_p = roll_direction_array(pos * unit_pos, quat)
+        quat[:, j] -= dx
+        grad["quaternion"][:, j] = (f_p - f_c) / dx
+
+    return grad
 
 @profile
 def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
@@ -344,25 +366,20 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
             )
             jac["u"]["coo"][2].extend([1.0] * (n - 1))
             iRow += n - 1
-            f_c = roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:])
+
+            dfdx = roll_direction_array_gradient(pos_i_[1:], quat_i_[1:], unit_pos, dx)
             for j in range(3):
-                pos_i_[:, j] += dx
-                f_p = roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:])
-                pos_i_[:, j] -= dx
                 jac["position"]["coo"][0].extend(list(range(iRow, iRow + n)))
                 jac["position"]["coo"][1].extend(
                     list(range((xa + 1) * 3 + j, (xa + n + 1) * 3 + j, 3))
                 )
-                jac["position"]["coo"][2].extend((f_p - f_c).ravel() / dx)
+                jac["position"]["coo"][2].extend(dfdx["position"][:, j])
             for j in range(4):
-                quat_i_[:, j] += dx
-                f_p = roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:])
-                quat_i_[:, j] -= dx
                 jac["quaternion"]["coo"][0].extend(list(range(iRow, iRow + n)))
                 jac["quaternion"]["coo"][1].extend(
                     list(range((xa + 1) * 4 + j, (xa + n + 1) * 4 + j, 4))
                 )
-                jac["quaternion"]["coo"][2].extend((f_p - f_c).ravel() / dx)
+                jac["quaternion"]["coo"][2].extend(dfdx["quaternion"][:, j])
             iRow += n
 
         # same-rate : pitch/yaw is the same as previous section, roll ANGLE is zero
@@ -381,25 +398,20 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
             jac["u"]["coo"][1].extend(list(range(ua * 3 + 2, (ua + n) * 3 + 2, 3)))
             jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
-            f_c = roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:])
+
+            dfdx = roll_direction_array_gradient(pos_i_[1:], quat_i_[1:], unit_pos, dx)
             for j in range(3):
-                pos_i_[:, j] += dx
-                f_p = roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:])
-                pos_i_[:, j] -= dx
                 jac["position"]["coo"][0].extend(list(range(iRow, iRow + n)))
                 jac["position"]["coo"][1].extend(
                     list(range((xa + 1) * 3 + j, (xa + n + 1) * 3 + j, 3))
                 )
-                jac["position"]["coo"][2].extend((f_p - f_c).ravel() / dx)
+                jac["position"]["coo"][2].extend(dfdx["position"][:, j])
             for j in range(4):
-                quat_i_[:, j] += dx
-                f_p = roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:])
-                quat_i_[:, j] -= dx
                 jac["quaternion"]["coo"][0].extend(list(range(iRow, iRow + n)))
                 jac["quaternion"]["coo"][1].extend(
                     list(range((xa + 1) * 4 + j, (xa + n + 1) * 4 + j, 4))
                 )
-                jac["quaternion"]["coo"][2].extend((f_p - f_c).ravel() / dx)
+                jac["quaternion"]["coo"][2].extend(dfdx["quaternion"][:, j])
             iRow += n
 
         # zero-lift-turn or free : roll hold
