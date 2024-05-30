@@ -26,6 +26,7 @@
 # constraints_d.py
 # constraints about dynamics
 
+from itertools import chain, repeat
 import numpy as np
 from dynamics import dynamics_velocity, dynamics_velocity_NoAir, dynamics_quaternion
 
@@ -79,7 +80,11 @@ def equality_jac_dynamics_mass(xdict, pdict, unitdict, condition):
 
         if pdict["params"][i]["engineOn"]:
 
-            jac["mass"]["coo"][0].extend(sum([[i] * (n + 1) for i in range(ua, ub)], []))
+            jac["mass"]["coo"][0].extend(
+                list(chain.from_iterable(
+                    repeat(j, n + 1) for j in range(ua, ub)
+                ))
+            )
             jac["mass"]["coo"][1].extend(list(range(xa, xb)) * (n))
             jac["mass"]["coo"][2].extend(
                 pdict["ps_params"].D(i).ravel(order="C").tolist()
@@ -150,7 +155,7 @@ def equality_dynamics_position(xdict, pdict, unitdict, condition):
 
     return np.concatenate(con, axis=None)
 
-
+@profile
 def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
     """Jacobian of equality_dynamics_position."""
 
@@ -199,7 +204,9 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
         jac["t"]["coo"][2].extend(rh_tf.tolist())
 
         jac["position"]["coo"][0].extend(
-            sum([[k] * ((n + 1) * 3) for k in range(ua * 3, ub * 3)], [])
+            list(chain.from_iterable(
+                repeat(j, (n + 1) * 3) for j in range(ua * 3, ub * 3)
+            ))
         )
         jac["position"]["coo"][1].extend(
             list(range(xa * 3, xb * 3)) * (n * 3)
@@ -289,7 +296,7 @@ def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
 
     return np.concatenate(con, axis=None)
 
-
+@profile
 def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
     """Jacobian of equality_dynamics_velocity."""
 
@@ -477,8 +484,10 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
         jac["t"]["coo"][1].extend([i + 1] * n * 3)
         jac["t"]["coo"][2].extend(rh_tf.tolist())
 
-        jac["velocity"]["coo"][0].extend(
-            sum([[k] * ((n + 1) * 3) for k in range(ua * 3, ub * 3)], [])
+        jac["velocity"]["coo"][0].extend(list(
+            chain.from_iterable(
+                repeat(j, (n + 1) * 3) for j in range(ua * 3, ub * 3)
+            ))
         )
         jac["velocity"]["coo"][1].extend(
             list(range(xa * 3, xb * 3)) * (n * 3)
@@ -529,7 +538,7 @@ def equality_dynamics_quaternion(xdict, pdict, unitdict, condition):
 
     return np.concatenate(con, axis=None)
 
-
+@profile
 def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
     """Jacobian of equality_dynamics_quaternion."""
 
@@ -617,7 +626,9 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
             jac["t"]["coo"][2].extend(rh_tf.tolist())
 
             jac["quaternion"]["coo"][0].extend(
-                sum([[k] * ((n + 1) * 4) for k in range(ua * 4, ub * 4)], [])
+                list(chain.from_iterable(
+                    repeat(j, (n + 1) * 4) for j in range(ua * 4, ub * 4)
+                ))
             )
             jac["quaternion"]["coo"][1].extend(
                 list(range(xa * 4, xb * 4)) * (n * 4)
