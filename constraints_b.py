@@ -268,6 +268,7 @@ def equality_length_6DoF_rate(xdict, pdict, unitdict, condition):
     return res
 
 
+@profile
 def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
     """Jacobian of equality_rate."""
 
@@ -317,7 +318,9 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
             jac["u"]["coo"][1].extend([ua * 3 + 1] * (n - 1))
             jac["u"]["coo"][2].extend([-1.0] * (n - 1))
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
-            jac["u"]["coo"][1].extend(list(range((ua + 1) * 3 + 1, (ua + n) * 3 + 1, 3)))
+            jac["u"]["coo"][1].extend(
+                list(range((ua + 1) * 3 + 1, (ua + n) * 3 + 1, 3))
+            )
             jac["u"]["coo"][2].extend([1.0] * (n - 1))
             iRow += n - 1
 
@@ -327,33 +330,39 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
             jac["u"]["coo"][1].extend([ua * 3 + 1] * (n - 1))
             jac["u"]["coo"][2].extend([-1.0] * (n - 1))
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
-            jac["u"]["coo"][1].extend(list(range((ua + 1) * 3 + 1, (ua + n) * 3 + 1, 3)))
+            jac["u"]["coo"][1].extend(
+                list(range((ua + 1) * 3 + 1, (ua + n) * 3 + 1, 3))
+            )
             jac["u"]["coo"][2].extend([1.0] * (n - 1))
             iRow += n - 1
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
             jac["u"]["coo"][1].extend([ua * 3 + 2] * (n - 1))
             jac["u"]["coo"][2].extend([-1.0] * (n - 1))
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
-            jac["u"]["coo"][1].extend(list(range((ua + 1) * 3 + 2, (ua + n) * 3 + 2, 3)))
+            jac["u"]["coo"][1].extend(
+                list(range((ua + 1) * 3 + 2, (ua + n) * 3 + 2, 3))
+            )
             jac["u"]["coo"][2].extend([1.0] * (n - 1))
             iRow += n - 1
-            f_c = roll_direction_array(pos_i_ * unit_pos, quat_i_)
+            f_c = roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:])
             for j in range(3):
                 pos_i_[:, j] += dx
-                f_p = roll_direction_array(pos_i_ * unit_pos, quat_i_)
+                f_p = roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:])
                 pos_i_[:, j] -= dx
-                for k in range(n):
-                    jac["position"]["coo"][0].append(iRow + k)
-                    jac["position"]["coo"][1].append((xa + 1 + k) * 3 + j)
-                    jac["position"]["coo"][2].append((f_p[k + 1] - f_c[k + 1]) / dx)
+                jac["position"]["coo"][0].extend(list(range(iRow, iRow + n)))
+                jac["position"]["coo"][1].extend(
+                    list(range((xa + 1) * 3 + j, (xa + n + 1) * 3 + j, 3))
+                )
+                jac["position"]["coo"][2].extend((f_p - f_c).ravel() / dx)
             for j in range(4):
                 quat_i_[:, j] += dx
-                f_p = roll_direction_array(pos_i_ * unit_pos, quat_i_)
+                f_p = roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:])
                 quat_i_[:, j] -= dx
-                for k in range(n):
-                    jac["quaternion"]["coo"][0].append(iRow + k)
-                    jac["quaternion"]["coo"][1].append((xa + 1 + k) * 4 + j)
-                    jac["quaternion"]["coo"][2].append((f_p[k + 1] - f_c[k + 1]) / dx)
+                jac["quaternion"]["coo"][0].extend(list(range(iRow, iRow + n)))
+                jac["quaternion"]["coo"][1].extend(
+                    list(range((xa + 1) * 4 + j, (xa + n + 1) * 4 + j, 4))
+                )
+                jac["quaternion"]["coo"][2].extend((f_p - f_c).ravel() / dx)
             iRow += n
 
         # same-rate : pitch/yaw is the same as previous section, roll ANGLE is zero
@@ -372,23 +381,25 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
             jac["u"]["coo"][1].extend(list(range(ua * 3 + 2, (ua + n) * 3 + 2, 3)))
             jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
-            f_c = roll_direction_array(pos_i_ * unit_pos, quat_i_)
+            f_c = roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:])
             for j in range(3):
                 pos_i_[:, j] += dx
-                f_p = roll_direction_array(pos_i_ * unit_pos, quat_i_)
+                f_p = roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:])
                 pos_i_[:, j] -= dx
-                for k in range(n):
-                    jac["position"]["coo"][0].append(iRow + k)
-                    jac["position"]["coo"][1].append((xa + 1 + k) * 3 + j)
-                    jac["position"]["coo"][2].append((f_p[k + 1] - f_c[k + 1]) / dx)
+                jac["position"]["coo"][0].extend(list(range(iRow, iRow + n)))
+                jac["position"]["coo"][1].extend(
+                    list(range((xa + 1) * 3 + j, (xa + n + 1) * 3 + j, 3))
+                )
+                jac["position"]["coo"][2].extend((f_p - f_c).ravel() / dx)
             for j in range(4):
                 quat_i_[:, j] += dx
-                f_p = roll_direction_array(pos_i_ * unit_pos, quat_i_)
+                f_p = roll_direction_array(pos_i_[1:] * unit_pos, quat_i_[1:])
                 quat_i_[:, j] -= dx
-                for k in range(n):
-                    jac["quaternion"]["coo"][0].append(iRow + k)
-                    jac["quaternion"]["coo"][1].append((xa + 1 + k) * 4 + j)
-                    jac["quaternion"]["coo"][2].append((f_p[k + 1] - f_c[k + 1]) / dx)
+                jac["quaternion"]["coo"][0].extend(list(range(iRow, iRow + n)))
+                jac["quaternion"]["coo"][1].extend(
+                    list(range((xa + 1) * 4 + j, (xa + n + 1) * 4 + j, 4))
+                )
+                jac["quaternion"]["coo"][2].extend((f_p - f_c).ravel() / dx)
             iRow += n
 
         # zero-lift-turn or free : roll hold
