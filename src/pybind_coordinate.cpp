@@ -28,4 +28,11 @@ PYBIND11_MODULE(coordinate_c, m) {
     m.def("eci2geodetic", &eci2geodetic, "convert ECI to geodetic");
     m.def("orbital_elements", &orbital_elements, "orbital elements from ECI position and velocity");
     m.def("distance_vincenty", &distance_vincenty, "Vincenty's formulae for geodesic distance");
+    m.def("angular_momentum_vec", &angular_momentum_vec, "angular momentum vector from ECI position and velocity");
+    m.def("angular_momentum", &angular_momentum, "angular momentum from ECI position and velocity");
+    m.def("inclination_rad", &inclination_rad, "inclination from ECI position and velocity");
+    m.def("laplace_vector", &laplace_vector, "Laplace vector from ECI position and velocity");
+    m.def("orbit_energy", &orbit_energy, "orbital energy from ECI position and velocity");
+    m.def("angular_momentum_from_altitude", &angular_momentum_from_altitude, "angular momentum from altitude");
+    m.def("orbit_energy_from_altitude", &orbit_energy_from_altitude, "orbital energy from altitude");
 }
