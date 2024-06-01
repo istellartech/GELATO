@@ -31,6 +31,7 @@ PYBIND11_MODULE(coordinate_c, m) {
     m.def("angular_momentum_vec", &angular_momentum_vec, "angular momentum vector from ECI position and velocity");
     m.def("angular_momentum", &angular_momentum, "angular momentum from ECI position and velocity");
     m.def("inclination_rad", &inclination_rad, "inclination from ECI position and velocity");
+    m.def("inclination_cosine", &inclination_cosine, "inclination cosine from ECI position and velocity");
     m.def("laplace_vector", &laplace_vector, "Laplace vector from ECI position and velocity");
     m.def("orbit_energy", &orbit_energy, "orbital energy from ECI position and velocity");
     m.def("angular_momentum_from_altitude", &angular_momentum_from_altitude, "angular momentum from altitude");
