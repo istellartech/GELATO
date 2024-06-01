@@ -771,3 +771,130 @@ def orbital_elements(r_eci, v_eci):
             degrees(true_anomaly_rad),
         ]
     )
+
+@jit(nopython=True)
+def angular_momentum_vec(r, v):
+    """Calculates angular momentum vector from position and velocity vectors.
+
+    Args:
+        r (ndarray) : position vector in ECI frame [m]
+        v (ndarray) : inertial velocity vector in ECI frame [m]
+
+    Returns:
+        ndarray : angular momentum vector [m^2/s]
+
+    """
+    return np.cross(r, v)
+
+
+@jit(nopython=True)
+def angular_momentum(r, v):
+    """Calculates angular momentum from position and velocity vectors.
+
+    Args:
+        r (ndarray) : position vector in ECI frame [m]
+        v (ndarray) : inertial velocity vector in ECI frame [m]
+
+    Returns:
+        float64 : angular momentum [m^2/s]
+
+    """
+    return norm(angular_momentum_vec(r, v))
+
+
+@jit(nopython=True)
+def inclination_cosine(r, v):
+    """Calculates cosine of inclination from position and velocity vectors.
+
+    Args:
+        r (ndarray) : position vector in ECI frame [m]
+        v (ndarray) : inertial velocity vector in ECI frame [m]
+
+    Returns:
+        float64 : cosine of inclination
+
+    """
+    return angular_momentum_vec(r, v)[2] / angular_momentum(r, v)
+
+
+@jit(nopython=True)
+def inclination_rad(r, v):
+    """Calculates inclination from position and velocity vectors.
+
+    Args:
+        r (ndarray) : position vector in ECI frame [m]
+        v (ndarray) : inertial velocity vector in ECI frame [m]
+
+    Returns:
+        float64 : inclination [rad]
+
+    """
+    return acos(inclination_cosine(r, v))
+
+
+@jit(nopython=True)
+def laplace_vector(r, v):
+    """Calculates Laplace vector from position and velocity vectors.
+
+    Args:
+        r (ndarray) : position vector in ECI frame [m]
+        v (ndarray) : inertial velocity vector in ECI frame [m]
+
+    Returns:
+        ndarray : Laplace vector
+
+    """
+    h = angular_momentum_vec(r, v)
+    return np.cross(v, h) - 3.986004418e14 * r / norm(r)
+
+
+@jit(nopython=True)
+def orbit_energy(r, v):
+    """Calculates specific orbital energy.
+
+    Args:
+        r (ndarray) : position vector in ECI frame [m]
+        v (ndarray) : inertial velocity vector in ECI frame [m]
+
+    Returns:
+        float64 : specific orbital energy [J/kg]
+
+    """
+    return 0.5 * norm(v) ** 2 - 3.986004418e14 / norm(r)
+
+
+@jit(nopython=True)
+def angular_momentum_from_altitude(ha, hp):
+    """Calculates angular momentum from altitude.
+
+    Args:
+        ha (float64) : altitude of the apogee [m]
+        hp (float64) : altitude of the perigee [m]
+
+    Returns:
+        float64 : angular momentum [m^2/s]
+
+    """
+    ra = 6378137 + ha
+    rp = 6378137 + hp
+    a = (ra + rp) / 2
+    vp = sqrt(3.986004418e14 * (2 / rp - 1 / a))
+    return rp * vp
+
+
+@jit(nopython=True)
+def orbit_energy_from_altitude(ha, hp):
+    """Calculates specific orbital energy from altitude.
+
+    Args:
+        ha (float64) : altitude of the apogee [m]
+        hp (float64) : altitude of the perigee [m]
+
+    Returns:
+        float64 : specific orbital energy [J/kg]
+
+    """
+    ra = 6378137 + ha
+    rp = 6378137 + hp
+    a = (ra + rp) / 2
+    return -3.986004418e14 / 2 / a
