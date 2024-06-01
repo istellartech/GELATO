@@ -200,11 +200,13 @@ vec3d angular_momentum_vec(vec3d pos_eci, vec3d vel_eci) {
 double angular_momentum(vec3d pos_eci, vec3d vel_eci) {
   return angular_momentum_vec(pos_eci, vel_eci).norm();
 }
+double inclination_cosine(vec3d pos_eci, vec3d vel_eci) {
+  return angular_momentum_vec(pos_eci, vel_eci)[2] /
+         angular_momentum(pos_eci, vel_eci);
+}
 
 double inclination_rad(vec3d pos_eci, vec3d vel_eci) {
-  double ci = angular_momentum_vec(pos_eci, vel_eci)[2] /
-         angular_momentum(pos_eci, vel_eci);
-  return acos(ci);
+  return acos(inclination_cosine(pos_eci, vel_eci));
 }
 
 vec3d laplace_vector(vec3d pos_eci, vec3d vel_eci) {
