@@ -180,12 +180,7 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
         to = t[i]
         tf = t[i + 1]
 
-        submat_pos = np.zeros(
-            (n * 3, (n + 1) * 3)
-        )
-        submat_pos[::3, ::3] = pdict["ps_params"].D(i)
-        submat_pos[1::3, 1::3] = pdict["ps_params"].D(i)
-        submat_pos[2::3, 2::3] = pdict["ps_params"].D(i)
+        Di = pdict["ps_params"].D(i).ravel()
 
         rh_vel = -unit_vel * (tf - to) * unit_t / 2.0 / unit_pos  # rh vel
         jac["velocity"]["coo"][0].extend(range(ua * 3, ub * 3))
@@ -204,15 +199,16 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
         jac["t"]["coo"][1].extend([i + 1] * n * 3)
         jac["t"]["coo"][2].extend(rh_tf)
 
-        jac["position"]["coo"][0].extend(
-            chain.from_iterable(
-                repeat(j, (n + 1) * 3) for j in range(ua * 3, ub * 3)
+        for ki in range(3):
+            jac["position"]["coo"][0].extend(
+                chain.from_iterable(
+                    repeat(j, (n + 1)) for j in range(ua * 3 + ki, ub * 3 + ki, 3)
+                )
             )
-        )
-        jac["position"]["coo"][1].extend(
-            list(range(xa * 3, xb * 3)) * (n * 3)
-        )
-        jac["position"]["coo"][2].extend(submat_pos.ravel())
+            jac["position"]["coo"][1].extend(
+                list(range(xa * 3 + ki, xb * 3 + ki, 3)) * n
+            )
+            jac["position"]["coo"][2].extend(Di)
 
     for key in jac.keys():
         jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
@@ -432,15 +428,17 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
                 for j in range(n):
                     submat_vel[j * 3 : j * 3 + 3, (j + 1) * 3 + k] += rh_vel[j]
 
-        jac["velocity"]["coo"][0].extend(
-            chain.from_iterable(
-                repeat(j, (n + 1) * 3) for j in range(ua * 3, ub * 3)
-            )
-        )
-        jac["velocity"]["coo"][1].extend(
-            list(range(xa * 3, xb * 3)) * (n * 3)
-        )
-        jac["velocity"]["coo"][2].extend(submat_vel.ravel())
+        for ki in range(3):
+            for kj in range(3):
+                jac["velocity"]["coo"][0].extend(
+                    chain.from_iterable(
+                        repeat(j, (n + 1)) for j in range(ua * 3 + ki, ub * 3 + ki, 3)
+                    )
+                )
+                jac["velocity"]["coo"][1].extend(
+                    list(range(xa * 3 + kj, xb * 3 + kj, 3)) * n
+                )
+                jac["velocity"]["coo"][2].extend(submat_vel[ki::3, kj::3].ravel())
 
         #quaternion
         for k in range(4):
