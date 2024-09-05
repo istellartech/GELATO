@@ -40,6 +40,7 @@ def yb_r_dot(pos_eci, quat_eci2body):
     yb_dir_eci = quatrot(conj(quat_eci2body), np.array([0.0, 1.0, 0.0]))
     return yb_dir_eci.dot(normalize(pos_eci))
 
+
 @jit(nopython=True)
 def roll_direction_array(pos, quat):
     """Returns array of sine of roll angles for each state values."""
@@ -267,7 +268,7 @@ def equality_length_6DoF_rate(xdict, pdict, unitdict, condition):
 
     return res
 
-@profile
+
 def roll_direction_array_gradient(pos, quat, unit_pos, dx):
     grad = {
         "position": np.zeros((len(pos), 3)),
@@ -290,7 +291,7 @@ def roll_direction_array_gradient(pos, quat, unit_pos, dx):
 
     return grad
 
-@profile
+
 def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
     """Jacobian of equality_rate."""
 

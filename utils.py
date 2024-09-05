@@ -202,9 +202,9 @@ def dynamic_pressure_pa(pos_eci, vel_eci, t, wind):
 
     return 0.5 * vel_air_eci.dot(vel_air_eci) * rho
 
-def dynamics_pressure_array_pa(pos_eci, vel_eci, t, wind):
+def dynamic_pressure_array_pa(pos_eci, vel_eci, t, wind):
     """ Array version of dynamic_pressure_pa."""
-    q = np.zeros(pos_eci.shape[0], 4)
+    q = np.zeros(pos_eci.shape[0])
     for i in range(pos_eci.shape[0]):
         q[i] = dynamic_pressure_pa(pos_eci[i], vel_eci[i], t[i], wind)
     return q
@@ -220,7 +220,7 @@ def q_alpha_pa_rad(pos_eci, vel_eci, quat, t, wind):
 
 def q_alpha_array_pa_rad(pos_eci, vel_eci, quat, t, wind):
     """ Array version of q_alpha_pa_rad."""
-    qa = np.zeros(pos_eci.shape[0], 4)
+    qa = np.zeros(pos_eci.shape[0])
     for i in range(pos_eci.shape[0]):
         qa[i] = q_alpha_pa_rad(pos_eci[i], vel_eci[i], quat[i], t[i], wind)
     return qa

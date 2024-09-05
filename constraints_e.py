@@ -30,7 +30,15 @@
 import numpy as np
 from utils import *
 from USStandardAtmosphere import *
-from coordinate import geodetic2ecef, eci2ecef, normalize, quatrot, quat_nedg2ecef, vel_eci2ecef, eci2geodetic
+from coordinate import (
+    geodetic2ecef,
+    eci2ecef,
+    normalize,
+    quatrot,
+    quat_nedg2ecef,
+    vel_eci2ecef,
+    eci2geodetic,
+)
 from tools.IIP import posLLH_IIP_FAA
 from tools.downrange import distance_vincenty
 
@@ -98,7 +106,6 @@ def inequality_antenna(xdict, pdict, unitdict, condition):
         return np.concatenate(con, axis=None)
 
 
-@profile
 def inequality_jac_antenna(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_antenna."""
 
@@ -234,7 +241,6 @@ def posLLH_IIP_gradient(pos_ECI, vel_ECI, t, unit_pos, unit_vel, unit_t, dx):
     return grad
 
 
-@profile
 def equality_jac_IIP(xdict, pdict, unitdict, condition):
     """Jacobian of equality_IIP."""
     jac = {}
@@ -275,7 +281,6 @@ def equality_jac_IIP(xdict, pdict, unitdict, condition):
             pos_o_ = pos_[xa]
             vel_o_ = vel_[xa]
             to_ = t_[i]
-
 
             # latitude
             if "lat_IIP" in waypoint:
@@ -377,7 +382,6 @@ def inequality_IIP(xdict, pdict, unitdict, condition):
         return np.concatenate(con, axis=None)
 
 
-@profile
 def inequality_jac_IIP(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_IIP."""
     jac = {}
@@ -727,7 +731,7 @@ def inequality_posLLH(xdict, pdict, unitdict, condition):
     else:
         return np.concatenate(con, axis=None)
 
-@profile
+
 def inequality_jac_posLLH(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_posLLH."""
 
