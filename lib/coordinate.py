@@ -772,6 +772,10 @@ def orbital_elements(r_eci, v_eci):
         ]
     )
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> b5a241f (reformat)
 
 
 @jit(nopython=True)
@@ -900,5 +904,9 @@ def orbit_energy_from_altitude(ha, hp):
     rp = 6378137 + hp
     a = (ra + rp) / 2
     return -3.986004418e14 / 2 / a
+<<<<<<< HEAD
 =======
 >>>>>>> 55032f7 (move files)
+=======
+>>>>>>> ad32ec7 (reformat)
+>>>>>>> b5a241f (reformat)
