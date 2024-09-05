@@ -34,13 +34,13 @@ from pyoptsparse import IPOPT, SNOPT, Optimization
 from coordinate import *
 from initialize import initialize_xdict_6DoF_from_file, initialize_xdict_6DoF_2
 from output_result import output_result
-from constraints_a import equality_init, equality_time, equality_knot_LGR, equality_6DoF_LGR_terminal, equality_jac_init, equality_jac_time, equality_jac_knot_LGR, equality_jac_6DoF_LGR_terminal, inequality_time, inequality_jac_time
-from constraints_b import inequality_mass, inequality_jac_mass, inequality_kickturn, inequality_jac_kickturn, equality_6DoF_rate, equality_jac_6DoF_rate
-from constraints_c import inequality_max_alpha, inequality_jac_max_alpha, inequality_max_q, inequality_jac_max_q, inequality_max_qalpha, inequality_jac_max_qalpha
-from constraints_d import equality_dynamics_mass, equality_dynamics_position, equality_dynamics_velocity, equality_dynamics_quaternion, equality_jac_dynamics_mass, equality_jac_dynamics_position, equality_jac_dynamics_velocity, equality_jac_dynamics_quaternion
-from constraints_e import equality_posLLH, equality_jac_posLLH, inequality_posLLH, inequality_jac_posLLH, equality_IIP, equality_jac_IIP, inequality_IIP, inequality_jac_IIP, inequality_antenna, inequality_jac_antenna
+import constraints.con_init_terminal_knot as con_a
+import constraints.con_trajectory as con_traj
+import constraints.con_aero as con_aero
+import constraints.con_dynamics as con_dynamics
+import constraints.con_waypoint as con_wp
 from user_constraints import equality_user, inequality_user
-from constraints_u import equality_jac_user, inequality_jac_user
+import constraints.con_user as con_user
 from cost_gradient import cost_6DoF, cost_jac
 from SectionParameters import PSparams
 
@@ -194,38 +194,38 @@ else:
 def objfunc(xdict):
     funcs = {}
     funcs["obj"] = cost_6DoF(xdict, condition)
-    funcs["eqcon_init"] = equality_init(xdict, pdict, unitdict, condition)
-    funcs["eqcon_time"] = equality_time(xdict, pdict, unitdict, condition)
-    funcs["eqcon_dyn_mass"] = equality_dynamics_mass(xdict, pdict, unitdict, condition)
-    funcs["eqcon_dyn_pos"] = equality_dynamics_position(
+    funcs["eqcon_init"] = con_a.equality_init(xdict, pdict, unitdict, condition)
+    funcs["eqcon_time"] = con_a.equality_time(xdict, pdict, unitdict, condition)
+    funcs["eqcon_dyn_mass"] = con_dynamics.equality_dynamics_mass(xdict, pdict, unitdict, condition)
+    funcs["eqcon_dyn_pos"] = con_dynamics.equality_dynamics_position(
         xdict, pdict, unitdict, condition
     )
-    funcs["eqcon_dyn_vel"] = equality_dynamics_velocity(
+    funcs["eqcon_dyn_vel"] = con_dynamics.equality_dynamics_velocity(
         xdict, pdict, unitdict, condition
     )
-    funcs["eqcon_dyn_quat"] = equality_dynamics_quaternion(
+    funcs["eqcon_dyn_quat"] = con_dynamics.equality_dynamics_quaternion(
         xdict, pdict, unitdict, condition
     )
 
-    funcs["eqcon_knot"] = equality_knot_LGR(xdict, pdict, unitdict, condition)
-    funcs["eqcon_terminal"] = equality_6DoF_LGR_terminal(
+    funcs["eqcon_knot"] = con_a.equality_knot_LGR(xdict, pdict, unitdict, condition)
+    funcs["eqcon_terminal"] = con_a.equality_6DoF_LGR_terminal(
         xdict, pdict, unitdict, condition
     )
-    funcs["eqcon_rate"] = equality_6DoF_rate(xdict, pdict, unitdict, condition)
-    funcs["eqcon_pos"] = equality_posLLH(xdict, pdict, unitdict, condition)
-    funcs["eqcon_iip"] = equality_IIP(xdict, pdict, unitdict, condition)
-    funcs["eqcon_user"] = equality_user(xdict, pdict, unitdict, condition)
+    funcs["eqcon_rate"] = con_traj.equality_6DoF_rate(xdict, pdict, unitdict, condition)
+    funcs["eqcon_pos"] = con_wp.equality_posLLH(xdict, pdict, unitdict, condition)
+    funcs["eqcon_iip"] = con_wp.equality_IIP(xdict, pdict, unitdict, condition)
+    funcs["eqcon_user"] = con_user.equality_user(xdict, pdict, unitdict, condition)
 
-    funcs["ineqcon_alpha"] = inequality_max_alpha(xdict, pdict, unitdict, condition)
-    funcs["ineqcon_q"] = inequality_max_q(xdict, pdict, unitdict, condition)
-    funcs["ineqcon_qalpha"] = inequality_max_qalpha(xdict, pdict, unitdict, condition)
-    funcs["ineqcon_mass"] = inequality_mass(xdict, pdict, unitdict, condition)
-    funcs["ineqcon_kick"] = inequality_kickturn(xdict, pdict, unitdict, condition)
-    funcs["ineqcon_time"] = inequality_time(xdict, pdict, unitdict, condition)
-    funcs["ineqcon_pos"] = inequality_posLLH(xdict, pdict, unitdict, condition)
-    funcs["ineqcon_iip"] = inequality_IIP(xdict, pdict, unitdict, condition)
-    funcs["ineqcon_antenna"] = inequality_antenna(xdict, pdict, unitdict, condition)
-    funcs["ineqcon_user"] = inequality_user(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_alpha"] = con_aero.inequality_max_alpha(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_q"] = con_aero.inequality_max_q(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_qalpha"] = con_aero.inequality_max_qalpha(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_mass"] = con_traj.inequality_mass(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_kick"] = con_traj.inequality_kickturn(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_time"] = con_a.inequality_time(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_pos"] = con_wp.inequality_posLLH(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_iip"] = con_wp.inequality_IIP(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_antenna"] = con_wp.inequality_antenna(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_user"] = con_user.inequality_user(xdict, pdict, unitdict, condition)
 
     fail = False
 
@@ -235,48 +235,48 @@ def objfunc(xdict):
 def sens(xdict, funcs):
     funcsSens = {}
     funcsSens["obj"] = cost_jac(xdict, condition)
-    funcsSens["eqcon_init"] = equality_jac_init(xdict, pdict, unitdict, condition)
-    funcsSens["eqcon_time"] = equality_jac_time(xdict, pdict, unitdict, condition)
-    funcsSens["eqcon_dyn_mass"] = equality_jac_dynamics_mass(
+    funcsSens["eqcon_init"] = con_a.equality_jac_init(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_time"] = con_a.equality_jac_time(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_dyn_mass"] = con_dynamics.equality_jac_dynamics_mass(
         xdict, pdict, unitdict, condition
     )
-    funcsSens["eqcon_dyn_pos"] = equality_jac_dynamics_position(
+    funcsSens["eqcon_dyn_pos"] = con_dynamics.equality_jac_dynamics_position(
         xdict, pdict, unitdict, condition
     )
-    funcsSens["eqcon_dyn_vel"] = equality_jac_dynamics_velocity(
+    funcsSens["eqcon_dyn_vel"] = con_dynamics.equality_jac_dynamics_velocity(
         xdict, pdict, unitdict, condition
     )
-    funcsSens["eqcon_dyn_quat"] = equality_jac_dynamics_quaternion(
+    funcsSens["eqcon_dyn_quat"] = con_dynamics.equality_jac_dynamics_quaternion(
         xdict, pdict, unitdict, condition
     )
 
-    funcsSens["eqcon_knot"] = equality_jac_knot_LGR(xdict, pdict, unitdict, condition)
-    funcsSens["eqcon_terminal"] = equality_jac_6DoF_LGR_terminal(
+    funcsSens["eqcon_knot"] = con_a.equality_jac_knot_LGR(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_terminal"] = con_a.equality_jac_6DoF_LGR_terminal(
         xdict, pdict, unitdict, condition
     )
-    funcsSens["eqcon_rate"] = equality_jac_6DoF_rate(xdict, pdict, unitdict, condition)
-    funcsSens["eqcon_pos"] = equality_jac_posLLH(xdict, pdict, unitdict, condition)
-    funcsSens["eqcon_iip"] = equality_jac_IIP(xdict, pdict, unitdict, condition)
-    funcsSens["eqcon_user"] = equality_jac_user(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_rate"] = con_traj.equality_jac_6DoF_rate(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_pos"] = con_wp.equality_jac_posLLH(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_iip"] = con_wp.equality_jac_IIP(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_user"] = con_user.equality_jac_user(xdict, pdict, unitdict, condition)
 
-    funcsSens["ineqcon_alpha"] = inequality_jac_max_alpha(
+    funcsSens["ineqcon_alpha"] = con_aero.inequality_jac_max_alpha(
         xdict, pdict, unitdict, condition
     )
-    funcsSens["ineqcon_q"] = inequality_jac_max_q(xdict, pdict, unitdict, condition)
-    funcsSens["ineqcon_qalpha"] = inequality_jac_max_qalpha(
+    funcsSens["ineqcon_q"] = con_aero.inequality_jac_max_q(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_qalpha"] = con_aero.inequality_jac_max_qalpha(
         xdict, pdict, unitdict, condition
     )
-    funcsSens["ineqcon_mass"] = inequality_jac_mass(xdict, pdict, unitdict, condition)
-    funcsSens["ineqcon_kick"] = inequality_jac_kickturn(
+    funcsSens["ineqcon_mass"] = con_traj.inequality_jac_mass(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_kick"] = con_traj.inequality_jac_kickturn(
         xdict, pdict, unitdict, condition
     )
-    funcsSens["ineqcon_time"] = inequality_jac_time(xdict, pdict, unitdict, condition)
-    funcsSens["ineqcon_pos"] = inequality_jac_posLLH(xdict, pdict, unitdict, condition)
-    funcsSens["ineqcon_iip"] = inequality_jac_IIP(xdict, pdict, unitdict, condition)
-    funcsSens["ineqcon_antenna"] = inequality_jac_antenna(
+    funcsSens["ineqcon_time"] = con_a.inequality_jac_time(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_pos"] = con_wp.inequality_jac_posLLH(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_iip"] = con_wp.inequality_jac_IIP(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_antenna"] = con_wp.inequality_jac_antenna(
         xdict, pdict, unitdict, condition
     )
-    funcsSens["ineqcon_user"] = inequality_jac_user(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_user"] = con_user.inequality_jac_user(xdict, pdict, unitdict, condition)
 
     fail = False
     return funcsSens, fail
