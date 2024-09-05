@@ -25,12 +25,12 @@
 
 import numpy as np
 import pandas as pd
-from utils import *
-from PSfunctions import *
-from USStandardAtmosphere import *
-from coordinate import *
-from tools.IIP import posLLH_IIP_FAA
-from tools.downrange import distance_vincenty
+from lib.utils import *
+from lib.PSfunctions import *
+from lib.USStandardAtmosphere import *
+from lib.coordinate import *
+from lib.IIP import posLLH_IIP_FAA
+from lib.downrange import distance_vincenty
 
 def output_result(xdict, unitdict, tx_res, tu_res, pdict):
     """Returns DataFrame that contains optimization results.

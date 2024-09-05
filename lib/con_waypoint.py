@@ -28,9 +28,9 @@
 
 
 import numpy as np
-from utils import *
-from USStandardAtmosphere import *
-from coordinate import (
+from .utils import *
+from .USStandardAtmosphere import *
+from .coordinate import (
     geodetic2ecef,
     eci2ecef,
     normalize,
@@ -39,8 +39,8 @@ from coordinate import (
     vel_eci2ecef,
     eci2geodetic,
 )
-from tools.IIP import posLLH_IIP_FAA
-from tools.downrange import distance_vincenty
+from .IIP import posLLH_IIP_FAA
+from .downrange import distance_vincenty
 
 
 def sin_elevation(pos_, t_, posECEF_ANT, unit_pos, unit_t):

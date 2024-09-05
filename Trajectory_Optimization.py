@@ -31,18 +31,18 @@ import numpy as np
 import pandas as pd
 from pyoptsparse import IPOPT, SNOPT, Optimization
 
-from coordinate import *
+from lib.coordinate import *
 from initialize import initialize_xdict_6DoF_from_file, initialize_xdict_6DoF_2
 from output_result import output_result
-import constraints.con_init_terminal_knot as con_a
-import constraints.con_trajectory as con_traj
-import constraints.con_aero as con_aero
-import constraints.con_dynamics as con_dynamics
-import constraints.con_waypoint as con_wp
+import lib.con_init_terminal_knot as con_a
+import lib.con_trajectory as con_traj
+import lib.con_aero as con_aero
+import lib.con_dynamics as con_dynamics
+import lib.con_waypoint as con_wp
 from user_constraints import equality_user, inequality_user
-import constraints.con_user as con_user
-from cost_gradient import cost_6DoF, cost_jac
-from SectionParameters import PSparams
+import lib.con_user as con_user
+from lib.cost_gradient import cost_6DoF, cost_jac
+from lib.SectionParameters import PSparams
 
 version = "0.7.4"
 

@@ -27,7 +27,7 @@
 # constraints about user conditions
 
 from user_constraints import equality_user, inequality_user
-from utils import jac_fd
+from .utils import jac_fd
 
 
 def equality_jac_user(xdict, pdict, unitdict, condition):
