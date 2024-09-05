@@ -32,6 +32,7 @@ from lib.coordinate import *
 from lib.IIP import posLLH_IIP_FAA
 from lib.downrange import distance_vincenty
 
+
 def output_result(xdict, unitdict, tx_res, tu_res, pdict):
     """Returns DataFrame that contains optimization results.
 

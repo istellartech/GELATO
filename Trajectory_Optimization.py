@@ -196,7 +196,9 @@ def objfunc(xdict):
     funcs["obj"] = cost_6DoF(xdict, condition)
     funcs["eqcon_init"] = con_a.equality_init(xdict, pdict, unitdict, condition)
     funcs["eqcon_time"] = con_a.equality_time(xdict, pdict, unitdict, condition)
-    funcs["eqcon_dyn_mass"] = con_dynamics.equality_dynamics_mass(xdict, pdict, unitdict, condition)
+    funcs["eqcon_dyn_mass"] = con_dynamics.equality_dynamics_mass(
+        xdict, pdict, unitdict, condition
+    )
     funcs["eqcon_dyn_pos"] = con_dynamics.equality_dynamics_position(
         xdict, pdict, unitdict, condition
     )
@@ -216,15 +218,23 @@ def objfunc(xdict):
     funcs["eqcon_iip"] = con_wp.equality_IIP(xdict, pdict, unitdict, condition)
     funcs["eqcon_user"] = con_user.equality_user(xdict, pdict, unitdict, condition)
 
-    funcs["ineqcon_alpha"] = con_aero.inequality_max_alpha(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_alpha"] = con_aero.inequality_max_alpha(
+        xdict, pdict, unitdict, condition
+    )
     funcs["ineqcon_q"] = con_aero.inequality_max_q(xdict, pdict, unitdict, condition)
-    funcs["ineqcon_qalpha"] = con_aero.inequality_max_qalpha(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_qalpha"] = con_aero.inequality_max_qalpha(
+        xdict, pdict, unitdict, condition
+    )
     funcs["ineqcon_mass"] = con_traj.inequality_mass(xdict, pdict, unitdict, condition)
-    funcs["ineqcon_kick"] = con_traj.inequality_kickturn(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_kick"] = con_traj.inequality_kickturn(
+        xdict, pdict, unitdict, condition
+    )
     funcs["ineqcon_time"] = con_a.inequality_time(xdict, pdict, unitdict, condition)
     funcs["ineqcon_pos"] = con_wp.inequality_posLLH(xdict, pdict, unitdict, condition)
     funcs["ineqcon_iip"] = con_wp.inequality_IIP(xdict, pdict, unitdict, condition)
-    funcs["ineqcon_antenna"] = con_wp.inequality_antenna(xdict, pdict, unitdict, condition)
+    funcs["ineqcon_antenna"] = con_wp.inequality_antenna(
+        xdict, pdict, unitdict, condition
+    )
     funcs["ineqcon_user"] = con_user.inequality_user(xdict, pdict, unitdict, condition)
 
     fail = False
@@ -250,33 +260,53 @@ def sens(xdict, funcs):
         xdict, pdict, unitdict, condition
     )
 
-    funcsSens["eqcon_knot"] = con_a.equality_jac_knot_LGR(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_knot"] = con_a.equality_jac_knot_LGR(
+        xdict, pdict, unitdict, condition
+    )
     funcsSens["eqcon_terminal"] = con_a.equality_jac_6DoF_LGR_terminal(
         xdict, pdict, unitdict, condition
     )
-    funcsSens["eqcon_rate"] = con_traj.equality_jac_6DoF_rate(xdict, pdict, unitdict, condition)
-    funcsSens["eqcon_pos"] = con_wp.equality_jac_posLLH(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_rate"] = con_traj.equality_jac_6DoF_rate(
+        xdict, pdict, unitdict, condition
+    )
+    funcsSens["eqcon_pos"] = con_wp.equality_jac_posLLH(
+        xdict, pdict, unitdict, condition
+    )
     funcsSens["eqcon_iip"] = con_wp.equality_jac_IIP(xdict, pdict, unitdict, condition)
-    funcsSens["eqcon_user"] = con_user.equality_jac_user(xdict, pdict, unitdict, condition)
+    funcsSens["eqcon_user"] = con_user.equality_jac_user(
+        xdict, pdict, unitdict, condition
+    )
 
     funcsSens["ineqcon_alpha"] = con_aero.inequality_jac_max_alpha(
         xdict, pdict, unitdict, condition
     )
-    funcsSens["ineqcon_q"] = con_aero.inequality_jac_max_q(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_q"] = con_aero.inequality_jac_max_q(
+        xdict, pdict, unitdict, condition
+    )
     funcsSens["ineqcon_qalpha"] = con_aero.inequality_jac_max_qalpha(
         xdict, pdict, unitdict, condition
     )
-    funcsSens["ineqcon_mass"] = con_traj.inequality_jac_mass(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_mass"] = con_traj.inequality_jac_mass(
+        xdict, pdict, unitdict, condition
+    )
     funcsSens["ineqcon_kick"] = con_traj.inequality_jac_kickturn(
         xdict, pdict, unitdict, condition
     )
-    funcsSens["ineqcon_time"] = con_a.inequality_jac_time(xdict, pdict, unitdict, condition)
-    funcsSens["ineqcon_pos"] = con_wp.inequality_jac_posLLH(xdict, pdict, unitdict, condition)
-    funcsSens["ineqcon_iip"] = con_wp.inequality_jac_IIP(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_time"] = con_a.inequality_jac_time(
+        xdict, pdict, unitdict, condition
+    )
+    funcsSens["ineqcon_pos"] = con_wp.inequality_jac_posLLH(
+        xdict, pdict, unitdict, condition
+    )
+    funcsSens["ineqcon_iip"] = con_wp.inequality_jac_IIP(
+        xdict, pdict, unitdict, condition
+    )
     funcsSens["ineqcon_antenna"] = con_wp.inequality_jac_antenna(
         xdict, pdict, unitdict, condition
     )
-    funcsSens["ineqcon_user"] = con_user.inequality_jac_user(xdict, pdict, unitdict, condition)
+    funcsSens["ineqcon_user"] = con_user.inequality_jac_user(
+        xdict, pdict, unitdict, condition
+    )
 
     fail = False
     return funcsSens, fail
@@ -453,8 +483,7 @@ for i in range(num_sections):
     tu_res = np.hstack(
         (
             tu_res,
-            (pdict["ps_params"].tau(i) * (tf - to) / 2 + (tf + to) / 2)
-            * unitdict["t"],
+            (pdict["ps_params"].tau(i) * (tf - to) / 2 + (tf + to) / 2) * unitdict["t"],
         )
     )
     tx_res = np.hstack(

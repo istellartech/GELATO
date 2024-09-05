@@ -411,5 +411,3 @@ def initialize_xdict_6DoF_from_file(
     if flag_display:
         display_6DoF(output_result(xdict, unitdict, time_x_nodes, time_nodes, pdict))
     return xdict
-
-

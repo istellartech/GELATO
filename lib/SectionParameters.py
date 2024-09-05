@@ -28,22 +28,24 @@ from .PSfunctions import differentiation_matrix_LGR, nodes_LGR
 
 
 class PSparams:
-    def __init__(self, num_nodes: 'list[int]'):
+    def __init__(self, num_nodes: "list[int]"):
         self._num_sections = len(num_nodes)
         self._num_nodes = [n for n in num_nodes]
         self._tau = [nodes_LGR(n) for n in num_nodes]
         self._D = [differentiation_matrix_LGR(n) for n in num_nodes]
-        self._index_start_u = [sum(self._num_nodes[:i]) for i in range(self._num_sections)]
+        self._index_start_u = [
+            sum(self._num_nodes[:i]) for i in range(self._num_sections)
+        ]
         self._N = sum(self._num_nodes)
 
     def tau(self, i):
         if i < 0 or i >= self._num_sections:
-            raise ValueError('Index out of range')
+            raise ValueError("Index out of range")
         return self._tau[i]
 
     def D(self, i):
         if i < 0 or i >= self._num_sections:
-            raise ValueError('Index out of range')
+            raise ValueError("Index out of range")
         return self._D[i]
 
     def index_start_u(self, i):
@@ -69,7 +71,7 @@ class PSparams:
 
     def nodes(self, i):
         if i < 0 or i >= self._num_sections:
-            raise ValueError('Index out of range')
+            raise ValueError("Index out of range")
         return self._num_nodes[i]
 
     def time_nodes(self, i, to, tf):
@@ -103,7 +105,7 @@ class PSparams:
     def __getitem__(self, i):
         """get item of PSparams.(back compatibility)"""
         if i < 0 or i >= self._num_sections:
-            raise ValueError('Index out of range')
+            raise ValueError("Index out of range")
         return {
             "index_start": self._index_start_u[i],
             "nodes": self._num_nodes[i],
