@@ -56,8 +56,7 @@ double Air::geopotential_altitude(double geometric_altitude) {
 AirParams Air::us76_params(double altitude) {
   int k = 0;
   for (int i = 0; i < hb.size(); i++) {
-    if (altitude >= hb[i])
-      k = i;
+    if (altitude >= hb[i]) k = i;
   }
 
   AirParams p;

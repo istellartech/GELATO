@@ -30,6 +30,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <cmath>
+#include <utility>
 
 #include "Coordinate.hpp"
 #include "Earth.hpp"
@@ -39,7 +40,6 @@ namespace py = pybind11;
 
 #ifndef SRC_WRAPPER_COORDINATE_HPP_
 #define SRC_WRAPPER_COORDINATE_HPP_
-
 
 using vec3d = Eigen::Matrix<double, 3, 1>;
 using vec4d = Eigen::Matrix<double, 4, 1>;
@@ -208,12 +208,13 @@ Eigen::Matrix<double, 6, 1> orbital_elements(vec3d pos_eci, vec3d vel_eci) {
   return elem;
 }
 
-double distance_vincenty(double lat_origin, double lon_origin, 
+double distance_vincenty(double lat_origin, double lon_origin,
                          double lat_target, double lon_target) {
-  
-  std::pair <double, double>dist_azimuth = Earth::distance_vincenty(
-      Eigen::Vector3d(lat_origin * M_PI / 180.0, lon_origin * M_PI / 180.0, 0.0),
-      Eigen::Vector3d(lat_target * M_PI / 180.0, lon_target * M_PI / 180.0, 0.0));
+  std::pair<double, double> dist_azimuth =
+      Earth::distance_vincenty(Eigen::Vector3d(lat_origin * M_PI / 180.0,
+                                               lon_origin * M_PI / 180.0, 0.0),
+                               Eigen::Vector3d(lat_target * M_PI / 180.0,
+                                               lon_target * M_PI / 180.0, 0.0));
 
   return dist_azimuth.first;
 }

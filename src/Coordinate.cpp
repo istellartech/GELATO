@@ -139,8 +139,7 @@ Vector3d Coordinate::euler_from_quat(Quaterniond q) {
     out[2] = M_PI + out[2];
   }
   out[0] = std::fmod(out[0], 2.0 * M_PI);
-  if (out[0] < 0.0)
-    out[0] += 2.0 * M_PI;
+  if (out[0] < 0.0) out[0] += 2.0 * M_PI;
   out[2] = std::fmod(out[2] + M_PI, 2.0 * M_PI) - M_PI;
   return out;
 }
@@ -159,8 +158,7 @@ Vector3d Coordinate::euler_from_dcm(Matrix3d C) {
     out[2] = M_PI + out[2];
   }
   out[0] = std::fmod(out[0], 2.0 * M_PI);
-  if (out[0] < 0.0)
-    out[0] += 2.0 * M_PI;
+  if (out[0] < 0.0) out[0] += 2.0 * M_PI;
   out[2] = std::fmod(out[2] + M_PI, 2.0 * M_PI) - M_PI;
   return out;
 }
@@ -236,12 +234,9 @@ Matrix<double, 6, 1> Coordinate::orbital_elements(Vector3d pos_eci,
     true_anomaly_rad = 2.0 * M_PI - true_anomaly_rad;
   }
 
-  if (ascending_node_rad < 0.0)
-    ascending_node_rad += 2.0 * M_PI;
-  if (argument_perigee_rad < 0.0)
-    argument_perigee_rad += 2.0 * M_PI;
-  if (true_anomaly_rad < 0.0)
-    true_anomaly_rad += 2.0 * M_PI;
+  if (ascending_node_rad < 0.0) ascending_node_rad += 2.0 * M_PI;
+  if (argument_perigee_rad < 0.0) argument_perigee_rad += 2.0 * M_PI;
+  if (true_anomaly_rad < 0.0) true_anomaly_rad += 2.0 * M_PI;
 
   Matrix<double, 6, 1> out;
   out << a, e, inclination_rad, ascending_node_rad, argument_perigee_rad,

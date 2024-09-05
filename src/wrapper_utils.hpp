@@ -86,10 +86,10 @@ vec3d wind_ned(double altitude_m, matXd wind_data) {
   return vec3d(wind_u, wind_v, 0.0);
 }
 
-double angle_of_attack_all_rad(vec3d pos_eci, vec3d vel_eci, vec4d quat, double t, matXd wind) {
-
+double angle_of_attack_all_rad(vec3d pos_eci, vec3d vel_eci, vec4d quat,
+                               double t, matXd wind) {
   vec3d thrust_dir_eci = quatrot(conj(quat), vec3d(1.0, 0.0, 0.0));
-  
+
   vec3d pos_llh = ecef2geodetic(pos_eci[0], pos_eci[1], pos_eci[2]);
   double altitude = geopotential_altitude(pos_llh[2]);
 
@@ -110,11 +110,23 @@ double angle_of_attack_all_rad(vec3d pos_eci, vec3d vel_eci, vec4d quat, double 
   }
 }
 
+vecXd angle_of_attack_all_array_rad(matXd pos_eci, matXd vel_eci, matXd quat,
+                                    vecXd t, matXd wind) {
+  int n = pos_eci.rows();
+  vecXd alpha(n);
 
-Eigen::Vector2d angle_of_attack_ab_rad(vec3d pos_eci, vec3d vel_eci, vec4d quat, double t, matXd wind) {
+  for (int i = 0; i < n; i++) {
+    alpha(i) = angle_of_attack_all_rad(pos_eci.row(i), vel_eci.row(i),
+                                       quat.row(i), t(i), wind);
+  }
 
+  return alpha;
+}
+
+Eigen::Vector2d angle_of_attack_ab_rad(vec3d pos_eci, vec3d vel_eci, vec4d quat,
+                                       double t, matXd wind) {
   vec3d thrust_dir_eci = quatrot(conj(quat), vec3d(1.0, 0.0, 0.0));
-  
+
   vec3d pos_llh = ecef2geodetic(pos_eci[0], pos_eci[1], pos_eci[2]);
   double altitude = geopotential_altitude(pos_llh[2]);
 
@@ -135,8 +147,20 @@ Eigen::Vector2d angle_of_attack_ab_rad(vec3d pos_eci, vec3d vel_eci, vec4d quat,
   }
 }
 
-double dynamic_pressure_pa(vec3d pos_eci, vec3d vel_eci, double t, matXd wind) {
+Eigen::MatrixXd angle_of_attack_ab_array_rad(matXd pos_eci, matXd vel_eci,
+                                             matXd quat, vecXd t, matXd wind) {
+  int n = pos_eci.rows();
+  Eigen::MatrixXd alpha(n, 2);
 
+  for (int i = 0; i < n; i++) {
+    alpha.row(i) = angle_of_attack_ab_rad(pos_eci.row(i), vel_eci.row(i),
+                                          quat.row(i), t(i), wind);
+  }
+
+  return alpha;
+}
+
+double dynamic_pressure_pa(vec3d pos_eci, vec3d vel_eci, double t, matXd wind) {
   vec3d pos_llh = ecef2geodetic(pos_eci[0], pos_eci[1], pos_eci[2]);
   double altitude = geopotential_altitude(pos_llh[2]);
   double rho = airdensity_at(altitude);
@@ -147,13 +171,38 @@ double dynamic_pressure_pa(vec3d pos_eci, vec3d vel_eci, double t, matXd wind) {
   vec3d vel_air_eci = ecef2eci(vel_ecef, t) - vel_wind_eci;
 
   return 0.5 * rho * vel_air_eci.norm() * vel_air_eci.norm();
-
 }
 
-double q_alpha_pa_rad(vec3d pos_eci, vec3d vel_eci, vec4d quat, double t, matXd wind) {
+Eigen::VectorXd dynamic_pressure_array_pa(matXd pos_eci, matXd vel_eci, vecXd t,
+                                          matXd wind) {
+  int n = pos_eci.rows();
+  Eigen::VectorXd q(n);
+
+  for (int i = 0; i < n; i++) {
+    q(i) = dynamic_pressure_pa(pos_eci.row(i), vel_eci.row(i), t(i), wind);
+  }
+
+  return q;
+}
+
+double q_alpha_pa_rad(vec3d pos_eci, vec3d vel_eci, vec4d quat, double t,
+                      matXd wind) {
   double alpha = angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind);
   double q = dynamic_pressure_pa(pos_eci, vel_eci, t, wind);
   return q * alpha;
 }
 
-#endif // SRC_WRAPPER_UTILS_HPP_
+Eigen::VectorXd q_alpha_array_pa_rad(matXd pos_eci, matXd vel_eci, matXd quat,
+                                     vecXd t, matXd wind) {
+  int n = pos_eci.rows();
+  Eigen::VectorXd q_alpha(n);
+
+  for (int i = 0; i < n; i++) {
+    q_alpha(i) =
+        q_alpha_pa_rad(pos_eci.row(i), vel_eci.row(i), quat.row(i), t(i), wind);
+  }
+
+  return q_alpha;
+}
+
+#endif  // SRC_WRAPPER_UTILS_HPP_

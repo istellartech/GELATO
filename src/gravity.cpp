@@ -60,13 +60,12 @@ Eigen::Vector3d gravityECI_simple(Eigen::Vector3d posECI_) {
   Eigen::Vector3d gravityECI_;  // Output of this function
 
   /* WGS84 EGM96 */
-  double mu = 3.986004418e14;    // Gravitational constant [m3/s2]
+  double mu = 3.986004418e14;  // Gravitational constant [m3/s2]
 
   double x = posECI_[0];
   double y = posECI_[1];
   double z = posECI_[2];
   double r = std::sqrt(x * x + y * y + z * z);
-
 
   if (r == 0.0) {
     return Eigen::Vector3d::Zero();
