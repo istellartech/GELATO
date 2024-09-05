@@ -28,7 +28,7 @@
 
 from itertools import chain, repeat
 import numpy as np
-from dynamics_c import dynamics_velocity, dynamics_velocity_NoAir, dynamics_quaternion, dynamics_velocity_single, dynamics_velocity_NoAir_single, dynamics_quaternion_single
+from .dynamics_c import dynamics_velocity, dynamics_velocity_NoAir, dynamics_quaternion
 
 
 def equality_dynamics_mass(xdict, pdict, unitdict, condition):

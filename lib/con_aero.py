@@ -27,15 +27,9 @@
 # constraints about aerodynamic conditions
 
 import numpy as np
-from .utils import (
-    dynamic_pressure_pa,
-    angle_of_attack_all_rad,
-    q_alpha_pa_rad,
-    dynamic_pressure_array_pa,
-    angle_of_attack_all_array_rad,
-    q_alpha_array_pa_rad,
-)
-from .coordinate import *
+from .utils_c import dynamic_pressure_pa, angle_of_attack_all_rad, q_alpha_pa_rad, dynamic_pressure_array_pa, angle_of_attack_all_array_rad, q_alpha_array_pa_rad
+from .coordinate_c import *
+
 
 
 def dynamic_pressure_dimless(pos_eci_e, vel_eci_e, t_e, wind, units):

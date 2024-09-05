@@ -27,11 +27,11 @@ import numpy as np
 from numpy.linalg import norm
 from math import atan2, asin, degrees
 import pandas as pd
-from utils_c import *
-from PSfunctions import *
-from USStandardAtmosphere_c import *
-from coordinate_c import *
-from IIP_c import posLLH_IIP_FAA
+from lib.utils_c import *
+from lib.PSfunctions import *
+from lib.USStandardAtmosphere_c import *
+from lib.coordinate_c import *
+from lib.IIP_c import posLLH_IIP_FAA
 
 
 def output_result(xdict, unitdict, tx_res, tu_res, pdict):

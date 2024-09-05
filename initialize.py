@@ -26,10 +26,10 @@
 import sys
 import numpy as np
 from scipy.interpolate import interp1d
-from utils_c import *
-from PSfunctions import *
-from USStandardAtmosphere_c import *
-from coordinate_c import *
+from lib.utils_c import *
+from lib.PSfunctions import *
+from lib.USStandardAtmosphere_c import *
+from lib.coordinate_c import *
 from tools.plot_output import display_6DoF
 from output_result import output_result
 

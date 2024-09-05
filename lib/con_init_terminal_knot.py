@@ -25,7 +25,13 @@
 
 import numpy as np
 from math import cos, radians
-from coordinate_c import angular_momentum, orbit_energy, inclination_rad, angular_momentum_from_altitude, orbit_energy_from_altitude
+from .coordinate_c import (
+    angular_momentum,
+    orbit_energy,
+    inclination_rad,
+    angular_momentum_from_altitude,
+    orbit_energy_from_altitude,
+)
 
 
 # constraints_a.py

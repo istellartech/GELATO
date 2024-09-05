@@ -29,8 +29,8 @@
 
 import sys
 import numpy as np
-from utils_c import *
-from coordinate_c import conj, quatrot, normalize
+from .utils_c import *
+from .coordinate_c import conj, quatrot, normalize
 
 
 def yb_r_dot(pos_eci, quat_eci2body):

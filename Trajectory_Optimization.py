@@ -31,7 +31,7 @@ import numpy as np
 import pandas as pd
 from pyoptsparse import IPOPT, SNOPT, Optimization
 
-from coordinate_c import *
+from lib.coordinate_c import *
 from initialize import initialize_xdict_6DoF_from_file, initialize_xdict_6DoF_2
 from output_result import output_result
 import lib.con_init_terminal_knot as con_a
