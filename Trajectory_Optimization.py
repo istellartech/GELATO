@@ -44,7 +44,7 @@ import lib.con_user as con_user
 from lib.cost_gradient import cost_6DoF, cost_jac
 from lib.SectionParameters import PSparams
 
-version = "0.7.4"
+version = "0.8.0"
 
 mission_name = sys.argv[1]
 
