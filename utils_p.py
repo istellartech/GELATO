@@ -27,8 +27,13 @@ from math import sin, cos, asin, atan2, sqrt, radians, degrees
 import numpy as np
 from numpy.linalg import norm
 from numba import jit
+<<<<<<<< HEAD:utils_p.py
 from USStandardAtmosphere_p import *
 from coordinate_p import *
+========
+from .USStandardAtmosphere import *
+from .coordinate import *
+>>>>>>>> 9b6876a (move files):lib/utils.py
 
 
 @jit("f8(f8,f8,f8,f8,f8)", nopython=True)

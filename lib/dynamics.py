@@ -106,3 +106,7 @@ def dynamics_quaternion(quat_eci2body, u_e, unit_u):
         d_quat[i] = 0.5 * quatmult(quat_eci2body[i], omega_rps_body)
 
     return d_quat
+<<<<<<< HEAD
+=======
+
+>>>>>>> 55032f7 (move files)

@@ -771,6 +771,7 @@ def orbital_elements(r_eci, v_eci):
             degrees(true_anomaly_rad),
         ]
     )
+<<<<<<< HEAD
 
 
 @jit(nopython=True)
@@ -899,3 +900,5 @@ def orbit_energy_from_altitude(ha, hp):
     rp = 6378137 + hp
     a = (ra + rp) / 2
     return -3.986004418e14 / 2 / a
+=======
+>>>>>>> 55032f7 (move files)
