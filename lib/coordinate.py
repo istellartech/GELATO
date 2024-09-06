@@ -28,7 +28,6 @@ import numpy as np
 from numpy.linalg import norm
 
 
-
 def quatmult(q, p):
     """Multiplies two quaternions."""
     qp0 = q[0] * p[0] - q[1] * p[1] - q[2] * p[2] - q[3] * p[3]
@@ -38,11 +37,9 @@ def quatmult(q, p):
     return np.array([qp0, qp1, qp2, qp3])
 
 
-
 def conj(q):
     """Returns conjugate of quaternion."""
     return np.array([q[0], -q[1], -q[2], -q[3]])
-
 
 
 def normalize(v):
@@ -53,7 +50,6 @@ def normalize(v):
         ndarray : The normalized vector.
     """
     return v / norm(v)
-
 
 
 def quatrot(q, v):
@@ -70,7 +66,6 @@ def quatrot(q, v):
     vq = np.array((0.0, v[0], v[1], v[2]))
     rvq = quatmult(conj(q), quatmult(vq, q))
     return rvq[1:4]
-
 
 
 def dcm_from_quat(q):
@@ -91,7 +86,6 @@ def dcm_from_quat(q):
     return C
 
 
-
 def quat_from_dcm(C):
     """Converts a direction cosine matrix (DCM) into a quaternion."""
     if (1.0 + C[0, 0] + C[1, 1] + C[2, 2]) < 0.0:
@@ -104,7 +98,6 @@ def quat_from_dcm(C):
     q3 = 0.25 / q0 * (C[0, 1] - C[1, 0])
 
     return np.array((q0, q1, q2, q3))
-
 
 
 def ecef2geodetic(x, y, z):
@@ -135,7 +128,6 @@ def ecef2geodetic(x, y, z):
     return np.array((degrees(lat), degrees(lon), alt))
 
 
-
 def geodetic2ecef(lat, lon, alt):
     """Converts a position in geodetic coordinates into an ECEF frame.
     Args:
@@ -161,7 +153,6 @@ def geodetic2ecef(lat, lon, alt):
     return np.array((x, y, z))
 
 
-
 def ecef2geodetic_sphere(x, y, z):
     """Converts a position in ECEF frame into a spherical coordinates.
     This function is DEPRECATED.
@@ -181,7 +172,6 @@ def ecef2geodetic_sphere(x, y, z):
     return np.array((lat, lon, alt))
 
 
-
 def geodetic2ecef_sphere(lat, lon, alt):
     """Converts a position in spherical coordinates into an ECEF frame.
     This function is DEPRECATED.
@@ -199,7 +189,6 @@ def geodetic2ecef_sphere(lat, lon, alt):
     y = (alt + r_Earth) * cos(radians(lat)) * sin(radians(lon))
     x = (alt + r_Earth) * cos(radians(lat)) * cos(radians(lon))
     return np.array((x, y, z))
-
 
 
 def ecef2eci(xyz_in, t):
@@ -225,7 +214,6 @@ def ecef2eci(xyz_in, t):
     return xyz_out
 
 
-
 def eci2ecef(xyz_in, t):
     """Converts a position in ECI coordinates into an ECEF frame.
     Args:
@@ -249,7 +237,6 @@ def eci2ecef(xyz_in, t):
     return xyz_out
 
 
-
 def vel_ecef2eci(vel_in, pos_in, t):
     """Converts a ground velocity vector in ECEF coordinates into
     an inertial velocity vector in ECI frame.
@@ -269,7 +256,6 @@ def vel_ecef2eci(vel_in, pos_in, t):
     vel_rotation_eci = np.cross(np.array([0, 0, omega_earth_rps]), pos_eci)
 
     return vel_ground_eci + vel_rotation_eci
-
 
 
 def vel_eci2ecef(vel_in, pos_in, t):
@@ -292,7 +278,6 @@ def vel_eci2ecef(vel_in, pos_in, t):
     return eci2ecef(vel_ground_eci, t)
 
 
-
 def quat_eci2ecef(t):
     """Returns coordinates transformation quaternion from the ECI
     frame to the ECEF frame.
@@ -309,7 +294,6 @@ def quat_eci2ecef(t):
     )
 
 
-
 def quat_ecef2eci(t):
     """Returns coordinates transformation quaternion from the ECEF
     frame to the ECI frame.
@@ -321,7 +305,6 @@ def quat_ecef2eci(t):
     """
 
     return conj(quat_eci2ecef(t))
-
 
 
 def quat_ecef2nedc(pos_ecef):
@@ -347,7 +330,6 @@ def quat_ecef2nedc(pos_ecef):
     quat_ecef2ned[3] = s_hl * (c_hp - s_hp) / sqrt(2.0)
 
     return quat_ecef2ned
-
 
 
 def quat_ecef2nedg(pos_ecef):
@@ -377,7 +359,6 @@ def quat_ecef2nedg(pos_ecef):
     return quat_ecef2ned
 
 
-
 def quat_nedg2ecef(pos_ecef):
     """Returns coordinates transformation quaternion from the WGS84
     local North-East-Down frame to the ECEF frame.
@@ -390,7 +371,6 @@ def quat_nedg2ecef(pos_ecef):
     return conj(quat_ecef2nedg(pos_ecef))
 
 
-
 def quat_nedc2ecef(pos_ecef):
     """(DEPRECATED) Returns coordinates transformation quaternion
     from the local spherical North-East-Down frame to the ECEF frame.
@@ -401,7 +381,6 @@ def quat_nedc2ecef(pos_ecef):
     """
 
     return conj(quat_ecef2nedc(pos_ecef))
-
 
 
 def quat_eci2nedg(pos, t):
@@ -418,7 +397,6 @@ def quat_eci2nedg(pos, t):
     return quatmult(quat_eci2ecef(t), quat_ecef2nedg(eci2ecef(pos, t)))
 
 
-
 def quat_eci2nedc(pos, t):
     """(DEPRECATED) Returns coordinates transformation quaternion
     from the ECI frame to the local spherical North-East-Down frame.
@@ -431,7 +409,6 @@ def quat_eci2nedc(pos, t):
     """
 
     return quatmult(quat_eci2ecef(t), quat_ecef2nedc(eci2ecef(pos, t)))
-
 
 
 def quat_nedg2eci(pos, t):
@@ -448,7 +425,6 @@ def quat_nedg2eci(pos, t):
     return conj(quat_eci2nedg(pos, t))
 
 
-
 def quat_nedc2eci(pos, t):
     """(DEPRECATED) Returns coordinates transformation quaternion from
     the local spherical North-East-Down frame to the ECI frame.
@@ -461,7 +437,6 @@ def quat_nedc2eci(pos, t):
     """
 
     return conj(quat_eci2nedc(pos, t))
-
 
 
 def quat_from_euler(az, el, ro):
@@ -480,7 +455,6 @@ def quat_from_euler(az, el, ro):
     qx = np.array([cos(radians(ro / 2)), sin(radians(ro / 2)), 0.0, 0.0])
 
     return quatmult(qz, quatmult(qy, qx))
-
 
 
 def gravity(pos):
@@ -511,7 +485,6 @@ def gravity(pos):
     return np.array([fx, fy, fz])
 
 
-
 def quat_nedg2body(quat_eci2body, pos, t):
     """Returns coordinates transformation quaternion from the WGS84
     local North-East-Down frame to the body frame.
@@ -527,7 +500,6 @@ def quat_nedg2body(quat_eci2body, pos, t):
 
     q = quat_eci2nedg(pos, t)
     return quatmult(conj(q), quat_eci2body)
-
 
 
 def euler_from_quat(q):
@@ -556,7 +528,6 @@ def euler_from_quat(q):
     return np.rad2deg(np.array([az, el, ro]))
 
 
-
 def euler_from_dcm(C):
     """Calculates Euler angles from a direction cosine matrix.
     The sequence of rotation is Z-Y-X (yaw-pitch-roll).
@@ -575,7 +546,6 @@ def euler_from_dcm(C):
     if az < 0.0:
         az += 2.0 * np.pi
     return np.rad2deg(np.array([az, el, ro]))
-
 
 
 def dcm_from_thrustvector(pos_eci, u):
@@ -600,7 +570,6 @@ def dcm_from_thrustvector(pos_eci, u):
     return np.vstack((xb_dir, yb_dir, zb_dir))
 
 
-
 def eci2geodetic(pos_in, t):
     """Converts a position in ECI frame into a WGS84 geodetic(latitude,
     longitude, altitude) coordinates.
@@ -617,7 +586,6 @@ def eci2geodetic(pos_in, t):
 
     pos_ecef = eci2ecef(pos_in, t)
     return ecef2geodetic(pos_ecef[0], pos_ecef[1], pos_ecef[2])
-
 
 
 def orbital_elements(r_eci, v_eci):
