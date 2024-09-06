@@ -37,6 +37,7 @@ from .coordinate_c import (
     quat_nedg2ecef,
     vel_eci2ecef,
     eci2geodetic,
+    distance_vincenty,
 )
 from .IIP_c import posLLH_IIP_FAA
 
