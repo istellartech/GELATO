@@ -325,6 +325,7 @@ def equality_jac_knot_LGR(xdict, pdict, unitdict, condition):
 
     return jac
 
+
 def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     """Equality constraint about terminal condition."""
 
@@ -370,7 +371,7 @@ def equality_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
 
     return np.concatenate(con, axis=None)
 
-@profile
+
 def equality_jac_6DoF_LGR_terminal(xdict, pdict, unitdict, condition):
     """Jacobian of equality_terminal."""
 

@@ -38,11 +38,7 @@ def yb_r_dot(pos_eci, quat_eci2body):
     yb_dir_eci = quatrot(conj(quat_eci2body), np.array([0.0, 1.0, 0.0]))
     return yb_dir_eci.dot(normalize(pos_eci))
 
-<<<<<<< HEAD:lib/con_trajectory.py
 
-@jit(nopython=True)
-=======
->>>>>>> e71cae8 (remove numba dependincies):constraints_b.py
 def roll_direction_array(pos, quat):
     """Returns array of sine of roll angles for each state values."""
     return np.array([yb_r_dot(pos[i], quat[i]) for i in range(len(pos))])
