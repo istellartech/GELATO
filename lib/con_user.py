@@ -23,12 +23,20 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+# constraints_u.py
+# constraints about user conditions
 
-def equality_user(xdict, pdict, unitdict, condition):
+from user_constraints import equality_user, inequality_user
+from .utils import jac_fd
 
-    return None
+
+def equality_jac_user(xdict, pdict, unitdict, condition):
+    """Jacobian of user-defined equality constraint."""
+    if equality_user(xdict, pdict, unitdict, condition) is not None:
+        return jac_fd(equality_user, xdict, pdict, unitdict, condition)
 
 
-def inequality_user(xdict, pdict, unitdict, condition):
-
-    return None
+def inequality_jac_user(xdict, pdict, unitdict, condition):
+    """Jacobian of user-defined inequality constraint."""
+    if inequality_user(xdict, pdict, unitdict, condition) is not None:
+        return jac_fd(inequality_user, xdict, pdict, unitdict, condition)

@@ -27,8 +27,8 @@ from math import sin, cos, asin, atan2, sqrt, radians, degrees
 import numpy as np
 from numpy.linalg import norm
 from numba import jit
-from USStandardAtmosphere import *
-from coordinate import *
+from .USStandardAtmosphere import *
+from .coordinate import *
 
 
 @jit("f8(f8,f8,f8,f8,f8)", nopython=True)
@@ -136,6 +136,14 @@ def angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind):
         return acos(c_alpha)
 
 
+def angle_of_attack_all_array_rad(pos_eci, vel_eci, quat, t, wind):
+    """Array version of angle_of_attack_all_rad."""
+    alpha = np.zeros(pos_eci.shape[0])
+    for i in range(pos_eci.shape[0]):
+        alpha[i] = angle_of_attack_all_rad(pos_eci[i], vel_eci[i], quat[i], t[i], wind)
+    return alpha
+
+
 @jit(nopython=True)
 def angle_of_attack_ab_rad(pos_eci, vel_eci, quat, t, wind):
     """Calculates pitch and yaw angles of attack.
@@ -197,6 +205,30 @@ def dynamic_pressure_pa(pos_eci, vel_eci, t, wind):
     return 0.5 * vel_air_eci.dot(vel_air_eci) * rho
 
 
+def dynamic_pressure_array_pa(pos_eci, vel_eci, t, wind):
+    """Array version of dynamic_pressure_pa."""
+    q = np.zeros(pos_eci.shape[0])
+    for i in range(pos_eci.shape[0]):
+        q[i] = dynamic_pressure_pa(pos_eci[i], vel_eci[i], t[i], wind)
+    return q
+
+
+@jit(nopython=True)
+def q_alpha_pa_rad(pos_eci, vel_eci, quat, t, wind):
+    """Calculates Q_alpha."""
+    alpha = angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind)
+    q = dynamic_pressure_pa(pos_eci, vel_eci, t, wind)
+    return q * alpha
+
+
+def q_alpha_array_pa_rad(pos_eci, vel_eci, quat, t, wind):
+    """Array version of q_alpha_pa_rad."""
+    qa = np.zeros(pos_eci.shape[0])
+    for i in range(pos_eci.shape[0]):
+        qa[i] = q_alpha_pa_rad(pos_eci[i], vel_eci[i], quat[i], t[i], wind)
+    return qa
+
+
 def jac_fd(con, xdict, pdict, unitdict, condition):
     """
     Calculate jacobian by finite-difference method(forward difference).
@@ -216,7 +248,7 @@ def jac_fd(con, xdict, pdict, unitdict, condition):
     """
 
     jac = {}
-    dx = 1.0e-8
+    dx = pdict["dx"]
     g_base = con(xdict, pdict, unitdict, condition)
     if hasattr(g_base, "__len__"):
         nRows = len(g_base)

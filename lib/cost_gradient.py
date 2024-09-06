@@ -23,12 +23,25 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-
-def equality_user(xdict, pdict, unitdict, condition):
-
-    return None
+import numpy as np
 
 
-def inequality_user(xdict, pdict, unitdict, condition):
+def cost_6DoF(xdict, condition):
+    """Objective function of the optimization problem."""
+    if condition["OptimizationMode"] == "Payload":
+        return -xdict["mass"][0]  # 初期質量(無次元)を最大化
+    else:
+        return xdict["t"][-1]  # 到達時間を最小化(=余剰推進剤を最大化)
 
-    return None
+
+def cost_jac(xdict, condition):
+    """Gradient of the objective function."""
+
+    jac = {}
+    if condition["OptimizationMode"] == "Payload":
+        jac["mass"] = np.zeros(xdict["mass"].size)
+        jac["mass"][0] = -1.0
+    else:
+        jac["t"] = np.zeros(xdict["t"].size)
+        jac["t"][-1] = 1.0
+    return jac

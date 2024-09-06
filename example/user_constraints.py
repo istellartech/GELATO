@@ -50,7 +50,7 @@ def get_value(xdict, pdict, unitdict, section_name, key):
     else:
         # sample variables in specified section
 
-        a = pdict["ps_params"][index]["index_start"]
+        a = pdict["ps_params"].index_start_u(index)
 
         if key == "u":
             out = xdict[key][a * 3 : (a + 1) * 3] * unitdict[key]
