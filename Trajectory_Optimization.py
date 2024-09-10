@@ -31,7 +31,7 @@ import numpy as np
 import pandas as pd
 from pyoptsparse import IPOPT, SNOPT, Optimization
 
-from lib.coordinate import *
+from lib.coordinate_c import *
 from initialize import initialize_xdict_6DoF_from_file, initialize_xdict_6DoF_2
 from output_result import output_result
 import lib.con_init_terminal_knot as con_a
@@ -44,7 +44,7 @@ import lib.con_user as con_user
 from lib.cost_gradient import cost_6DoF, cost_jac
 from lib.SectionParameters import PSparams
 
-version = "0.7.4"
+version = "0.8.0"
 
 mission_name = sys.argv[1]
 

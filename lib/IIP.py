@@ -25,15 +25,13 @@
 
 import numpy as np
 from numpy import tan, arcsin, arctan2, sqrt
-from numba import jit
 
 
-@jit(nopython=True)
 def posLLH_IIP_FAA(posECEF_, velECEF_, fill_na=True, n_iter=5):
     a = 6378137
     mu = 3.986004418e14
     f = 1.0 / 298.257223563
-    omega_earth = 7.292115e-5
+    omega_earth = 7.2921151467e-5
     b = a * (1.0 - f)
     e2 = 2.0 * f - f * f
     omegaVec = np.array([0.0, 0.0, omega_earth])

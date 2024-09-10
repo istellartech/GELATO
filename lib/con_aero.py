@@ -27,7 +27,7 @@
 # constraints about aerodynamic conditions
 
 import numpy as np
-from .utils import (
+from .utils_c import (
     dynamic_pressure_pa,
     angle_of_attack_all_rad,
     q_alpha_pa_rad,
@@ -35,7 +35,7 @@ from .utils import (
     angle_of_attack_all_array_rad,
     q_alpha_array_pa_rad,
 )
-from .coordinate import *
+from .coordinate_c import *
 
 
 def dynamic_pressure_dimless(pos_eci_e, vel_eci_e, t_e, wind, units):
@@ -75,11 +75,7 @@ def q_alpha_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):
     pos_eci = pos_eci_e * units[0]
     vel_eci = vel_eci_e * units[1]
     t = t_e * units[2]
-    return (
-        dynamic_pressure_pa(pos_eci, vel_eci, t, wind)
-        * angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind)
-        / units[3]
-    )
+    return q_alpha_pa_rad(pos_eci, vel_eci, quat, t, wind) / units[3]
 
 
 def q_alpha_array_dimless(pos_eci_e, vel_eci_e, quat, t_e, wind, units):

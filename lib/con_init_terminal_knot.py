@@ -25,7 +25,7 @@
 
 import numpy as np
 from math import cos, radians
-from .coordinate import (
+from .coordinate_c import (
     angular_momentum,
     orbit_energy,
     inclination_rad,

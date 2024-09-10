@@ -26,27 +26,21 @@
 from math import sin, cos, asin, atan2, sqrt, radians, degrees
 import numpy as np
 from numpy.linalg import norm
-from numba import jit
 from .USStandardAtmosphere import *
 from .coordinate import *
 
 
-@jit("f8(f8,f8,f8,f8,f8)", nopython=True)
 def haversine(lon1, lat1, lon2, lat2, r):
     """Calculates surface distance with haversine formula.
-
     This function is DEPRECATED; use Vincenty formula instead.
-
     Args:
         lon1 (float64) : longitude of start point [deg]
         lat1 (float64) : latitude of start point [deg]
         lon2 (float64) : longitude of end point [deg]
         lat2 (float64) : latitude of end point [deg]
         r (float64) : radius of the sphere
-
     Returns:
         float64 : surface distance between start and end points
-
     """
 
     # convert decimal degrees to radians
@@ -62,13 +56,10 @@ def haversine(lon1, lat1, lon2, lat2, r):
     return 2 * r * asin(sqrt(a))
 
 
-@jit("f8(f8,f8,f8,f8,f8,f8)", nopython=True)
 def distance_on_earth(x_km, y_km, z_km, lon0, lat0, time):
     """Calculates surface distance of two points on Earth with
     haversine formula.
-
     This function is DEPRECATED; use Vincenty formula instead.
-
     Args:
         x_km (float64) : x-coordinates of target point in ECEF frame [km]
         y_km (float64) : y-coordinates of target point in ECEF frame [km]
@@ -76,10 +67,8 @@ def distance_on_earth(x_km, y_km, z_km, lon0, lat0, time):
         lon0 (float64) : longitude of reference point [deg]
         lat0 (float64) : latitude of reference point [deg]
         time (float64) : time [s]
-
     Returns:
         float64 : surface distance between reference and target points[km]
-
     """
     radius_km = 6378.142
     angular_velocity_rps = 0.729211586e-4
@@ -91,7 +80,6 @@ def distance_on_earth(x_km, y_km, z_km, lon0, lat0, time):
     return haversine(lon0, lat0, degrees(longitude), degrees(latitude), radius_km)
 
 
-@jit("f8[:](f8,f8[:,:])", nopython=True)
 def wind_ned(altitude_m, wind_data):
     """Get wind speed in NED frame by interpolation."""
     wind = np.zeros(3)
@@ -101,10 +89,8 @@ def wind_ned(altitude_m, wind_data):
     return wind
 
 
-@jit(nopython=True)
 def angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind):
     """Calculates total angle of attack.
-
     Args:
         pos_eci (ndarray) : position in ECI frame [m]
         vel_eci (ndarray) : inertial velocity in ECI frame [m/s]
@@ -112,7 +98,6 @@ def angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind):
           to body frame
         t (float64) : time [s]
         wind (ndarray) : wind table
-
     Returns:
         float64 : angle of attack [rad]
     """
@@ -144,10 +129,8 @@ def angle_of_attack_all_array_rad(pos_eci, vel_eci, quat, t, wind):
     return alpha
 
 
-@jit(nopython=True)
 def angle_of_attack_ab_rad(pos_eci, vel_eci, quat, t, wind):
     """Calculates pitch and yaw angles of attack.
-
     Args:
         pos_eci (ndarray) : position in ECI frame [m]
         vel_eci (ndarray) : inertial velocity in ECI frame [m/s]
@@ -155,7 +138,6 @@ def angle_of_attack_ab_rad(pos_eci, vel_eci, quat, t, wind):
           to body frame
         t (float64) : time [s]
         wind (ndarray) : wind table
-
     Returns:
         ndarray : pitch and yaw angles of attack [rad]
     """
@@ -179,16 +161,13 @@ def angle_of_attack_ab_rad(pos_eci, vel_eci, quat, t, wind):
         return np.array((alpha_z, alpha_y))
 
 
-@jit(nopython=True)
 def dynamic_pressure_pa(pos_eci, vel_eci, t, wind):
     """Calculates dynamic pressure.
-
     Args:
         pos_eci (ndarray) : position in ECI frame [m]
         vel_eci (ndarray) : inertial velocity in ECI frame [m/s]
         t (float64) : time [s]
         wind (ndarray) : wind table
-
     Returns:
         float64 : dynamic pressure [Pa]
     """
@@ -213,7 +192,6 @@ def dynamic_pressure_array_pa(pos_eci, vel_eci, t, wind):
     return q
 
 
-@jit(nopython=True)
 def q_alpha_pa_rad(pos_eci, vel_eci, quat, t, wind):
     """Calculates Q_alpha."""
     alpha = angle_of_attack_all_rad(pos_eci, vel_eci, quat, t, wind)
@@ -227,39 +205,3 @@ def q_alpha_array_pa_rad(pos_eci, vel_eci, quat, t, wind):
     for i in range(pos_eci.shape[0]):
         qa[i] = q_alpha_pa_rad(pos_eci[i], vel_eci[i], quat[i], t[i], wind)
     return qa
-
-
-def jac_fd(con, xdict, pdict, unitdict, condition):
-    """
-    Calculate jacobian by finite-difference method(forward difference).
-
-    Note that this function is slow, because this function do not use sparse matrix.
-
-    Args:
-        con(function) : object function
-        xdict : variable arg for con
-        pdict : parameter arg for con
-        unitdict : unit arg for con
-        conditiondict : condition arg for con
-
-    Returns:
-        jac(dict(ndarray)) : dict of jacobian matrix
-
-    """
-
-    jac = {}
-    dx = pdict["dx"]
-    g_base = con(xdict, pdict, unitdict, condition)
-    if hasattr(g_base, "__len__"):
-        nRows = len(g_base)
-    else:
-        nRows = 1
-    for key, val in xdict.items():
-        jac[key] = np.zeros((nRows, val.size))
-        for i in range(val.size):
-            xdict[key][i] += dx
-            g_p = con(xdict, pdict, unitdict, condition)
-            jac[key][:, i] = (g_p - g_base) / dx
-            xdict[key][i] -= dx
-
-    return jac

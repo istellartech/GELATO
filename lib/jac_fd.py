@@ -23,20 +23,40 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# constraints_u.py
-# constraints about user conditions
-
-from user_constraints import equality_user, inequality_user
-from .jac_fd import jac_fd
+import numpy as np
 
 
-def equality_jac_user(xdict, pdict, unitdict, condition):
-    """Jacobian of user-defined equality constraint."""
-    if equality_user(xdict, pdict, unitdict, condition) is not None:
-        return jac_fd(equality_user, xdict, pdict, unitdict, condition)
+def jac_fd(con, xdict, pdict, unitdict, condition):
+    """
+    Calculate jacobian by finite-difference method(forward difference).
 
+    Note that this function is slow, because this function do not use sparse matrix.
 
-def inequality_jac_user(xdict, pdict, unitdict, condition):
-    """Jacobian of user-defined inequality constraint."""
-    if inequality_user(xdict, pdict, unitdict, condition) is not None:
-        return jac_fd(inequality_user, xdict, pdict, unitdict, condition)
+    Args:
+        con(function) : object function
+        xdict : variable arg for con
+        pdict : parameter arg for con
+        unitdict : unit arg for con
+        conditiondict : condition arg for con
+
+    Returns:
+        jac(dict(ndarray)) : dict of jacobian matrix
+
+    """
+
+    jac = {}
+    dx = pdict["dx"]
+    g_base = con(xdict, pdict, unitdict, condition)
+    if hasattr(g_base, "__len__"):
+        nRows = len(g_base)
+    else:
+        nRows = 1
+    for key, val in xdict.items():
+        jac[key] = np.zeros((nRows, val.size))
+        for i in range(val.size):
+            xdict[key][i] += dx
+            g_p = con(xdict, pdict, unitdict, condition)
+            jac[key][:, i] = (g_p - g_base) / dx
+            xdict[key][i] -= dx
+
+    return jac

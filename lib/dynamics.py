@@ -45,7 +45,6 @@ from .USStandardAtmosphere import (
 from .utils import wind_ned
 
 
-@jit(nopython=True)
 def dynamics_velocity(
     mass_e, pos_eci_e, vel_eci_e, quat_eci2body, t, param, wind_table, CA_table, units
 ):
@@ -87,7 +86,6 @@ def dynamics_velocity(
     return acc_eci / units[2]
 
 
-@jit(nopython=True)
 def dynamics_velocity_NoAir(mass_e, pos_eci_e, quat_eci2body, param, units):
     """Equation of motion of velocity."""
 
@@ -109,7 +107,6 @@ def dynamics_velocity_NoAir(mass_e, pos_eci_e, quat_eci2body, param, units):
     return acc_eci / units[2]
 
 
-@jit(nopython=True)
 def dynamics_quaternion(quat_eci2body, u_e, unit_u):
     """Equation of motion of quaternion."""
 
