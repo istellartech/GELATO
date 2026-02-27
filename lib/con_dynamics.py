@@ -37,6 +37,18 @@ from .dynamics_c import (
 )
 
 
+def _coo_from_sections(secs, key, shape):
+    """Concatenate COO triplets for `key` across all section results."""
+    return {
+        "coo": [
+            np.concatenate([s[key]["row"] for s in secs]).astype("i4"),
+            np.concatenate([s[key]["col"] for s in secs]).astype("i4"),
+            np.concatenate([s[key]["data"] for s in secs]),
+        ],
+        "shape": shape,
+    }
+
+
 @profile
 def equality_dynamics_mass(xdict, pdict, unitdict, condition):
     """Equality constraint about dynamics of mass."""
@@ -74,50 +86,24 @@ def equality_dynamics_mass(xdict, pdict, unitdict, condition):
 def equality_jac_dynamics_mass(xdict, pdict, unitdict, condition):
     """Jacobian of equality_dynamics_mass."""
 
-    jac = {}
-
     unit_mass = unitdict["mass"]
     unit_t = unitdict["t"]
     num_sections = pdict["num_sections"]
 
-    # Collect COO arrays from all sections, then concatenate once
-    mass_rows, mass_cols, mass_data = [], [], []
-    t_rows, t_cols, t_data = [], [], []
-
+    secs = []
     for i in range(num_sections):
         ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
-
         engine_on = pdict["params"][i]["engineOn"]
         massflow_coeff = pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0
         Di = pdict["ps_params"].D(i)
+        secs.append(
+            jac_dynamics_mass_section(n, ua, xa, i, engine_on, massflow_coeff, Di)
+        )
 
-        sec = jac_dynamics_mass_section(n, ua, xa, i, engine_on, massflow_coeff, Di)
-
-        mass_rows.append(sec["mass"]["row"])
-        mass_cols.append(sec["mass"]["col"])
-        mass_data.append(sec["mass"]["data"])
-        t_rows.append(sec["t"]["row"])
-        t_cols.append(sec["t"]["col"])
-        t_data.append(sec["t"]["data"])
-
-    jac["mass"] = {
-        "coo": [
-            np.concatenate(mass_rows).astype("i4"),
-            np.concatenate(mass_cols).astype("i4"),
-            np.concatenate(mass_data),
-        ],
-        "shape": (pdict["N"], pdict["M"]),
+    return {
+        "mass": _coo_from_sections(secs, "mass", (pdict["N"], pdict["M"])),
+        "t": _coo_from_sections(secs, "t", (pdict["N"], num_sections + 1)),
     }
-    jac["t"] = {
-        "coo": [
-            np.concatenate(t_rows).astype("i4"),
-            np.concatenate(t_cols).astype("i4"),
-            np.concatenate(t_data),
-        ],
-        "shape": (pdict["N"], num_sections + 1),
-    }
-
-    return jac
 
 
 @profile
@@ -157,69 +143,32 @@ def equality_dynamics_position(xdict, pdict, unitdict, condition):
 def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
     """Jacobian of equality_dynamics_position."""
 
-    jac = {}
-
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_t = unitdict["t"]
     vel_ = xdict["velocity"].reshape(-1, 3)
     t = xdict["t"]
-
     num_sections = pdict["num_sections"]
 
-    # Collect COO arrays from all sections, then concatenate once
-    pos_rows, pos_cols, pos_data = [], [], []
-    vel_rows, vel_cols, vel_data = [], [], []
-    t_rows, t_cols, t_data = [], [], []
-
+    secs = []
     for i in range(num_sections):
         ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         vel_i_ = vel_[xa:xb]
         to = t[i]
         tf = t[i + 1]
-
         Di = pdict["ps_params"].D(i)
-
-        sec = jac_dynamics_position_section(
-            n, ua, xa, i, vel_i_, to, tf, unit_vel, unit_pos, unit_t, Di
+        secs.append(
+            jac_dynamics_position_section(
+                n, ua, xa, i, vel_i_, to, tf, unit_vel, unit_pos, unit_t, Di
+            )
         )
 
-        pos_rows.append(sec["position"]["row"])
-        pos_cols.append(sec["position"]["col"])
-        pos_data.append(sec["position"]["data"])
-        vel_rows.append(sec["velocity"]["row"])
-        vel_cols.append(sec["velocity"]["col"])
-        vel_data.append(sec["velocity"]["data"])
-        t_rows.append(sec["t"]["row"])
-        t_cols.append(sec["t"]["col"])
-        t_data.append(sec["t"]["data"])
-
-    jac["position"] = {
-        "coo": [
-            np.concatenate(pos_rows).astype("i4"),
-            np.concatenate(pos_cols).astype("i4"),
-            np.concatenate(pos_data),
-        ],
-        "shape": (pdict["N"] * 3, pdict["M"] * 3),
+    N3, M3 = pdict["N"] * 3, pdict["M"] * 3
+    return {
+        "position": _coo_from_sections(secs, "position", (N3, M3)),
+        "velocity": _coo_from_sections(secs, "velocity", (N3, M3)),
+        "t": _coo_from_sections(secs, "t", (N3, num_sections + 1)),
     }
-    jac["velocity"] = {
-        "coo": [
-            np.concatenate(vel_rows).astype("i4"),
-            np.concatenate(vel_cols).astype("i4"),
-            np.concatenate(vel_data),
-        ],
-        "shape": (pdict["N"] * 3, pdict["M"] * 3),
-    }
-    jac["t"] = {
-        "coo": [
-            np.concatenate(t_rows).astype("i4"),
-            np.concatenate(t_cols).astype("i4"),
-            np.concatenate(t_data),
-        ],
-        "shape": (pdict["N"] * 3, num_sections + 1),
-    }
-
-    return jac
 
 
 @profile
@@ -289,9 +238,7 @@ def equality_dynamics_velocity(xdict, pdict, unitdict, condition):
 def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
     """Jacobian of equality_dynamics_velocity."""
 
-    jac = {}
     dx = pdict["dx"]
-
     unit_mass = unitdict["mass"]
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
@@ -301,20 +248,11 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
     vel_ = xdict["velocity"].reshape(-1, 3)
     quat_ = xdict["quaternion"].reshape(-1, 4)
     t = xdict["t"]
-
     units = np.array([unit_mass, unit_pos, unit_vel])
-
     num_sections = pdict["num_sections"]
-
     param = np.zeros(5)
 
-    # Collect COO arrays from all sections, then concatenate once
-    mass_rows, mass_cols, mass_data = [], [], []
-    pos_rows, pos_cols, pos_data = [], [], []
-    vel_rows, vel_cols, vel_data = [], [], []
-    quat_rows, quat_cols, quat_data = [], [], []
-    t_rows, t_cols, t_data = [], [], []
-
+    secs = []
     for i in range(num_sections):
         ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         mass_i_ = mass_[xa:xb]
@@ -324,82 +262,28 @@ def equality_jac_dynamics_velocity(xdict, pdict, unitdict, condition):
         to = t[i]
         tf = t[i + 1]
         t_nodes = pdict["ps_params"].time_nodes(i, to, tf)
-
         param[0] = pdict["params"][i]["thrust"]
         param[1] = pdict["params"][i]["massflow"]
         param[2] = pdict["params"][i]["reference_area"]
         param[4] = pdict["params"][i]["nozzle_area"]
-
         wind = pdict["wind_table"]
         ca = pdict["ca_table"]
-
         Di = pdict["ps_params"].D(i)
-
-        sec = jac_dynamics_velocity_section(
+        secs.append(jac_dynamics_velocity_section(
             n, ua, xa, i,
             mass_i_, pos_i_, vel_i_, quat_i_,
             t_nodes, param, wind, ca, units,
             to, tf, unit_t, dx, Di
-        )
+        ))
 
-        mass_rows.append(sec["mass"]["row"])
-        mass_cols.append(sec["mass"]["col"])
-        mass_data.append(sec["mass"]["data"])
-        pos_rows.append(sec["position"]["row"])
-        pos_cols.append(sec["position"]["col"])
-        pos_data.append(sec["position"]["data"])
-        vel_rows.append(sec["velocity"]["row"])
-        vel_cols.append(sec["velocity"]["col"])
-        vel_data.append(sec["velocity"]["data"])
-        quat_rows.append(sec["quaternion"]["row"])
-        quat_cols.append(sec["quaternion"]["col"])
-        quat_data.append(sec["quaternion"]["data"])
-        t_rows.append(sec["t"]["row"])
-        t_cols.append(sec["t"]["col"])
-        t_data.append(sec["t"]["data"])
-
-    jac["mass"] = {
-        "coo": [
-            np.concatenate(mass_rows).astype("i4"),
-            np.concatenate(mass_cols).astype("i4"),
-            np.concatenate(mass_data),
-        ],
-        "shape": (pdict["N"] * 3, pdict["M"]),
+    N3, M = pdict["N"] * 3, pdict["M"]
+    return {
+        "mass": _coo_from_sections(secs, "mass", (N3, M)),
+        "position": _coo_from_sections(secs, "position", (N3, M * 3)),
+        "velocity": _coo_from_sections(secs, "velocity", (N3, M * 3)),
+        "quaternion": _coo_from_sections(secs, "quaternion", (N3, M * 4)),
+        "t": _coo_from_sections(secs, "t", (N3, num_sections + 1)),
     }
-    jac["position"] = {
-        "coo": [
-            np.concatenate(pos_rows).astype("i4"),
-            np.concatenate(pos_cols).astype("i4"),
-            np.concatenate(pos_data),
-        ],
-        "shape": (pdict["N"] * 3, pdict["M"] * 3),
-    }
-    jac["velocity"] = {
-        "coo": [
-            np.concatenate(vel_rows).astype("i4"),
-            np.concatenate(vel_cols).astype("i4"),
-            np.concatenate(vel_data),
-        ],
-        "shape": (pdict["N"] * 3, pdict["M"] * 3),
-    }
-    jac["quaternion"] = {
-        "coo": [
-            np.concatenate(quat_rows).astype("i4"),
-            np.concatenate(quat_cols).astype("i4"),
-            np.concatenate(quat_data),
-        ],
-        "shape": (pdict["N"] * 3, pdict["M"] * 4),
-    }
-    jac["t"] = {
-        "coo": [
-            np.concatenate(t_rows).astype("i4"),
-            np.concatenate(t_cols).astype("i4"),
-            np.concatenate(t_data),
-        ],
-        "shape": (pdict["N"] * 3, num_sections + 1),
-    }
-
-    return jac
 
 
 @profile
@@ -444,69 +328,32 @@ def equality_dynamics_quaternion(xdict, pdict, unitdict, condition):
 def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
     """Jacobian of equality_dynamics_quaternion."""
 
-    jac = {}
     dx = pdict["dx"]
-
     unit_u = unitdict["u"]
     unit_t = unitdict["t"]
     quat_ = xdict["quaternion"].reshape(-1, 4)
     u_ = xdict["u"].reshape(-1, 3)
     t = xdict["t"]
-
     num_sections = pdict["num_sections"]
 
-    # Collect COO arrays from all sections, then concatenate once
-    quat_rows, quat_cols, quat_data = [], [], []
-    u_rows, u_cols, u_data = [], [], []
-    t_rows, t_cols, t_data = [], [], []
-
+    secs = []
     for i in range(num_sections):
         ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         quat_i_ = quat_[xa:xb]
         u_i_ = u_[ua:ub]
         to = t[i]
         tf = t[i + 1]
-
         is_hold = pdict["params"][i]["attitude"] in ["hold", "vertical"]
         Di = pdict["ps_params"].D(i)
-
-        sec = jac_dynamics_quaternion_section(
-            n, ua, xa, i, quat_i_, u_i_, unit_u, to, tf, unit_t, dx, Di, is_hold
+        secs.append(
+            jac_dynamics_quaternion_section(
+                n, ua, xa, i, quat_i_, u_i_, unit_u, to, tf, unit_t, dx, Di, is_hold
+            )
         )
 
-        quat_rows.append(sec["quaternion"]["row"])
-        quat_cols.append(sec["quaternion"]["col"])
-        quat_data.append(sec["quaternion"]["data"])
-        u_rows.append(sec["u"]["row"])
-        u_cols.append(sec["u"]["col"])
-        u_data.append(sec["u"]["data"])
-        t_rows.append(sec["t"]["row"])
-        t_cols.append(sec["t"]["col"])
-        t_data.append(sec["t"]["data"])
-
-    jac["quaternion"] = {
-        "coo": [
-            np.concatenate(quat_rows).astype("i4"),
-            np.concatenate(quat_cols).astype("i4"),
-            np.concatenate(quat_data),
-        ],
-        "shape": (pdict["N"] * 4, pdict["M"] * 4),
+    N4 = pdict["N"] * 4
+    return {
+        "quaternion": _coo_from_sections(secs, "quaternion", (N4, pdict["M"] * 4)),
+        "u": _coo_from_sections(secs, "u", (N4, pdict["N"] * 3)),
+        "t": _coo_from_sections(secs, "t", (N4, num_sections + 1)),
     }
-    jac["u"] = {
-        "coo": [
-            np.concatenate(u_rows).astype("i4"),
-            np.concatenate(u_cols).astype("i4"),
-            np.concatenate(u_data),
-        ],
-        "shape": (pdict["N"] * 4, pdict["N"] * 3),
-    }
-    jac["t"] = {
-        "coo": [
-            np.concatenate(t_rows).astype("i4"),
-            np.concatenate(t_cols).astype("i4"),
-            np.concatenate(t_data),
-        ],
-        "shape": (pdict["N"] * 4, num_sections + 1),
-    }
-
-    return jac

@@ -27,6 +27,20 @@
 #include "wrapper_coordinate.hpp"
 #include "wrapper_utils.hpp"
 
+// Helper: pack COO triplet into a py::dict
+static py::dict make_coo(const Eigen::VectorXi& row, const Eigen::VectorXi& col,
+                          const vecXd& data) {
+  py::dict coo;
+  coo["row"]  = row;
+  coo["col"]  = col;
+  coo["data"] = data;
+  return coo;
+}
+
+static py::dict empty_coo() {
+  return make_coo(Eigen::VectorXi(0), Eigen::VectorXi(0), vecXd(0));
+}
+
 vec3d dynamics_velocity(double mass_e, vec3d pos_eci_e, vec3d vel_eci_e,
                         vec4d quat_eci2body, double t, vecXd param,
                         matXd wind_table, matXd CA_table, vecXd units) {
@@ -63,9 +77,6 @@ vec3d dynamics_velocity(double mass_e, vec3d pos_eci_e, vec3d vel_eci_e,
         0.5 * rho * air_area * ca * vel_air_eci.norm() * -vel_air_eci;
 
     thrust = thrust_vac - nozzle_area * p;
-  } else {
-    aeroforce_eci.setZero();
-    thrust = thrust_vac;
   }
   vec3d thrustdir_eci =
       quatrot(conj(quat_eci2body), vec3d(1.0, 0.0, 0.0));
@@ -135,13 +146,11 @@ py::dict dynamics_velocity_rh_gradient(
   );
 
   // mass
-  vec3d grad_mass = vec3d::Zero();
   mass += dx;
-  vec3d f_p_mass = dynamics_velocity(
+  vec3d grad_mass = -(dynamics_velocity(
     mass, pos, vel, quat, t, param, wind_table, CA_table, units
-  );
+  ) - f_c) / dx * (tf - to) * unit_time / 2.0;
   mass -= dx;
-  grad_mass = -(f_p_mass - f_c) / dx * (tf - to) * unit_time / 2.0;
 
   // position
   mat3d grad_position = mat3d::Zero();
@@ -422,8 +431,6 @@ py::dict jac_dynamics_velocity_section(
       t_col(it) = section_idx;
       t_data(it) = grad_to_vec(k);
       it++;
-    }
-    for (int k = 0; k < 3; k++) {
       t_row(it) = row_base + k;
       t_col(it) = section_idx + 1;
       t_data(it) = grad_tf_vec(k);
@@ -432,28 +439,11 @@ py::dict jac_dynamics_velocity_section(
   }
 
   py::dict result;
-  py::dict mass_coo, pos_coo, vel_coo, quat_coo, t_coo;
-  mass_coo["row"] = mass_row;
-  mass_coo["col"] = mass_col;
-  mass_coo["data"] = mass_data;
-  pos_coo["row"] = pos_row;
-  pos_coo["col"] = pos_col;
-  pos_coo["data"] = pos_data;
-  vel_coo["row"] = vel_row;
-  vel_coo["col"] = vel_col;
-  vel_coo["data"] = vel_data;
-  quat_coo["row"] = quat_row;
-  quat_coo["col"] = quat_col;
-  quat_coo["data"] = quat_data;
-  t_coo["row"] = t_row;
-  t_coo["col"] = t_col;
-  t_coo["data"] = t_data;
-
-  result["mass"] = mass_coo;
-  result["position"] = pos_coo;
-  result["velocity"] = vel_coo;
-  result["quaternion"] = quat_coo;
-  result["t"] = t_coo;
+  result["mass"]       = make_coo(mass_row, mass_col, mass_data);
+  result["position"]   = make_coo(pos_row,  pos_col,  pos_data);
+  result["velocity"]   = make_coo(vel_row,  vel_col,  vel_data);
+  result["quaternion"] = make_coo(quat_row, quat_col, quat_data);
+  result["t"]          = make_coo(t_row,    t_col,    t_data);
 
   return result;
 }
@@ -493,25 +483,10 @@ py::dict jac_dynamics_quaternion_section(
       }
     }
 
-    // Empty u and t
-    Eigen::VectorXi empty_i(0);
-    vecXd empty_d(0);
-
     py::dict result;
-    py::dict q_coo, u_coo, t_coo;
-    q_coo["row"] = quat_row;
-    q_coo["col"] = quat_col;
-    q_coo["data"] = quat_data;
-    u_coo["row"] = empty_i;
-    u_coo["col"] = empty_i;
-    u_coo["data"] = empty_d;
-    t_coo["row"] = empty_i;
-    t_coo["col"] = empty_i;
-    t_coo["data"] = empty_d;
-
-    result["quaternion"] = q_coo;
-    result["u"] = u_coo;
-    result["t"] = t_coo;
+    result["quaternion"] = make_coo(quat_row, quat_col, quat_data);
+    result["u"]          = empty_coo();
+    result["t"]          = empty_coo();
     return result;
   }
 
@@ -608,8 +583,6 @@ py::dict jac_dynamics_quaternion_section(
       t_col(it) = section_idx;
       t_data(it) = grad_to_vec(k);
       it++;
-    }
-    for (int k = 0; k < 4; k++) {
       t_row(it) = row_base + k;
       t_col(it) = section_idx + 1;
       t_data(it) = grad_tf_vec(k);
@@ -618,20 +591,9 @@ py::dict jac_dynamics_quaternion_section(
   }
 
   py::dict result;
-  py::dict q_coo, u_coo_d, t_coo;
-  q_coo["row"] = quat_row;
-  q_coo["col"] = quat_col;
-  q_coo["data"] = quat_data;
-  u_coo_d["row"] = u_row;
-  u_coo_d["col"] = u_col;
-  u_coo_d["data"] = u_data;
-  t_coo["row"] = t_row;
-  t_coo["col"] = t_col;
-  t_coo["data"] = t_data;
-
-  result["quaternion"] = q_coo;
-  result["u"] = u_coo_d;
-  result["t"] = t_coo;
+  result["quaternion"] = make_coo(quat_row, quat_col, quat_data);
+  result["u"]          = make_coo(u_row,    u_col,    u_data);
+  result["t"]          = make_coo(t_row,    t_col,    t_data);
   return result;
 }
 
@@ -663,59 +625,39 @@ py::dict jac_dynamics_mass_section(
       }
     }
 
-    int it = 0;
     for (int j = 0; j < n; j++) {
-      t_row(it) = ua + j;
-      t_col(it) = section_idx;
-      t_data(it) = -massflow_coeff;
-      it++;
-    }
-    for (int j = 0; j < n; j++) {
-      t_row(it) = ua + j;
-      t_col(it) = section_idx + 1;
-      t_data(it) = massflow_coeff;
-      it++;
+      t_row(j)     = ua + j;
+      t_col(j)     = section_idx;
+      t_data(j)    = -massflow_coeff;
+      t_row(n + j) = ua + j;
+      t_col(n + j) = section_idx + 1;
+      t_data(n + j) = massflow_coeff;
     }
 
-    py::dict result, m_coo, t_coo;
-    m_coo["row"] = mass_row;
-    m_coo["col"] = mass_col;
-    m_coo["data"] = mass_data;
-    t_coo["row"] = t_row;
-    t_coo["col"] = t_col;
-    t_coo["data"] = t_data;
-    result["mass"] = m_coo;
-    result["t"] = t_coo;
+    py::dict result;
+    result["mass"] = make_coo(mass_row, mass_col, mass_data);
+    result["t"]    = make_coo(t_row,    t_col,    t_data);
     return result;
 
   } else {
-    // Hold mass: jac is identity-like (quat_i[1:] - quat_i[0] = 0)
+    // Hold mass: jac is identity-like (mass[1:] - mass[0] = 0)
     const int sz_mass = 2 * n;
 
     Eigen::VectorXi mass_row(sz_mass), mass_col(sz_mass);
     vecXd mass_data(sz_mass);
 
     for (int j = 0; j < n; j++) {
-      mass_row(j)     = ua + j;
-      mass_col(j)     = xa;
-      mass_data(j)    = -1.0;
-      mass_row(n + j) = ua + j;
-      mass_col(n + j) = xa + 1 + j;
-      mass_data(n + j)= 1.0;
+      mass_row(j)      = ua + j;
+      mass_col(j)      = xa;
+      mass_data(j)     = -1.0;
+      mass_row(n + j)  = ua + j;
+      mass_col(n + j)  = xa + 1 + j;
+      mass_data(n + j) = 1.0;
     }
 
-    Eigen::VectorXi empty_i(0);
-    vecXd empty_d(0);
-
-    py::dict result, m_coo, t_coo;
-    m_coo["row"] = mass_row;
-    m_coo["col"] = mass_col;
-    m_coo["data"] = mass_data;
-    t_coo["row"] = empty_i;
-    t_coo["col"] = empty_i;
-    t_coo["data"] = empty_d;
-    result["mass"] = m_coo;
-    result["t"] = t_coo;
+    py::dict result;
+    result["mass"] = make_coo(mass_row, mass_col, mass_data);
+    result["t"]    = empty_coo();
     return result;
   }
 }
@@ -764,14 +706,9 @@ py::dict jac_dynamics_position_section(
       t_col(it) = section_idx;
       t_data(it) = val;
       it++;
-    }
-  }
-  for (int j = 0; j < n; j++) {
-    for (int k = 0; k < 3; k++) {
-      double val = -vel_i(j + 1, k) * unit_vel * unit_t / 2.0 / unit_pos;
       t_row(it) = (ua + j) * 3 + k;
       t_col(it) = section_idx + 1;
-      t_data(it) = val;
+      t_data(it) = -val;
       it++;
     }
   }
@@ -790,19 +727,9 @@ py::dict jac_dynamics_position_section(
   }
 
   py::dict result;
-  py::dict vel_coo, t_coo, pos_coo;
-  vel_coo["row"] = vel_row;
-  vel_coo["col"] = vel_col;
-  vel_coo["data"] = vel_data;
-  t_coo["row"] = t_row;
-  t_coo["col"] = t_col;
-  t_coo["data"] = t_data;
-  pos_coo["row"] = pos_row;
-  pos_coo["col"] = pos_col;
-  pos_coo["data"] = pos_data;
-  result["velocity"] = vel_coo;
-  result["t"] = t_coo;
-  result["position"] = pos_coo;
+  result["velocity"] = make_coo(vel_row, vel_col, vel_data);
+  result["t"]        = make_coo(t_row,   t_col,   t_data);
+  result["position"] = make_coo(pos_row, pos_col, pos_data);
   return result;
 }
 
