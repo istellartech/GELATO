@@ -636,6 +636,91 @@ py::dict jac_dynamics_quaternion_section(
 }
 
 // =============================================================================
+// Batch Jacobian: mass dynamics
+// Computes all COO entries for one section's mass Jacobian in C++.
+// =============================================================================
+py::dict jac_dynamics_mass_section(
+  int n, int ua, int xa, int section_idx,
+  bool engine_on, double massflow_coeff,  // massflow / unit_mass * unit_t / 2.0
+  matXd Di  // n x (n+1)
+) {
+  if (engine_on) {
+    const int sz_mass = n * (n + 1);
+    const int sz_t    = 2 * n;
+
+    Eigen::VectorXi mass_row(sz_mass), mass_col(sz_mass);
+    vecXd mass_data(sz_mass);
+    Eigen::VectorXi t_row(sz_t), t_col(sz_t);
+    vecXd t_data(sz_t);
+
+    int im = 0;
+    for (int j = 0; j < n; j++) {
+      for (int jcol = 0; jcol < n + 1; jcol++) {
+        mass_row(im) = ua + j;
+        mass_col(im) = xa + jcol;
+        mass_data(im) = Di(j, jcol);
+        im++;
+      }
+    }
+
+    int it = 0;
+    for (int j = 0; j < n; j++) {
+      t_row(it) = ua + j;
+      t_col(it) = section_idx;
+      t_data(it) = -massflow_coeff;
+      it++;
+    }
+    for (int j = 0; j < n; j++) {
+      t_row(it) = ua + j;
+      t_col(it) = section_idx + 1;
+      t_data(it) = massflow_coeff;
+      it++;
+    }
+
+    py::dict result, m_coo, t_coo;
+    m_coo["row"] = mass_row;
+    m_coo["col"] = mass_col;
+    m_coo["data"] = mass_data;
+    t_coo["row"] = t_row;
+    t_coo["col"] = t_col;
+    t_coo["data"] = t_data;
+    result["mass"] = m_coo;
+    result["t"] = t_coo;
+    return result;
+
+  } else {
+    // Hold mass: jac is identity-like (quat_i[1:] - quat_i[0] = 0)
+    const int sz_mass = 2 * n;
+
+    Eigen::VectorXi mass_row(sz_mass), mass_col(sz_mass);
+    vecXd mass_data(sz_mass);
+
+    for (int j = 0; j < n; j++) {
+      mass_row(j)     = ua + j;
+      mass_col(j)     = xa;
+      mass_data(j)    = -1.0;
+      mass_row(n + j) = ua + j;
+      mass_col(n + j) = xa + 1 + j;
+      mass_data(n + j)= 1.0;
+    }
+
+    Eigen::VectorXi empty_i(0);
+    vecXd empty_d(0);
+
+    py::dict result, m_coo, t_coo;
+    m_coo["row"] = mass_row;
+    m_coo["col"] = mass_col;
+    m_coo["data"] = mass_data;
+    t_coo["row"] = empty_i;
+    t_coo["col"] = empty_i;
+    t_coo["data"] = empty_d;
+    result["mass"] = m_coo;
+    result["t"] = t_coo;
+    return result;
+  }
+}
+
+// =============================================================================
 // Batch Jacobian: position dynamics
 // Computes all COO entries for one section's position Jacobian in C++,
 // eliminating the Python per-node loop and list.extend overhead.
@@ -736,4 +821,6 @@ PYBIND11_MODULE(dynamics_c, m) {
         "Batch Jacobian for quaternion dynamics (one section, returns COO arrays)");
   m.def("jac_dynamics_position_section", &jac_dynamics_position_section,
         "Batch Jacobian for position dynamics (one section, returns COO arrays)");
+  m.def("jac_dynamics_mass_section", &jac_dynamics_mass_section,
+        "Batch Jacobian for mass dynamics (one section, returns COO arrays)");
 }

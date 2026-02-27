@@ -36,6 +36,7 @@ from .dynamics_c import (
     jac_dynamics_velocity_section,
     jac_dynamics_quaternion_section,
     jac_dynamics_position_section,
+    jac_dynamics_mass_section,
 )
 
 
@@ -82,42 +83,46 @@ def equality_jac_dynamics_mass(xdict, pdict, unitdict, condition):
     unit_t = unitdict["t"]
     num_sections = pdict["num_sections"]
 
-    jac["mass"] = {"coo": [[], [], []], "shape": (pdict["N"], pdict["M"])}
-    jac["t"] = {"coo": [[], [], []], "shape": (pdict["N"], num_sections + 1)}
+    # Collect COO arrays from all sections, then concatenate once
+    mass_rows, mass_cols, mass_data = [], [], []
+    t_rows, t_cols, t_data = [], [], []
 
     for i in range(num_sections):
         ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
 
-        if pdict["params"][i]["engineOn"]:
-            jac["mass"]["coo"][0].extend(
-                chain.from_iterable(repeat(j, n + 1) for j in range(ua, ub))
-            )
-            jac["mass"]["coo"][1].extend(list(range(xa, xb)) * (n))
-            jac["mass"]["coo"][2].extend(pdict["ps_params"].D(i).ravel(order="C"))
+        engine_on = pdict["params"][i]["engineOn"]
+        massflow_coeff = pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0
+        Di = pdict["ps_params"].D(i)
 
-            jac["t"]["coo"][0].extend(range(ua, ub))
-            jac["t"]["coo"][1].extend([i] * n)
-            jac["t"]["coo"][2].extend(
-                [-pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0] * n
-            )  # rh(to)
-            jac["t"]["coo"][0].extend(range(ua, ub))
-            jac["t"]["coo"][1].extend([i + 1] * n)
-            jac["t"]["coo"][2].extend(
-                [pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0] * n
-            )  # rh(tf)
+        sec = jac_dynamics_mass_section(
+            n, ua, xa, i,
+            engine_on, massflow_coeff,
+            Di
+        )
 
-        else:
-            jac["mass"]["coo"][0].extend(range(ua, ub))
-            jac["mass"]["coo"][1].extend([xa] * n)
-            jac["mass"]["coo"][2].extend([-1.0] * n)
-            jac["mass"]["coo"][0].extend(range(ua, ub))
-            jac["mass"]["coo"][1].extend(range(xa + 1, xb))
-            jac["mass"]["coo"][2].extend([1.0] * n)
+        mass_rows.append(sec["mass"]["row"])
+        mass_cols.append(sec["mass"]["col"])
+        mass_data.append(sec["mass"]["data"])
+        t_rows.append(sec["t"]["row"])
+        t_cols.append(sec["t"]["col"])
+        t_data.append(sec["t"]["data"])
 
-    for key in jac.keys():
-        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
-        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
-        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
+    jac["mass"] = {
+        "coo": [
+            np.concatenate(mass_rows).astype("i4"),
+            np.concatenate(mass_cols).astype("i4"),
+            np.concatenate(mass_data),
+        ],
+        "shape": (pdict["N"], pdict["M"]),
+    }
+    jac["t"] = {
+        "coo": [
+            np.concatenate(t_rows).astype("i4"),
+            np.concatenate(t_cols).astype("i4"),
+            np.concatenate(t_data),
+        ],
+        "shape": (pdict["N"], num_sections + 1),
+    }
 
     return jac
 
