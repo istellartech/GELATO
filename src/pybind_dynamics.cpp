@@ -635,6 +635,92 @@ py::dict jac_dynamics_quaternion_section(
   return result;
 }
 
+// =============================================================================
+// Batch Jacobian: position dynamics
+// Computes all COO entries for one section's position Jacobian in C++,
+// eliminating the Python per-node loop and list.extend overhead.
+// =============================================================================
+py::dict jac_dynamics_position_section(
+  int n, int ua, int xa, int section_idx,
+  matXd vel_i,     // shape (n+1, 3)
+  double to, double tf,
+  double unit_vel, double unit_pos, double unit_t,
+  matXd Di         // shape (n, n+1)
+) {
+  const int sz_vel = 3 * n;
+  const int sz_t   = 6 * n;
+  const int sz_pos = 3 * n * (n + 1);
+
+  Eigen::VectorXi vel_row(sz_vel), vel_col(sz_vel);
+  vecXd vel_data(sz_vel);
+  Eigen::VectorXi t_row(sz_t), t_col(sz_t);
+  vecXd t_data(sz_t);
+  Eigen::VectorXi pos_row(sz_pos), pos_col(sz_pos);
+  vecXd pos_data(sz_pos);
+
+  double rh_vel = -unit_vel * (tf - to) * unit_t / 2.0 / unit_pos;
+
+  // velocity: diagonal identity-scaled entries for collocation nodes
+  for (int j = 0; j < n; j++) {
+    for (int k = 0; k < 3; k++) {
+      int idx = j * 3 + k;
+      vel_row(idx) = (ua + j) * 3 + k;
+      vel_col(idx) = (xa + 1 + j) * 3 + k;
+      vel_data(idx) = rh_vel;
+    }
+  }
+
+  // t entries
+  int it = 0;
+  for (int j = 0; j < n; j++) {
+    for (int k = 0; k < 3; k++) {
+      double val = vel_i(j + 1, k) * unit_vel * unit_t / 2.0 / unit_pos;
+      t_row(it) = (ua + j) * 3 + k;
+      t_col(it) = section_idx;
+      t_data(it) = val;
+      it++;
+    }
+  }
+  for (int j = 0; j < n; j++) {
+    for (int k = 0; k < 3; k++) {
+      double val = -vel_i(j + 1, k) * unit_vel * unit_t / 2.0 / unit_pos;
+      t_row(it) = (ua + j) * 3 + k;
+      t_col(it) = section_idx + 1;
+      t_data(it) = val;
+      it++;
+    }
+  }
+
+  // position: D matrix blocks (three independent coordinate dimensions)
+  int ip = 0;
+  for (int ki = 0; ki < 3; ki++) {
+    for (int j = 0; j < n; j++) {
+      for (int jcol = 0; jcol < n + 1; jcol++) {
+        pos_row(ip) = (ua + j) * 3 + ki;
+        pos_col(ip) = (xa + jcol) * 3 + ki;
+        pos_data(ip) = Di(j, jcol);
+        ip++;
+      }
+    }
+  }
+
+  py::dict result;
+  py::dict vel_coo, t_coo, pos_coo;
+  vel_coo["row"] = vel_row;
+  vel_coo["col"] = vel_col;
+  vel_coo["data"] = vel_data;
+  t_coo["row"] = t_row;
+  t_coo["col"] = t_col;
+  t_coo["data"] = t_data;
+  pos_coo["row"] = pos_row;
+  pos_coo["col"] = pos_col;
+  pos_coo["data"] = pos_data;
+  result["velocity"] = vel_coo;
+  result["t"] = t_coo;
+  result["position"] = pos_coo;
+  return result;
+}
+
 PYBIND11_MODULE(dynamics_c, m) {
   m.def("dynamics_velocity_array", &dynamics_velocity_array,
         "velocity with aerodynamic forces (array)");
@@ -648,4 +734,6 @@ PYBIND11_MODULE(dynamics_c, m) {
         "Batch Jacobian for velocity dynamics (one section, returns COO arrays)");
   m.def("jac_dynamics_quaternion_section", &jac_dynamics_quaternion_section,
         "Batch Jacobian for quaternion dynamics (one section, returns COO arrays)");
+  m.def("jac_dynamics_position_section", &jac_dynamics_position_section,
+        "Batch Jacobian for position dynamics (one section, returns COO arrays)");
 }

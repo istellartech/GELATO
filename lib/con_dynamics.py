@@ -35,6 +35,7 @@ from .dynamics_c import (
     dynamics_quaternion_rh_gradient,
     jac_dynamics_velocity_section,
     jac_dynamics_quaternion_section,
+    jac_dynamics_position_section,
 )
 
 
@@ -175,9 +176,10 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
 
     num_sections = pdict["num_sections"]
 
-    jac["position"] = {"coo": [[], [], []], "shape": (pdict["N"] * 3, pdict["M"] * 3)}
-    jac["velocity"] = {"coo": [[], [], []], "shape": (pdict["N"] * 3, pdict["M"] * 3)}
-    jac["t"] = {"coo": [[], [], []], "shape": (pdict["N"] * 3, num_sections + 1)}
+    # Collect COO arrays from all sections, then concatenate once
+    pos_rows, pos_cols, pos_data = [], [], []
+    vel_rows, vel_cols, vel_data = [], [], []
+    t_rows, t_cols, t_data = [], [], []
 
     for i in range(num_sections):
         ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
@@ -185,40 +187,49 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
         to = t[i]
         tf = t[i + 1]
 
-        Di = pdict["ps_params"].D(i).ravel()
+        Di = pdict["ps_params"].D(i)
 
-        rh_vel = -unit_vel * (tf - to) * unit_t / 2.0 / unit_pos  # rh vel
-        jac["velocity"]["coo"][0].extend(range(ua * 3, ub * 3))
-        jac["velocity"]["coo"][1].extend(range((xa + 1) * 3, xb * 3))
-        jac["velocity"]["coo"][2].extend([rh_vel] * (n * 3))
+        sec = jac_dynamics_position_section(
+            n, ua, xa, i,
+            vel_i_, to, tf,
+            unit_vel, unit_pos, unit_t,
+            Di
+        )
 
-        # t_o
-        rh_to = vel_i_[1:].ravel() * unit_vel * unit_t / 2.0 / unit_pos  # rh to
-        jac["t"]["coo"][0].extend(range(ua * 3, ub * 3))
-        jac["t"]["coo"][1].extend([i] * n * 3)
-        jac["t"]["coo"][2].extend(rh_to)
+        pos_rows.append(sec["position"]["row"])
+        pos_cols.append(sec["position"]["col"])
+        pos_data.append(sec["position"]["data"])
+        vel_rows.append(sec["velocity"]["row"])
+        vel_cols.append(sec["velocity"]["col"])
+        vel_data.append(sec["velocity"]["data"])
+        t_rows.append(sec["t"]["row"])
+        t_cols.append(sec["t"]["col"])
+        t_data.append(sec["t"]["data"])
 
-        # t_f
-        rh_tf = -rh_to  # rh tf
-        jac["t"]["coo"][0].extend(range(ua * 3, ub * 3))
-        jac["t"]["coo"][1].extend([i + 1] * n * 3)
-        jac["t"]["coo"][2].extend(rh_tf)
-
-        for ki in range(3):
-            jac["position"]["coo"][0].extend(
-                chain.from_iterable(
-                    repeat(j, (n + 1)) for j in range(ua * 3 + ki, ub * 3 + ki, 3)
-                )
-            )
-            jac["position"]["coo"][1].extend(
-                list(range(xa * 3 + ki, xb * 3 + ki, 3)) * n
-            )
-            jac["position"]["coo"][2].extend(Di)
-
-    for key in jac.keys():
-        jac[key]["coo"][0] = np.array(jac[key]["coo"][0], dtype="i4")
-        jac[key]["coo"][1] = np.array(jac[key]["coo"][1], dtype="i4")
-        jac[key]["coo"][2] = np.array(jac[key]["coo"][2], dtype="f8")
+    jac["position"] = {
+        "coo": [
+            np.concatenate(pos_rows).astype("i4"),
+            np.concatenate(pos_cols).astype("i4"),
+            np.concatenate(pos_data),
+        ],
+        "shape": (pdict["N"] * 3, pdict["M"] * 3),
+    }
+    jac["velocity"] = {
+        "coo": [
+            np.concatenate(vel_rows).astype("i4"),
+            np.concatenate(vel_cols).astype("i4"),
+            np.concatenate(vel_data),
+        ],
+        "shape": (pdict["N"] * 3, pdict["M"] * 3),
+    }
+    jac["t"] = {
+        "coo": [
+            np.concatenate(t_rows).astype("i4"),
+            np.concatenate(t_cols).astype("i4"),
+            np.concatenate(t_data),
+        ],
+        "shape": (pdict["N"] * 3, num_sections + 1),
+    }
 
     return jac
 
