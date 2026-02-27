@@ -26,13 +26,10 @@
 # constraints_d.py
 # constraints about dynamics
 
-from itertools import chain, repeat
 import numpy as np
 from .dynamics_c import (
     dynamics_velocity_array,
     dynamics_quaternion_array,
-    dynamics_velocity_rh_gradient,
-    dynamics_quaternion_rh_gradient,
     jac_dynamics_velocity_section,
     jac_dynamics_quaternion_section,
     jac_dynamics_position_section,
@@ -94,11 +91,7 @@ def equality_jac_dynamics_mass(xdict, pdict, unitdict, condition):
         massflow_coeff = pdict["params"][i]["massflow"] / unit_mass * unit_t / 2.0
         Di = pdict["ps_params"].D(i)
 
-        sec = jac_dynamics_mass_section(
-            n, ua, xa, i,
-            engine_on, massflow_coeff,
-            Di
-        )
+        sec = jac_dynamics_mass_section(n, ua, xa, i, engine_on, massflow_coeff, Di)
 
         mass_rows.append(sec["mass"]["row"])
         mass_cols.append(sec["mass"]["col"])
@@ -142,8 +135,6 @@ def equality_dynamics_position(xdict, pdict, unitdict, condition):
 
     num_sections = pdict["num_sections"]
 
-    param = np.zeros(5)
-
     for i in range(num_sections):
         ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
         pos_i_ = pos_[xa:xb]
@@ -152,11 +143,6 @@ def equality_dynamics_position(xdict, pdict, unitdict, condition):
         to = t[i]
         tf = t[i + 1]
         # t_nodes = pdict["ps_params"].tau(i) * (tf-to) / 2.0 + (tf+to) / 2.0
-
-        param[0] = pdict["params"][i]["thrust"]
-        param[1] = pdict["params"][i]["massflow"]
-        param[2] = pdict["params"][i]["reference_area"]
-        param[4] = pdict["params"][i]["nozzle_area"]
 
         lh = pdict["ps_params"].D(i).dot(pos_i_)
         rh = (
@@ -195,10 +181,7 @@ def equality_jac_dynamics_position(xdict, pdict, unitdict, condition):
         Di = pdict["ps_params"].D(i)
 
         sec = jac_dynamics_position_section(
-            n, ua, xa, i,
-            vel_i_, to, tf,
-            unit_vel, unit_pos, unit_t,
-            Di
+            n, ua, xa, i, vel_i_, to, tf, unit_vel, unit_pos, unit_t, Di
         )
 
         pos_rows.append(sec["position"]["row"])
@@ -488,10 +471,7 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
         Di = pdict["ps_params"].D(i)
 
         sec = jac_dynamics_quaternion_section(
-            n, ua, xa, i,
-            quat_i_, u_i_,
-            unit_u, to, tf, unit_t, dx,
-            Di, is_hold
+            n, ua, xa, i, quat_i_, u_i_, unit_u, to, tf, unit_t, dx, Di, is_hold
         )
 
         quat_rows.append(sec["quaternion"]["row"])
