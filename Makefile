@@ -1,24 +1,26 @@
+# =============================================================================
+# GELATO Build System (CMake wrapper)
+# =============================================================================
+# Usage:
+#   make              Build all pybind11 modules (Release)
+#   make clean        Remove build artifacts and compiled modules
+#   make rebuild      Clean + build
+#   make info         Print CMake cache variables
+# =============================================================================
 
-CC = g++
-CFLAGS = -O2 -Wall -shared -std=c++11 -I/usr/include/eigen3 -fPIC -rdynamic
-PYBIND = `python3 -m pybind11 --includes`
-PYCONFIG = `python3-config --extension-suffix`
+BUILD_DIR := build
 
-SRCS = src/Air.cpp src/Earth.cpp src/gravity.cpp src/Coordinate.cpp src/iip.cpp
+all:
+	cmake -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
+	cmake --build $(BUILD_DIR) --parallel
 
-all: atmosphere coordinate dynamics utils iip
+clean:
+	rm -rf $(BUILD_DIR)
+	rm -f lib/*_c*.so lib/*_c*.dylib lib/*_c*.pyd
 
-atmosphere:
-	$(CC) $(CFLAGS) $(PYBIND) $(SRCS) src/pybind_USStandardAtmosphere.cpp -o lib/USStandardAtmosphere_c$(PYCONFIG)
+rebuild: clean all
 
-coordinate:
-	$(CC) $(CFLAGS) $(PYBIND) $(SRCS) src/pybind_coordinate.cpp -o lib/coordinate_c$(PYCONFIG)
+info:
+	@cmake -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release -LA | head -40
 
-dynamics:
-	$(CC) $(CFLAGS) $(PYBIND) $(SRCS) src/pybind_dynamics.cpp -o lib/dynamics_c$(PYCONFIG)
-
-utils:
-	$(CC) $(CFLAGS) $(PYBIND) $(SRCS) src/pybind_utils.cpp -o lib/utils_c$(PYCONFIG)
-
-iip:
-	$(CC) $(CFLAGS) $(PYBIND) $(SRCS) src/pybind_IIP.cpp -o lib/IIP_c$(PYCONFIG)
+.PHONY: all clean rebuild info
