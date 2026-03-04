@@ -118,6 +118,9 @@ def inequality_kickturn(xdict, pdict, unitdict, condition):
             u_i_ = u_[ua:ub]
             con.append(-u_i_[:, 0])
 
+    if not con:
+        # No kick-turn sections: return an empty constraint vector
+        return np.zeros(0, dtype="f8")
     return np.concatenate(con, axis=None)
 
 
