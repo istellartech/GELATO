@@ -92,10 +92,13 @@ def get_value(xdict, pdict, unitdict, section_name, key):
 
     if key == "t":
         out = xdict[key][index_start] * unitdict[key]
-
+    elif key == "mass":
+        # mass is a scalar value at the specified event
+        out = xdict[key][index_start] * unitdict.get(key, 1.0)
     else:
         if key == "quaternion":
-            out = xdict[key][index_start : (index_start + 4)] * unitdict[key]
+            # quaternion is treated as unitless by default
+            out = xdict[key][index_start : (index_start + 4)] * unitdict.get(key, 1.0)
         else:  # position, velocity or u
             out = xdict[key][index_start : (index_start + 3)] * unitdict[key]
 
