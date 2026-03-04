@@ -21,6 +21,6 @@ clean:
 rebuild: clean all
 
 info:
-	@cmake -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release -N -LA 2>/dev/null | head -40
+	@cmake -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release -LA | head -40
 
 .PHONY: all clean rebuild info
