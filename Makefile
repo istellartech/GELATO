@@ -16,7 +16,7 @@ all:
 
 clean:
 	rm -rf $(BUILD_DIR)
-	rm -f lib/*_c*.so
+	rm -f lib/*_c*.so lib/*_c*.dylib lib/*_c*.pyd
 
 rebuild: clean all
 
