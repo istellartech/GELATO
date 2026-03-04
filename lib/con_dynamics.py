@@ -504,7 +504,7 @@ def equality_dynamics_quaternion(xdict, pdict, unitdict, condition):
     unit_u = unitdict["u"]
     unit_t = unitdict["t"]
     quat_ = xdict["quaternion"].reshape(-1, 4)
-    u_ = xdict["u"].reshape(-1, 3)
+    u_ = xdict["u"].reshape(-1, 2)
     t = xdict["t"]
 
     num_sections = pdict["num_sections"]
@@ -542,13 +542,13 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
     unit_u = unitdict["u"]
     unit_t = unitdict["t"]
     quat_ = xdict["quaternion"].reshape(-1, 4)
-    u_ = xdict["u"].reshape(-1, 3)
+    u_ = xdict["u"].reshape(-1, 2)
     t = xdict["t"]
 
     num_sections = pdict["num_sections"]
 
     jac["quaternion"] = {"coo": [[], [], []], "shape": (pdict["N"] * 4, pdict["M"] * 4)}
-    jac["u"] = {"coo": [[], [], []], "shape": (pdict["N"] * 4, pdict["N"] * 3)}
+    jac["u"] = {"coo": [[], [], []], "shape": (pdict["N"] * 4, pdict["N"] * 2)}
     jac["t"] = {"coo": [[], [], []], "shape": (pdict["N"] * 4, num_sections + 1)}
 
     for i in range(num_sections):
@@ -597,7 +597,7 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
             jac["quaternion"]["coo"][2].extend(submat_quat.ravel())
 
             # u (angular velocity)
-            for k in range(3):
+            for k in range(2):
                 u_i_[:, k] += dx
                 f_p = dynamics_quaternion(quat_i_[1:], u_i_, unit_u)
                 u_i_[:, k] -= dx
@@ -608,7 +608,7 @@ def equality_jac_dynamics_quaternion(xdict, pdict, unitdict, condition):
                     )
                 )
                 jac["u"]["coo"][1].extend(
-                    chain.from_iterable(repeat(j * 3 + k, 4) for j in range(ua, ub))
+                    chain.from_iterable(repeat(j * 2 + k, 4) for j in range(ua, ub))
                 )
                 jac["u"]["coo"][2].extend(rh_u.ravel())
 

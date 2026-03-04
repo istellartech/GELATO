@@ -62,7 +62,7 @@ def output_result(xdict, unitdict, tx_res, tu_res, pdict):
     vel_ = xdict["velocity"].reshape(-1, 3) * unit_vel
     quat_ = xdict["quaternion"].reshape(-1, 4)
 
-    u_ = xdict["u"].reshape(-1, 3) * unit_u
+    u_ = xdict["u"].reshape(-1, 2) * unit_u
 
     out = {
         "event": [""] * N,
@@ -107,9 +107,9 @@ def output_result(xdict, unitdict, tx_res, tu_res, pdict):
         "thrust_direction_ECI_X": np.zeros(N),
         "thrust_direction_ECI_Y": np.zeros(N),
         "thrust_direction_ECI_Z": np.zeros(N),
-        "rate_BODY_X": np.interp(tx_res, tu_res, u_[:, 0]),
-        "rate_BODY_Y": np.interp(tx_res, tu_res, u_[:, 1]),
-        "rate_BODY_Z": np.interp(tx_res, tu_res, u_[:, 2]),
+        "rate_BODY_X": np.zeros(N),
+        "rate_BODY_Y": np.interp(tx_res, tu_res, u_[:, 0]),
+        "rate_BODY_Z": np.interp(tx_res, tu_res, u_[:, 1]),
         "vel_ground": np.zeros(N),
         "vel_air": np.zeros(N),
         "AOA_total": np.zeros(N),

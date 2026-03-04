@@ -96,7 +96,7 @@ matXd dynamics_quaternion(matXd quat_eci2body, matXd u_e, double unit_u) {
   matXd d_quat = matXd::Zero(quat_eci2body.rows(), 4);
 
   for (int i = 0; i < quat_eci2body.rows(); i++) {
-    vec4d omega_rps_body = vec4d(0.0, u(i, 0), u(i, 1), u(i, 2));
+    vec4d omega_rps_body = vec4d(0.0, 0.0, u(i, 0), u(i, 1));
     omega_rps_body = omega_rps_body * M_PI / 180.0;
     vec4d d_quat_i = 0.5 * quatmult(quat_eci2body.row(i), omega_rps_body);
     d_quat.row(i) = d_quat_i;

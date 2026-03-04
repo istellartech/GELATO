@@ -51,8 +51,8 @@ def get_index_event(pdict, section_name, key):
         ua, ub, xa, xb, _ = pdict["ps_params"].get_index(section_num)
 
         if key == "u":
-            index_start = ua * 3
-            index_end = ub * 3
+            index_start = ua * 2
+            index_end = ub * 2
         else:
             if key in ["position", "velocity"]:
                 index_start = xa * 3
@@ -99,7 +99,9 @@ def get_value(xdict, pdict, unitdict, section_name, key):
         if key == "quaternion":
             # quaternion is treated as unitless by default
             out = xdict[key][index_start : (index_start + 4)] * unitdict.get(key, 1.0)
-        else:  # position, velocity or u
+        elif key == "u":
+            out = xdict[key][index_start : (index_start + 2)] * unitdict[key]
+        else:  # position, velocity
             out = xdict[key][index_start : (index_start + 3)] * unitdict[key]
 
     return out
@@ -142,7 +144,9 @@ def get_values_section(xdict, pdict, unitdict, section_name, key):
             val_ = xdict[key] * unitdict[key]
         elif key == "quaternion":
             val_ = xdict[key].reshape(-1, 4)
-        else:  # position, velocity or u
+        elif key == "u":
+            val_ = xdict[key].reshape(-1, 2) * unitdict[key]
+        else:  # position, velocity
             val_ = xdict[key].reshape(-1, 3) * unitdict[key]
 
         # sample variables in specified section

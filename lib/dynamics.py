@@ -114,7 +114,7 @@ def dynamics_quaternion(quat_eci2body, u_e, unit_u):
 
     d_quat = np.zeros(quat_eci2body.shape)
     for i in range(len(u)):
-        omega_rps_body = np.deg2rad(np.array([0.0, u[i, 0], u[i, 1], u[i, 2]]))
+        omega_rps_body = np.deg2rad(np.array([0.0, 0.0, u[i, 0], u[i, 1]]))
         d_quat[i] = 0.5 * quatmult(quat_eci2body[i], omega_rps_body)
 
     return d_quat

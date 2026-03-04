@@ -108,7 +108,7 @@ def inequality_kickturn(xdict, pdict, unitdict, condition):
 
     con = []
     unit_u = unitdict["u"]
-    u_ = xdict["u"].reshape(-1, 3) * unit_u
+    u_ = xdict["u"].reshape(-1, 2) * unit_u
     num_sections = pdict["num_sections"]
 
     for i in range(num_sections - 1):
@@ -116,7 +116,7 @@ def inequality_kickturn(xdict, pdict, unitdict, condition):
         if "kick" in pdict["params"][i]["attitude"]:
             ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
             u_i_ = u_[ua:ub]
-            con.append(-u_i_[:, 1])
+            con.append(-u_i_[:, 0])
 
     return np.concatenate(con, axis=None)
 
@@ -137,7 +137,7 @@ def inequality_jac_kickturn(xdict, pdict, unitdict, condition):
         if "kick" in pdict["params"][i]["attitude"]:
             ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
             row.extend(range(nRow, nRow + n))
-            col.extend(range(ua * 3 + 1, ub * 3 + 1, 3))
+            col.extend(range(ua * 2, ub * 2, 2))
             data.extend([-1.0] * n)
             nRow += n
 
@@ -158,7 +158,7 @@ def equality_6DoF_rate(xdict, pdict, unitdict, condition):
 
     con = []
 
-    u_ = xdict["u"].reshape(-1, 3)
+    u_ = xdict["u"].reshape(-1, 2)
 
     num_sections = pdict["num_sections"]
 
@@ -174,33 +174,32 @@ def equality_6DoF_rate(xdict, pdict, unitdict, condition):
         if att in ["hold", "vertical"]:
             con.append(u_i_)
 
-        # kick-turn : pitch rate constant, roll/yaw rate is zero
+        # kick-turn : pitch rate constant, yaw rate is zero
         elif att == "kick-turn" or att == "pitch":
-            con.append(u_i_[:, 0])
-            con.append(u_i_[:, 2])
-            con.append(u_i_[1:, 1] - u_i_[0, 1])
+            con.append(u_i_[:, 1])
+            con.append(u_i_[1:, 0] - u_i_[0, 0])
 
-        # pitch-yaw : pitch/yaw constant, roll rate is zero
+        # pitch-yaw : pitch/yaw constant
         elif att == "pitch-yaw":
+            con.append(u_i_[1:, 0] - u_i_[0, 0])
             con.append(u_i_[1:, 1] - u_i_[0, 1])
-            con.append(u_i_[1:, 2] - u_i_[0, 2])
-            con.append(u_i_[:, 0])
 
-        # same-rate : pitch/yaw is the same as previous section, roll rate is zero
+        # same-rate : pitch/yaw is the same as previous section
         elif att == "same-rate":
             uf_prev = u_[ua - 1]
+            con.append(u_i_[:, 0] - uf_prev[0])
             con.append(u_i_[:, 1] - uf_prev[1])
-            con.append(u_i_[:, 2] - uf_prev[2])
-            con.append(u_i_[:, 0])
 
-        # zero-lift-turn or free : roll hold
+        # zero-lift-turn or free : no rate constraint
         elif att == "zero-lift-turn" or att == "free":
-            con.append(u_i_[:, 0])
+            pass
 
         else:
             print("ERROR: UNKNOWN ATTITUDE OPTION! ({})".format(att))
             sys.exit()
 
+    if len(con) == 0:
+        return np.array([])
     return np.concatenate(con, axis=None)
 
 
@@ -218,23 +217,23 @@ def equality_length_6DoF_rate(xdict, pdict, unitdict, condition):
 
         # attitude hold : angular velocity is zero
         if att in ["hold", "vertical"]:
-            res += 3 * n
+            res += 2 * n
 
-        # kick-turn : pitch rate constant, roll/yaw rate is zero
+        # kick-turn : pitch rate constant, yaw rate is zero
         elif att == "kick-turn" or att == "pitch":
-            res += 3 * n - 1
+            res += n + (n - 1)
 
-        # pitch-yaw : pitch/yaw constant, roll rate is zero
+        # pitch-yaw : pitch/yaw constant
         elif att == "pitch-yaw":
-            res += 3 * n - 2
+            res += 2 * (n - 1)
 
-        # same-rate : pitch/yaw is the same as previous section, roll rate is zero
+        # same-rate : pitch/yaw is the same as previous section
         elif att == "same-rate":
-            res += 3 * n
+            res += 2 * n
 
-        # zero-lift-turn or free : roll hold
+        # zero-lift-turn or free : no rate constraint
         elif att == "zero-lift-turn" or att == "free":
-            res += n
+            pass
 
         else:
             print("ERROR: UNKNOWN ATTITUDE OPTION! ({})".format(att))
@@ -251,7 +250,7 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
     num_sections = pdict["num_sections"]
 
     nRow = equality_length_6DoF_rate(xdict, pdict, unitdict, condition)
-    jac["u"] = {"coo": [[], [], []], "shape": (nRow, pdict["N"] * 3)}
+    jac["u"] = {"coo": [[], [], []], "shape": (nRow, pdict["N"] * 2)}
 
     iRow = 0
 
@@ -263,83 +262,74 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
         att = pdict["params"][i]["attitude"]
         # attitude hold : angular velocity is zero
         if att in ["hold", "vertical"]:
-            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n * 3)))
-            jac["u"]["coo"][1].extend(list(range(ua * 3, (ua + n) * 3)))
-            jac["u"]["coo"][2].extend([1.0] * (n * 3))
-            iRow += n * 3
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n * 2)))
+            jac["u"]["coo"][1].extend(list(range(ua * 2, (ua + n) * 2)))
+            jac["u"]["coo"][2].extend([1.0] * (n * 2))
+            iRow += n * 2
 
-        # kick-turn : pitch rate constant, roll/yaw rate is zero
+        # kick-turn : pitch rate constant, yaw rate is zero
         elif att == "kick-turn" or att == "pitch":
+            # yaw rate = 0
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend(list(range(ua * 3, (ua + n) * 3, 3)))
+            jac["u"]["coo"][1].extend(list(range(ua * 2 + 1, (ua + n) * 2 + 1, 2)))
             jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
-            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend(list(range(ua * 3 + 2, (ua + n) * 3 + 2, 3)))
-            jac["u"]["coo"][2].extend([1.0] * n)
-            iRow += n
+            # pitch rate constant: u[1:,0] - u[0,0] = 0
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
-            jac["u"]["coo"][1].extend([ua * 3 + 1] * (n - 1))
+            jac["u"]["coo"][1].extend([ua * 2] * (n - 1))
             jac["u"]["coo"][2].extend([-1.0] * (n - 1))
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
             jac["u"]["coo"][1].extend(
-                list(range((ua + 1) * 3 + 1, (ua + n) * 3 + 1, 3))
+                list(range((ua + 1) * 2, (ua + n) * 2, 2))
             )
             jac["u"]["coo"][2].extend([1.0] * (n - 1))
             iRow += n - 1
 
-        # pitch-yaw : pitch/yaw constant, roll rate is zero
+        # pitch-yaw : pitch/yaw constant
         elif att == "pitch-yaw":
+            # pitch rate constant: u[1:,0] - u[0,0] = 0
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
-            jac["u"]["coo"][1].extend([ua * 3 + 1] * (n - 1))
+            jac["u"]["coo"][1].extend([ua * 2] * (n - 1))
             jac["u"]["coo"][2].extend([-1.0] * (n - 1))
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
             jac["u"]["coo"][1].extend(
-                list(range((ua + 1) * 3 + 1, (ua + n) * 3 + 1, 3))
+                list(range((ua + 1) * 2, (ua + n) * 2, 2))
             )
             jac["u"]["coo"][2].extend([1.0] * (n - 1))
             iRow += n - 1
+            # yaw rate constant: u[1:,1] - u[0,1] = 0
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
-            jac["u"]["coo"][1].extend([ua * 3 + 2] * (n - 1))
+            jac["u"]["coo"][1].extend([ua * 2 + 1] * (n - 1))
             jac["u"]["coo"][2].extend([-1.0] * (n - 1))
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
             jac["u"]["coo"][1].extend(
-                list(range((ua + 1) * 3 + 2, (ua + n) * 3 + 2, 3))
+                list(range((ua + 1) * 2 + 1, (ua + n) * 2 + 1, 2))
             )
             jac["u"]["coo"][2].extend([1.0] * (n - 1))
             iRow += n - 1
-            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend(list(range(ua * 3, (ua + n) * 3, 3)))
-            jac["u"]["coo"][2].extend([1.0] * n)
-            iRow += n
 
-        # same-rate : pitch/yaw is the same as previous section, roll rate is zero
+        # same-rate : pitch/yaw is the same as previous section
         elif att == "same-rate":
+            # pitch: u[:,0] - u_prev[0] = 0
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend([ua * 3 - 2] * n)
+            jac["u"]["coo"][1].extend([ua * 2 - 2] * n)
             jac["u"]["coo"][2].extend([-1.0] * n)
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend(list(range(ua * 3 + 1, (ua + n) * 3 + 1, 3)))
+            jac["u"]["coo"][1].extend(list(range(ua * 2, (ua + n) * 2, 2)))
             jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
+            # yaw: u[:,1] - u_prev[1] = 0
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend([ua * 3 - 1] * n)
+            jac["u"]["coo"][1].extend([ua * 2 - 1] * n)
             jac["u"]["coo"][2].extend([-1.0] * n)
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend(list(range(ua * 3 + 2, (ua + n) * 3 + 2, 3)))
-            jac["u"]["coo"][2].extend([1.0] * n)
-            iRow += n
-            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend(list(range(ua * 3, (ua + n) * 3, 3)))
+            jac["u"]["coo"][1].extend(list(range(ua * 2 + 1, (ua + n) * 2 + 1, 2)))
             jac["u"]["coo"][2].extend([1.0] * n)
             iRow += n
 
-        # zero-lift-turn or free : roll hold
+        # zero-lift-turn or free : no rate constraint
         elif att == "zero-lift-turn" or att == "free":
-            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend(list(range(ua * 3, (ua + n) * 3, 3)))
-            jac["u"]["coo"][2].extend([1.0] * n)
-            iRow += n
+            pass
 
         else:
             print("ERROR: UNKNOWN ATTITUDE OPTION! ({})".format(att))
