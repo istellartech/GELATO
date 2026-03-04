@@ -128,6 +128,7 @@ def inequality_jac_kickturn(xdict, pdict, unitdict, condition):
     """Jacobian of inequality_kickturn."""
 
     jac = {}
+    unit_u = unitdict["u"]
     num_sections = pdict["num_sections"]
 
     data = []
@@ -141,7 +142,7 @@ def inequality_jac_kickturn(xdict, pdict, unitdict, condition):
             ua, ub, xa, xb, n = pdict["ps_params"].get_index(i)
             row.extend(range(nRow, nRow + n))
             col.extend(range(ua * 2, ub * 2, 2))
-            data.extend([-1.0] * n)
+            data.extend([-unit_u] * n)
             nRow += n
 
     jac["u"] = {
