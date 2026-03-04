@@ -63,6 +63,11 @@ def get_index_event(pdict, section_name, key):
             elif key == "quaternion":
                 index_start = xa * 4
                 index_end = xb * 4
+            else:
+                raise ValueError(
+                    f"Unsupported key {key!r} in get_index_event; expected one of "
+                    "'mass', 'position', 'velocity', 'quaternion', 'u', or 't'."
+                )
 
     return index_start, index_end
 
