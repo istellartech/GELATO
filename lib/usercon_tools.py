@@ -69,7 +69,7 @@ def get_index_event(pdict, section_name, key):
 
 def get_value(xdict, pdict, unitdict, section_name, key):
     """
-    get vector of states, contols and time at the specified knot.
+    get vector of states, controls and time at the specified knot.
 
     Args:
         xdict(dict) : variables(dimensionless)
