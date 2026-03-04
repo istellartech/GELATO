@@ -51,7 +51,8 @@ function(add_gelato_module name source)
     target_compile_options(${name} PRIVATE -Wall -Wextra -Wno-unused-parameter)
   endif()
   set_target_properties(${name} PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib"
+    LIBRARY_OUTPUT_DIRECTORY  "${CMAKE_SOURCE_DIR}/lib"
+    RUNTIME_OUTPUT_DIRECTORY  "${CMAKE_SOURCE_DIR}/lib"
   )
 endfunction()
 
