@@ -828,7 +828,7 @@ def inequality_jac_posLLH(xdict, pdict, unitdict, condition):
 
                     jac["t"]["coo"][0].append(iRow)
                     jac["t"]["coo"][1].append(i)
-                    jac["t"]["coo"][2].append(dfdx_LLH["t"][2] / 90.0)
+                    jac["t"]["coo"][2].append(dfdx_LLH["t"][0] / 90.0)
                     iRow += 1
 
                 if "max" in waypoint["lat"]:
@@ -839,7 +839,7 @@ def inequality_jac_posLLH(xdict, pdict, unitdict, condition):
 
                     jac["t"]["coo"][0].append(iRow)
                     jac["t"]["coo"][1].append(i)
-                    jac["t"]["coo"][2].append(-dfdx_LLH["t"][2] / 90.0)
+                    jac["t"]["coo"][2].append(-dfdx_LLH["t"][0] / 90.0)
                     iRow += 1
 
             # lon
