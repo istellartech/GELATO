@@ -148,7 +148,7 @@ if settings["OptimizationMode"] != "Payload":
     m_init += settings["mass_payload"]
 x_init = np.hstack((m_init, r_init, v_init, quat_init))
 
-u_init = np.zeros(3)
+u_init = np.zeros(2)
 
 unit_R = 6378137
 unit_V = 1000.0

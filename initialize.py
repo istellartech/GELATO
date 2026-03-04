@@ -292,7 +292,6 @@ def initialize_xdict_6DoF_2(
         [
             [
                 [
-                    0.0,
                     pdict["params"][i]["pitchrate_init"],
                     pdict["params"][i]["yawrate_init"],
                 ]
@@ -303,7 +302,8 @@ def initialize_xdict_6DoF_2(
     )
     xdict["u"] = (u_nodes / unitdict["u"]).ravel()
 
-    u_table = np.hstack((time_nodes.reshape(-1, 1), u_nodes))
+    u_nodes_3col = np.column_stack((np.zeros(len(u_nodes)), u_nodes))
+    u_table = np.hstack((time_nodes.reshape(-1, 1), u_nodes_3col))
 
     x_nodes, _ = rocket_simulation(
         x_init, u_table, pdict, time_nodes[0], time_x_nodes, dt
@@ -401,7 +401,7 @@ def initialize_xdict_6DoF_from_file(
     xdict["u"] = (
         interp1d(
             x_ref["time"],
-            x_ref[["rate_BODY_X", "rate_BODY_Y", "rate_BODY_Z"]],
+            x_ref[["rate_BODY_Y", "rate_BODY_Z"]],
             axis=0,
             fill_value="extrapolate",
         )(time_nodes)
