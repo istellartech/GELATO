@@ -12,7 +12,7 @@ BUILD_DIR := build
 
 all:
 	cmake -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
-	cmake --build $(BUILD_DIR) -j$(nproc)
+	cmake --build $(BUILD_DIR) --parallel
 
 clean:
 	rm -rf $(BUILD_DIR)
