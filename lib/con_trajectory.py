@@ -179,8 +179,8 @@ def equality_6DoF_rate(xdict, pdict, unitdict, condition):
 
         # kick-turn : pitch rate constant, yaw rate is zero
         elif att == "kick-turn" or att == "pitch":
-            con.append(u_i_[:, 1])
             con.append(u_i_[1:, 0] - u_i_[0, 0])
+            con.append(u_i_[:, 1])
 
         # pitch-yaw : pitch/yaw constant
         elif att == "pitch-yaw":
@@ -272,11 +272,6 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
 
         # kick-turn : pitch rate constant, yaw rate is zero
         elif att == "kick-turn" or att == "pitch":
-            # yaw rate = 0
-            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
-            jac["u"]["coo"][1].extend(list(range(ua * 2 + 1, (ua + n) * 2 + 1, 2)))
-            jac["u"]["coo"][2].extend([1.0] * n)
-            iRow += n
             # pitch rate constant: u[1:,0] - u[0,0] = 0
             jac["u"]["coo"][0].extend(list(range(iRow, iRow + n - 1)))
             jac["u"]["coo"][1].extend([ua * 2] * (n - 1))
@@ -287,6 +282,11 @@ def equality_jac_6DoF_rate(xdict, pdict, unitdict, condition):
             )
             jac["u"]["coo"][2].extend([1.0] * (n - 1))
             iRow += n - 1
+            # yaw rate = 0
+            jac["u"]["coo"][0].extend(list(range(iRow, iRow + n)))
+            jac["u"]["coo"][1].extend(list(range(ua * 2 + 1, (ua + n) * 2 + 1, 2)))
+            jac["u"]["coo"][2].extend([1.0] * n)
+            iRow += n
 
         # pitch-yaw : pitch/yaw constant
         elif att == "pitch-yaw":
