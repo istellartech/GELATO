@@ -35,13 +35,21 @@ add_library(gelato_core STATIC
 )
 target_include_directories(gelato_core PUBLIC src)
 target_link_libraries(gelato_core PUBLIC Eigen3::Eigen)
-target_compile_options(gelato_core PRIVATE -Wall -Wextra -Wno-unused-parameter)
+if(MSVC)
+  target_compile_options(gelato_core PRIVATE /W4)
+else()
+  target_compile_options(gelato_core PRIVATE -Wall -Wextra -Wno-unused-parameter)
+endif()
 
 # Helper function to define each pybind11 module
 function(add_gelato_module name source)
   pybind11_add_module(${name} src/${source})
   target_link_libraries(${name} PRIVATE gelato_core)
-  target_compile_options(${name} PRIVATE -Wall -Wextra -Wno-unused-parameter)
+  if(MSVC)
+    target_compile_options(${name} PRIVATE /W4)
+  else()
+    target_compile_options(${name} PRIVATE -Wall -Wextra -Wno-unused-parameter)
+  endif()
   set_target_properties(${name} PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib"
   )
