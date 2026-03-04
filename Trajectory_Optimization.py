@@ -80,7 +80,7 @@ events = pd.read_csv(settings["Event setting file"], index_col=0)
 num_sections = len(events) - 1
 
 events["timeduration"] = -events["time"].diff(-1)
-events["timeduration"].iat[-1] = 9000.0
+events.iloc[-1, events.columns.get_loc("timeduration")] = 9000.0
 events["timeFinishAt"] = events["time"] + events["timeduration"]
 events["mass_jettison"] = 0.0
 
