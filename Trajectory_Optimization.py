@@ -364,7 +364,7 @@ wrt = {
     "eqcon_dyn_quat": ["quaternion", "u", "t"],
     "eqcon_knot": ["mass", "position", "velocity", "quaternion"],
     "eqcon_terminal": ["position", "velocity"],
-    "eqcon_rate": ["position", "quaternion", "u"],
+    "eqcon_rate": ["u"],
     "eqcon_pos": ["position", "t"],
     "eqcon_iip": ["position", "velocity", "t"],
     "eqcon_user": ["mass", "position", "velocity", "quaternion", "u", "t"],
