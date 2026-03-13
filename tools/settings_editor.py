@@ -155,8 +155,14 @@ DEFAULT_TEMPLATE = {
 # ── Validation ───────────────────────────────────────────────────────────────
 
 VALID_ATTITUDE = [
-  "vertical", "kick-turn", "pitch", "pitch-yaw", "same-rate",
-    "zero-lift-turn", "hold", "free",
+    "vertical",
+    "kick-turn",
+    "pitch",
+    "pitch-yaw",
+    "same-rate",
+    "zero-lift-turn",
+    "hold",
+    "free",
 ]
 VALID_ENGINE_MODE = ["full", "off"]
 VALID_TIME_MODE = ["fixed", "free", "relative"]
@@ -182,8 +188,14 @@ def validate_settings(data):
 
     # Required top-level keys
     required = [
-        "name", "OptimizationMode", "RocketStage", "mass_payload",
-        "LaunchCondition", "TerminalCondition", "solver", "sections",
+        "name",
+        "OptimizationMode",
+        "RocketStage",
+        "mass_payload",
+        "LaunchCondition",
+        "TerminalCondition",
+        "solver",
+        "sections",
     ]
     for key in required:
         if key not in data:
@@ -370,22 +382,37 @@ def _order_settings(data):
     # Top-level key order matching GUI tabs:
     # General -> Stages & Mass -> Launch -> Terminal -> Solver -> Sections
     TOP_KEY_ORDER = [
-        "name", "Wind file", "CA file", "Initial trajectory file",
+        "name",
+        "Wind file",
+        "CA file",
+        "Initial trajectory file",
         "OptimizationMode",
-        "RocketStage", "DropMass", "mass_payload",
+        "RocketStage",
+        "DropMass",
+        "mass_payload",
         "LaunchCondition",
         "TerminalCondition",
-        "solver", "IPOPT_options", "SNOPT_options",
+        "solver",
+        "IPOPT_options",
+        "SNOPT_options",
         "sections",
     ]
 
     SECTION_KEY_ORDER = [
-        "name", "num_nodes", "rocket_stage", "engine_mode",
-        "thrust_vac", "Isp_vac", "throttle", "nozzle_area",
+        "name",
+        "num_nodes",
+        "rocket_stage",
+        "engine_mode",
+        "thrust_vac",
+        "Isp_vac",
+        "throttle",
+        "nozzle_area",
         "attitude constraint",
         "initial guess",
         "time constraint",
-        "AOA constraint", "dynamic pressure constraint", "Q-alpha constraint",
+        "AOA constraint",
+        "dynamic pressure constraint",
+        "Q-alpha constraint",
         "waypoint constraint",
         "antenna constraint",
     ]
@@ -404,8 +431,7 @@ def _order_settings(data):
 
     if "sections" in result and isinstance(result["sections"], list):
         result["sections"] = [
-            _ordered(sec, SECTION_KEY_ORDER)
-            if isinstance(sec, dict) else sec
+            _ordered(sec, SECTION_KEY_ORDER) if isinstance(sec, dict) else sec
             for sec in result["sections"]
         ]
 
@@ -1283,6 +1309,7 @@ init();
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
+
 
 def main():
     port = 5555

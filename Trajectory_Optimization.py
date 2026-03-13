@@ -61,17 +61,19 @@ def main():
     with open(mission_name, "r") as f:
         settings = json.load(f)
 
-
     def _resolve(path):
         """Resolve a path relative to the settings JSON file directory."""
         if os.path.isabs(path):
             return path
         return os.path.join(mission_dir, path)
 
-
     wind = pd.read_csv(_resolve(settings["Wind file"]))
-    wind["wind_n"] = wind["wind_speed[m/s]"] * -np.cos(np.radians(wind["direction[deg]"]))
-    wind["wind_e"] = wind["wind_speed[m/s]"] * -np.sin(np.radians(wind["direction[deg]"]))
+    wind["wind_n"] = wind["wind_speed[m/s]"] * -np.cos(
+        np.radians(wind["direction[deg]"])
+    )
+    wind["wind_e"] = wind["wind_speed[m/s]"] * -np.sin(
+        np.radians(wind["direction[deg]"])
+    )
     wind_table = wind[["altitude[m]", "wind_n", "wind_e"]].to_numpy()
 
     ca_table = pd.read_csv(_resolve(settings["CA file"])).to_numpy()
@@ -140,7 +142,9 @@ def main():
             }
         )
 
-    events = pd.DataFrame(events_data, index=[sec["name"] for sec in settings["sections"]])
+    events = pd.DataFrame(
+        events_data, index=[sec["name"] for sec in settings["sections"]]
+    )
 
     # Flight constraints
     flight_constraint = {
@@ -186,9 +190,9 @@ def main():
                         "altitude": ant_data["altitude"],
                         "elevation_min": {},
                     }
-                flight_constraint["antenna"][ant_name]["elevation_min"][name] = ant_data[
-                    "elevation_min"
-                ]
+                flight_constraint["antenna"][ant_name]["elevation_min"][name] = (
+                    ant_data["elevation_min"]
+                )
 
     num_sections = len(events) - 1
 
@@ -280,7 +284,9 @@ def main():
 
     if settings.get("Initial trajectory file") is not None:
         x_ref = pd.read_csv(_resolve(settings["Initial trajectory file"]))
-        xdict_init = initialize_xdict_from_file(x_ref, pdict, condition, unitdict, False)
+        xdict_init = initialize_xdict_from_file(
+            x_ref, pdict, condition, unitdict, False
+        )
     else:
         xdict_init = initialize_xdict_from_simulation(
             x_init, pdict, condition, unitdict, 0.1, False
@@ -341,7 +347,8 @@ def main():
         tu_res = np.hstack(
             (
                 tu_res,
-                (pdict["ps_params"].tau(i) * (tf - to) / 2 + (tf + to) / 2) * unitdict["t"],
+                (pdict["ps_params"].tau(i) * (tf - to) / 2 + (tf + to) / 2)
+                * unitdict["t"],
             )
         )
         tx_res = np.hstack(
@@ -360,9 +367,7 @@ def main():
     res_info.append(f"final mass      : {m_res[-1]:10.3f} kg\n")
 
     mass_drop = sum(item["mass"] for item in settings.get("DropMass", {}).values())
-    res_info.append(
-        f"payload         : {m_res[0] - m_init - mass_drop:10.3f} kg\n\n"
-    )
+    res_info.append(f"payload         : {m_res[0] - m_init - mass_drop:10.3f} kg\n\n")
     res_info.append(f"optTime         : {t_elapsed:11.6f}\n\n")
 
     stats = solve_stats["stats"]
@@ -375,7 +380,9 @@ def main():
         fout.write("".join(res_info))
 
     out = output_result(xStar, unitdict, tx_res, tu_res, pdict)
-    traj_result_path = os.path.join(output_dir, f"{settings['name']}-trajectoryResult.csv")
+    traj_result_path = os.path.join(
+        output_dir, f"{settings['name']}-trajectoryResult.csv"
+    )
     out.to_csv(traj_result_path, index=False)
 
     print(f"Results saved to {traj_result_path}")
