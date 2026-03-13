@@ -155,12 +155,14 @@ DEFAULT_TEMPLATE = {
 # ── Validation ───────────────────────────────────────────────────────────────
 
 VALID_ATTITUDE = [
-    "vertical", "kick-turn", "pitch-yaw", "same-rate",
+  "vertical", "kick-turn", "pitch", "pitch-yaw", "same-rate",
     "zero-lift-turn", "hold", "free",
 ]
 VALID_ENGINE_MODE = ["full", "off"]
 VALID_TIME_MODE = ["fixed", "free", "relative"]
-VALID_WP_KEY = ["lat", "lon", "altitude", "downrange", "lat_IIP", "lon_IIP"]
+VALID_WP_KEY = ["lat", "lon", "altitude", "lat_IIP", "lon_IIP", "downrange"]
+SUPPORTED_WP_KEY = ["lat", "lon", "altitude", "lat_IIP", "lon_IIP"]
+LEGACY_WP_KEY = ["downrange"]
 VALID_WP_MODE = ["exact", "min", "max"]
 
 
@@ -300,6 +302,11 @@ def validate_settings(data):
             for wk, wv in wp.items():
                 if wk not in VALID_WP_KEY:
                     warn(f"{prefix}.waypoint constraint.{wk}", f"Unusual key '{wk}'")
+                elif wk in LEGACY_WP_KEY:
+                    warn(
+                        f"{prefix}.waypoint constraint.{wk}",
+                        f"'{wk}' is not supported by the current CasADi solver",
+                    )
                 if isinstance(wv, dict):
                     wm = wv.get("mode", "")
                     if wm not in VALID_WP_MODE:
@@ -561,10 +568,11 @@ const TABS = [
   {id:'sections', label:'Sections'},
 ];
 
-const ATTITUDE_OPTIONS = ['vertical','kick-turn','pitch-yaw','same-rate','zero-lift-turn','hold','free'];
+const ATTITUDE_OPTIONS = ['vertical','kick-turn','pitch-yaw','same-rate','hold','free'];
 const ENGINE_MODE_OPTIONS = ['full','off'];
 const TIME_MODE_OPTIONS = ['fixed','free','relative'];
-const WP_KEYS = ['lat','lon','altitude','downrange','lat_IIP','lon_IIP'];
+const WP_KEYS = ['lat','lon','altitude','lat_IIP','lon_IIP'];
+const LEGACY_WP_KEYS = ['downrange'];
 const WP_MODES = ['exact','min','max'];
 
 let state = {
@@ -840,13 +848,10 @@ function renderSolver() {
     ),
     h('div', {className:'card', style:{opacity: solver==='SNOPT'?'1':'.4'}},
       h('h3', {}, 'SNOPT Options'),
-      field('Start', selectInput(snopt.Start||'Cold', ['Cold','Warm'], snf('Start'))),
       field('Time limit', numInput(snopt['Time limit'], snf('Time limit')), h('span',{className:'unit'},'s')),
-      field('Elastic weight', numInput(snopt['Elastic weight'], snf('Elastic weight'))),
       field('Major feasibility tol', numInput(snopt['Major feasibility tolerance'], snf('Major feasibility tolerance'), {step:'1e-7'})),
       field('Minor feasibility tol', numInput(snopt['Minor feasibility tolerance'], snf('Minor feasibility tolerance'), {step:'1e-7'})),
       field('Major optimality tol', numInput(snopt['Major optimality tolerance'], snf('Major optimality tolerance'), {step:'1e-7'})),
-      field('Scale option', numInput(snopt['Scale option'], snf('Scale option'), {step:'1'})),
     ),
   );
 }
@@ -951,11 +956,12 @@ function renderSectionDetail(sec, idx) {
     h('h3', {}, 'Propulsion'),
     field('thrust_vac', numInput(sec.thrust_vac, sf('thrust_vac')), h('span',{className:'unit'},'N')),
     field('Isp_vac', numInput(sec.Isp_vac, sf('Isp_vac'),{step:'0.01'}), h('span',{className:'unit'},'s')),
-    field('throttle min', numInput(sec.throttle?sec.throttle[0]:1, v => {
+    h('div', {className:'issue warning'}, 'Throttle values are currently ignored by the CasADi solver.'),
+    field('throttle min (unused)', numInput(sec.throttle?sec.throttle[0]:1, v => {
       if(!sec.throttle) sec.throttle=[1,1];
       sec.throttle[0]=v; markDirty();
     }, {min:'0',max:'1',step:'0.01'})),
-    field('throttle max', numInput(sec.throttle?sec.throttle[1]:1, v => {
+    field('throttle max (unused)', numInput(sec.throttle?sec.throttle[1]:1, v => {
       if(!sec.throttle) sec.throttle=[1,1];
       sec.throttle[1]=v; markDirty();
     }, {min:'0',max:'1',step:'0.01'})),
@@ -1038,9 +1044,12 @@ function renderSectionDetail(sec, idx) {
   const wpEntries = Object.entries(wp);
   const wpCard = h('div', {className:'card'},
     h('h3', {}, 'Waypoint Constraint'),
+    Object.keys(wp).some(k => LEGACY_WP_KEYS.includes(k))
+      ? h('div', {className:'issue warning'}, 'Legacy downrange waypoint constraints are preserved, but not supported by the current CasADi solver.')
+      : null,
     ...wpEntries.map(([wkey, wval]) =>
       h('div', {className:'wp-row'},
-        selectInput(wkey, WP_KEYS, newKey => {
+        selectInput(wkey, Array.from(new Set(WP_KEYS.concat(LEGACY_WP_KEYS.filter(k => k === wkey)))), newKey => {
           const data = wp[wkey];
           delete wp[wkey];
           wp[newKey] = data;
