@@ -23,13 +23,28 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-import sys
 import numpy as np
+from math import sqrt
+from numpy.linalg import norm
 from scipy.interpolate import interp1d
-from lib.utils_c import *
-from lib.PSfunctions import *
-from lib.USStandardAtmosphere_c import *
-from lib.coordinate_c import *
+from lib.utils import wind_ned
+from lib.USStandardAtmosphere import (
+    geopotential_altitude,
+    speed_of_sound,
+    airpressure_at,
+    airdensity_at,
+)
+from lib.coordinate import (
+    normalize,
+    quatrot,
+    conj,
+    quat_nedg2eci,
+    ecef2geodetic,
+    vel_eci2ecef,
+    ecef2eci,
+    quatmult,
+    gravity,
+)
 from tools.plot_output import display_6DoF
 from output_result import output_result
 
@@ -145,7 +160,6 @@ def rocket_simulation(x_init, u_table, pdict, t_init, t_out, dt=0.1):
     ca = pdict["ca_table"]
 
     while t < t_final:
-
         tn = t + dt
 
         if event_index < len(pdict["params"]) - 1:
@@ -235,8 +249,8 @@ def integrate_runge_kutta_4d(function, x, t, dt):
     return x + (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0 * dt
 
 
-def initialize_xdict_6DoF_2(
-    x_init, pdict, condition, unitdict, mode="LGR", dt=0.005, flag_display=True
+def initialize_xdict_from_simulation(
+    x_init, pdict, condition, unitdict, dt=0.005, flag_display=True
 ):
     """
     Initialize and set xdict by solving equation of motion.
@@ -246,7 +260,6 @@ def initialize_xdict_6DoF_2(
         pdict (dict) : calculation parameters
         condition (dict) : flight condition parameters
         unitdict (dict) : unit of the state (use for normalizing)
-        mode (str) : calculation mode (LG, LGR or LGL)
         dt (double) : time step for integration
         flag_display (bool) : plot and display initial state if true
 
@@ -264,11 +277,7 @@ def initialize_xdict_6DoF_2(
         to = pdict["params"][i]["time"]
         tf = pdict["params"][i]["timeFinishAt"]
         tau = pdict["ps_params"].tau(i)
-
-        if mode == "LG" or mode == "LGR":
-            tau_x = np.hstack((-1.0, tau))
-        else:
-            tau_x = tau
+        tau_x = np.hstack((-1.0, tau))
 
         time_nodes = np.hstack((time_nodes, tau * (tf - to) / 2.0 + (tf + to) / 2.0))
         time_x_nodes = np.hstack(
@@ -277,16 +286,6 @@ def initialize_xdict_6DoF_2(
 
     time_knots = np.array([e["time"] for e in pdict["params"]])
     xdict["t"] = (time_knots / unitdict["t"]).ravel()
-
-    # 現在位置と目標軌道から、適当に目標位置・速度を決める
-
-    if condition["rf_m"] is not None:
-        r_final = condition["rf_m"]
-    else:
-        if condition["hp_m"] is None or condition["ha_m"] is None:
-            print("DESTINATION ORBIT NOT DETERMINED!!")
-            sys.exit()
-    print(r_final)
 
     u_nodes = np.vstack(
         [
@@ -319,9 +318,7 @@ def initialize_xdict_6DoF_2(
     return xdict
 
 
-def initialize_xdict_6DoF_from_file(
-    x_ref, pdict, condition, unitdict, mode="LGL", flag_display=True
-):
+def initialize_xdict_from_file(x_ref, pdict, condition, unitdict, flag_display=True):
     """
     Initialize and set xdict by interpolating reference values.
 
@@ -330,7 +327,6 @@ def initialize_xdict_6DoF_from_file(
         pdict (dict) : calculation parameters
         condition (dict) : flight condition parameters
         unitdict (dict) : unit of the state (use for normalizing)
-        mode (str) : calculation mode (LG, LGR or LGL)
         flag_display (bool) : plot and display initial state if true
 
     Returns:
@@ -347,11 +343,7 @@ def initialize_xdict_6DoF_from_file(
         to = pdict["params"][i]["time"]
         tf = pdict["params"][i]["timeFinishAt"]
         tau = pdict["ps_params"].tau(i)
-
-        if mode == "LG" or mode == "LGR":
-            tau_x = np.hstack((-1.0, tau))
-        else:
-            tau_x = tau
+        tau_x = np.hstack((-1.0, tau))
 
         time_nodes = np.hstack((time_nodes, tau * (tf - to) / 2.0 + (tf + to) / 2.0))
         time_x_nodes = np.hstack(

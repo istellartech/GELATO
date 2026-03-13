@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=68.0", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gelato"
+version = "2.0.0"
+description = "Generic Launch Trajectory Optimizer using Legendre-Gauss-Radau pseudospectral method"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [
+    { name = "Interstellar Technologies Inc." },
+]
+keywords = ["trajectory", "optimization", "launch-vehicle", "pseudospectral", "aerospace"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "numpy",
+    "scipy",
+    "casadi",
+    "pandas",
+    "numba",
+]
+
+[project.optional-dependencies]
+plot = ["matplotlib"]
+kml = ["simplekml"]
+editor = ["flask"]
+all = ["matplotlib", "simplekml", "flask"]
+
+[project.scripts]
+gelato = "Trajectory_Optimization:main"
+gelato-editor = "tools.settings_editor:main"
+
+[project.urls]
+Homepage = "https://github.com/istellartech/GELATO"
+Repository = "https://github.com/istellartech/GELATO"
+
+[tool.setuptools]
+py-modules = [
+    "Trajectory_Optimization",
+    "problem_builder",
+    "initialize",
+    "output_result",
+    "psmethod",
+    "atmosphere_casadi",
+    "coordinate_casadi",
+    "dynamics_casadi",
+    "iip_casadi",
+]
+
+[tool.setuptools.packages.find]
+include = ["lib*", "tools*"]
+
+[tool.flake8]
+max-line-length = 120
+ignore = ["F403", "F405", "E203", "W503", "E266"]

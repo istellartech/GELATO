@@ -41,7 +41,6 @@ def geopotential_altitude(z):
     """
 
     r0 = 6356766
-    g0 = 9.80665
 
     if z < 86000:
         return 1.0 * (r0 * z) / (r0 + z)
@@ -104,9 +103,6 @@ def airtemperature_at(altitude_m):
     HAL = air_params[0]
     LR = air_params[1]
     T0 = air_params[2]
-    P0 = air_params[3]
-    R = air_params[4]
-    GRAVITY = air_params[5]
 
     if altitude_m <= 91000:
         return T0 + LR * (altitude_m - HAL)
@@ -142,8 +138,6 @@ def airpressure_at(altitude_m):
     P0 = air_params[3]
     R = air_params[4]
     GRAVITY = air_params[5]
-
-    air_temperature = airtemperature_at(altitude_m)
 
     if math.fabs(LR) > 1.0e-10:
         air_pressure = P0 * ((T0 + LR * (altitude_m - HAL)) / T0) ** (GRAVITY / -LR / R)
@@ -194,12 +188,7 @@ def speed_of_sound(altitude_m):
     """
 
     air_params = us_standard_atmosphere_params_at(altitude_m)
-    HAL = air_params[0]
-    LR = air_params[1]
-    T0 = air_params[2]
-    P0 = air_params[3]
     R = air_params[4]
-    GRAVITY = air_params[5]
 
     air_temperature = airtemperature_at(altitude_m)
 
