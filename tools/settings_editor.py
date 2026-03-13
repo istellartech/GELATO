@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""GELATO2 Settings JSON Editor - Web GUI.
+"""GELATO Settings JSON Editor - Web GUI.
 
 Usage:
     python tools/settings_editor.py [--port PORT]
 
-Opens a browser-based editor for creating and editing GELATO2 settings JSON files.
+Opens a browser-based editor for creating and editing GELATO settings JSON files.
 """
 
 import json

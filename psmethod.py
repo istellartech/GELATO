@@ -1,6 +1,5 @@
 #
 # Legendre-Gauss-Radau pseudospectral method utilities.
-# Adapted from GELATO2/lib/PSfunctions.py and SectionParameters.py
 #
 
 import numpy as np

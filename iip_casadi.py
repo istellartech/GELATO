@@ -5,8 +5,6 @@
 # with spherical Earth assumption (no iteration).
 # All operations are CasADi-symbolic, so AD gives exact gradients.
 #
-# Reference: the original C++ posLLH_IIP_FAA in GELATO2/src/iip.cpp
-#
 
 import casadi as ca
 from coordinate_casadi import MU_EARTH, R_EARTH_A, OMEGA_EARTH, E2
