@@ -7,7 +7,8 @@
 #
 
 import casadi as ca
-from coordinate_casadi import MU_EARTH, R_EARTH_A, OMEGA_EARTH, E2
+
+from coordinate_casadi import E2, MU_EARTH, OMEGA_EARTH, R_EARTH_A
 
 
 def iip_latlon(pos_eci, vel_eci, t_phys):

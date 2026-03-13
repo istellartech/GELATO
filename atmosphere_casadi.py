@@ -6,8 +6,8 @@
 # symbolic expressions.
 #
 
-import numpy as np
 import casadi as ca
+import numpy as np
 
 # --- Physical constants ---
 _R_AIR = 287.0531  # specific gas constant for dry air [J/(kg·K)]

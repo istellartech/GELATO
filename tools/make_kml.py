@@ -23,8 +23,9 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-import sys
 import re
+import sys
+
 import pandas as pd
 import simplekml
 

@@ -23,30 +23,32 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-import numpy as np
 from math import sqrt
+
+import numpy as np
 from numpy.linalg import norm
 from scipy.interpolate import interp1d
-from lib.utils import wind_ned
+
+from lib.coordinate import (
+    conj,
+    ecef2eci,
+    ecef2geodetic,
+    gravity,
+    normalize,
+    quat_nedg2eci,
+    quatmult,
+    quatrot,
+    vel_eci2ecef,
+)
 from lib.USStandardAtmosphere import (
+    airdensity_at,
+    airpressure_at,
     geopotential_altitude,
     speed_of_sound,
-    airpressure_at,
-    airdensity_at,
 )
-from lib.coordinate import (
-    normalize,
-    quatrot,
-    conj,
-    quat_nedg2eci,
-    ecef2geodetic,
-    vel_eci2ecef,
-    ecef2eci,
-    quatmult,
-    gravity,
-)
-from tools.plot_output import display_6DoF
+from lib.utils import wind_ned
 from output_result import output_result
+from tools.plot_output import display_6DoF
 
 
 def dynamics_init(x, u, t, param, zlt, wind, ca):

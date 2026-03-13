@@ -26,8 +26,6 @@
 from math import asin, atan2, degrees
 
 import numpy as np
-from numpy.linalg import norm
-from math import atan2, asin, degrees
 import pandas as pd
 from numpy.linalg import norm
 

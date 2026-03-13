@@ -23,7 +23,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-from math import sin, cos, asin, acos, atan2, degrees, radians, sqrt
+from math import acos, asin, atan2, cos, degrees, radians, sin, sqrt
+
 import numpy as np
 from numpy.linalg import norm
 

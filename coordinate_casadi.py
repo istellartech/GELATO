@@ -5,8 +5,8 @@
 # CasADi can compute exact derivatives via automatic differentiation.
 #
 
-import numpy as np
 import casadi as ca
+import numpy as np
 
 # --- Constants ---
 OMEGA_EARTH = 7.2921159e-5  # Earth rotation rate [rad/s]

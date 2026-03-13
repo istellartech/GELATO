@@ -7,18 +7,19 @@
 #
 
 import casadi as ca
-from coordinate_casadi import (
-    gravity_eci,
-    quatrot,
-    conj,
-    quatmult,
-    eci2ecef,
-    ecef2geodetic,
-    ecef2eci,
-    ned_basis_ecef,
-    OMEGA_EARTH,
-)
+
 from atmosphere_casadi import geopotential_altitude
+from coordinate_casadi import (
+    OMEGA_EARTH,
+    conj,
+    ecef2eci,
+    ecef2geodetic,
+    eci2ecef,
+    gravity_eci,
+    ned_basis_ecef,
+    quatmult,
+    quatrot,
+)
 
 
 def _compute_acceleration_impl(
