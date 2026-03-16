@@ -591,7 +591,6 @@ def build_and_solve(
                 lon_ant = np.radians(ant_data["lon"])
                 sl, cl = np.sin(lat_ant), np.cos(lat_ant)
                 sn, cn = np.sin(lon_ant), np.cos(lon_ant)
-                up_ecef = np.array([-sl * cn, -sl * sn, cl]) * (-1)  # NED down → up
                 # Actually: vertical up in ECEF at geodetic location
                 up_ecef = np.array([cl * cn, cl * sn, sl])
 

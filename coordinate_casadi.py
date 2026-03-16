@@ -9,7 +9,7 @@ import casadi as ca
 import numpy as np
 
 # --- Constants ---
-OMEGA_EARTH = 7.2921159e-5  # Earth rotation rate [rad/s]
+OMEGA_EARTH = 7.2921151467e-5  # Earth rotation rate [rad/s]
 MU_EARTH = 3.986004418e14  # gravitational parameter [m^3/s^2]
 R_EARTH_A = 6378137.0  # WGS84 semi-major axis [m]
 R_EARTH_B = 6356752.314245  # WGS84 semi-minor axis [m]

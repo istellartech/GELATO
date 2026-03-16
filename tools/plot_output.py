@@ -79,10 +79,10 @@ def display_6DoF(out, flag_savefig=False):
 
     plt.plot(
         out["time"],
-        out.loc[:, ["AOA_pitch_NED2BODY", "AOA_yaw"]],
+        out.loc[:, ["AOA_pitch", "AOA_yaw"]],
         ".-",
         lw=0.8,
-        label=["pitch_NED2BODY", "yaw"],
+        label=["pitch", "yaw"],
     )
     plt.xlim([0, None])
     plt.ylim([-10, 10])
