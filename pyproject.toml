@@ -29,7 +29,6 @@ dependencies = [
     "scipy",
     "casadi",
     "pandas",
-    "numba",
 ]
 
 [project.optional-dependencies]
