@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gelato"
-version = "2.0.0"
+version = "1.0.0"
 description = "Generic Launch Trajectory Optimizer using Legendre-Gauss-Radau pseudospectral method"
 readme = "README.md"
 license = "MIT"
