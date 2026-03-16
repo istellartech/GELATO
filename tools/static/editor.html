@@ -320,7 +320,7 @@ function renderGeneral() {
         textInput(d['Initial trajectory file'],
           v => d['Initial trajectory file'] = v)),
       field('Optimization Mode',
-        selectInput(d.OptimizationMode, ['Payload','MinFuel'],
+        selectInput(d.OptimizationMode, ['Payload'],
           v => d.OptimizationMode = v)),
     )
   );
@@ -549,7 +549,8 @@ function renderSolver() {
 
 // ─── Sections Tab ──────────────────────────────────────────────────────
 function renderSections() {
-  const sections = state.data.sections || [];
+  if (!state.data.sections) state.data.sections = [];
+  const sections = state.data.sections;
   if (state.selectedSection >= sections.length) {
     state.selectedSection = Math.max(0, sections.length - 1);
   }

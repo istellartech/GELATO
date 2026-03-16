@@ -250,7 +250,9 @@ def main():
     )
     m_init = sum(s["mass_dry"] + s["mass_propellant"] for s in stages.values())
     if settings["OptimizationMode"] != "Payload":
-        m_init += settings["mass_payload"]
+        print("WARNING: Optimizaion mode other than 'Payload' is not supported. Defaulting to 'Payload'.")
+        # m_init += settings["mass_payload"]
+
     x_init = np.hstack((m_init, r_init, v_init, quat_init))
 
     unit_R = 6378137
@@ -276,7 +278,7 @@ def main():
         "u": np.zeros(2),
     }
     condition["flight_azimuth_init"] = launch_conditions["flight_azimuth_init"]
-    condition["OptimizationMode"] = settings["OptimizationMode"]
+    condition["OptimizationMode"] = "Payload" # other modes are not supported in this version
 
     # ============================================================
     # Initial guess
