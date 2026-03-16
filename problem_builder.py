@@ -361,6 +361,9 @@ def build_and_solve(
                 opti.subject_to(u_s[k, 1] == u_s[0, 1])
 
         elif att == "same-rate":
+            if sec == 0:
+                print("ERROR: 'same-rate' attitude mode is not valid for the first section.")
+                raise ValueError("Invalid attitude mode")
             u_prev = u[ua - 1, :]
             for k in range(n):
                 opti.subject_to(u_s[k, 0] == u_prev[0])
