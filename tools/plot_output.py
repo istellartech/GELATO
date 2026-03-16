@@ -23,8 +23,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def display_6DoF(out, flag_savefig=False):
@@ -166,7 +166,6 @@ def display_6DoF(out, flag_savefig=False):
 
 
 def display_3d(out):
-    lim = 6378 + 2500
 
     x_km = out["pos_ECI_X"].to_numpy() / 1000.0
     y_km = out["pos_ECI_Y"].to_numpy() / 1000.0

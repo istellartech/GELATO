@@ -23,7 +23,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-from math import sin, cos, asin, acos, atan2, degrees, radians, sqrt
+from math import acos, asin, atan2, cos, degrees, radians, sin, sqrt
+
 import numpy as np
 from numpy.linalg import norm
 
@@ -316,12 +317,12 @@ def quat_ecef2nedc(pos_ecef):
         ndarray : The coordinates transformation quaternion.
     """
 
-    l = atan2(pos_ecef[1], pos_ecef[0])
-    p = asin(pos_ecef[2] / norm(pos_ecef))
-    c_hl = cos(l / 2.0)
-    s_hl = sin(l / 2.0)
-    c_hp = cos(p / 2.0)
-    s_hp = sin(p / 2.0)
+    lon = atan2(pos_ecef[1], pos_ecef[0])
+    lat = asin(pos_ecef[2] / norm(pos_ecef))
+    c_hl = cos(lon / 2.0)
+    s_hl = sin(lon / 2.0)
+    c_hp = cos(lat / 2.0)
+    s_hp = sin(lat / 2.0)
 
     quat_ecef2ned = np.zeros(4)
     quat_ecef2ned[0] = c_hl * (c_hp - s_hp) / sqrt(2.0)
@@ -341,14 +342,14 @@ def quat_ecef2nedg(pos_ecef):
         ndarray : The coordinates transformation quaternion.
     """
 
-    p, l, _ = ecef2geodetic(pos_ecef[0], pos_ecef[1], pos_ecef[2])
-    p = radians(p)
-    l = radians(l)
+    lat, lon, _ = ecef2geodetic(pos_ecef[0], pos_ecef[1], pos_ecef[2])
+    lat = radians(lat)
+    lon = radians(lon)
 
-    c_hl = cos(l / 2.0)
-    s_hl = sin(l / 2.0)
-    c_hp = cos(p / 2.0)
-    s_hp = sin(p / 2.0)
+    c_hl = cos(lon / 2.0)
+    s_hl = sin(lon / 2.0)
+    c_hp = cos(lat / 2.0)
+    s_hp = sin(lat / 2.0)
 
     quat_ecef2ned = np.zeros(4)
     quat_ecef2ned[0] = c_hl * (c_hp - s_hp) / sqrt(2.0)
@@ -471,7 +472,7 @@ def gravity(pos):
     x, y, z = pos
 
     a = 6378137
-    f = 1.0 / 298.257223563
+    # f = 1.0 / 298.257223563
     mu = 3.986004418e14
     J2 = 1.082628e-3
 

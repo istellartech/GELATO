@@ -12,33 +12,28 @@ GELATO solves trajectory optimization problems using the Legendre-Gauss-Radau ps
  - Maximization of payload mass by changing the angular rate profile and event times (such as cutoff time)
  - 3DoF calculation of dynamics with thrust, aerodynamics and gravity
  - Support for multi-stage launch vehicles
- - User customizable constraints
+ - Automatic computation of Jacobians using the CasADi framework
 
 ## Install
 
 This program uses the libraries below:
  - NumPy
  - SciPy
- - pandas
- - pybind11
- - simplekml
- - pyoptsparse (see below before installation)
+ - CasADi
+ - Pandas
+ - Simplekml (Optional: for tools/make_kml.py only)
+ - Matplotlib (Optional: for tools/plot_output.py only)
+ - Flask (Optional: for tools/settings_editor.py only)
 
-This program also requires IPOPT or SNOPT as a NLP solver. Install them separately before use. By using conda package manager you can automatically install and setup IPOPT with pyoptsparse.
-
-You must build pyoptsparse from source if you would like to call self-built IPOPT or SNOPT from it. Please refer to the [pyoptsparse instructions](https://mdolab-pyoptsparse.readthedocs-hosted.com/en/latest/optimizers/IPOPT.html).
-
-
-
+The IPOPT solver for NLP is included with CasADi. If you wish to use SNOPT as the solver, please set the environment variables appropriately. For Linux, add the location of `libsnopt7_cpp.so` to `LD_LIBRARY_PATH`.
 
 ## Usage
 
-### Local
-
 Prepare input files in the root directory of the repository.
- - setting files
- - an event file
- - a user constraint file (arbitary)
+ - Setting JSON file
+ - Related setting files (initial trajectory, wind, aerodynamics coefficients, etc.)
+
+You can also create and edit input files using the GUI by running `tools/settings_editor.py`.
 
 Run
 ```
@@ -47,29 +42,6 @@ python3 Trajectory_Optimization.py [setting file name]
 ```
 
 See the example folder for an example set of input files.
-
-
-### Batch operation
-
-Prepare a folder that contains input files.
-
-Run
-```
-./run_batch.sh [input folder]
-```
-
-and the optimization program will run for ALL settings files (\*.json) in the input folder.
-
-
-### via AWS
-
-Put the input folder on your S3 bucket.
-
-Run
-```
-./run_batch.sh [S3 input directory full path]
-```
-
 
 ## References
 

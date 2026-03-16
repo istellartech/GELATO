@@ -7,5 +7,4 @@ output/*
 *.png
 data/*
 test/*
-*.so
-*.o
+**.pyc
