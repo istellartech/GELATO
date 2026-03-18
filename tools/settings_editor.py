@@ -22,6 +22,17 @@ app.json.sort_keys = False
 TOOLS_DIR = Path(__file__).resolve().parent
 BASE_DIR = str(TOOLS_DIR.parent)
 
+
+def _safe_path(fpath):
+    """Restrict file access to BASE_DIR."""
+    if not os.path.isabs(fpath):
+        fpath = os.path.join(BASE_DIR, fpath)
+    real = os.path.realpath(fpath)
+    base = os.path.realpath(BASE_DIR)
+    if real != base and not real.startswith(base + os.sep):
+        raise ValueError("Access denied: path outside project directory")
+    return real
+
 # ── Templates ────────────────────────────────────────────────────────────────
 
 SECTION_TEMPLATE = {
@@ -366,9 +377,8 @@ def api_section_template():
 def api_load():
     body = request.get_json()
     fpath = body.get("path", "")
-    if not os.path.isabs(fpath):
-        fpath = os.path.join(BASE_DIR, fpath)
     try:
+        fpath = _safe_path(fpath)
         with open(fpath, "r", encoding="utf-8") as f:
             data = json.load(f)
         return jsonify({"ok": True, "data": data, "path": fpath})
@@ -473,9 +483,8 @@ def api_save():
     body = request.get_json()
     fpath = body.get("path", "")
     data = body.get("data")
-    if not os.path.isabs(fpath):
-        fpath = os.path.join(BASE_DIR, fpath)
     try:
+        fpath = _safe_path(fpath)
         os.makedirs(os.path.dirname(fpath), exist_ok=True)
         ordered = _order_settings(data)
         with open(fpath, "w", encoding="utf-8") as f:
@@ -497,9 +506,8 @@ def api_validate():
 @app.route("/api/browse")
 def api_browse():
     dir_path = request.args.get("dir", BASE_DIR)
-    if not os.path.isabs(dir_path):
-        dir_path = os.path.join(BASE_DIR, dir_path)
     try:
+        dir_path = _safe_path(dir_path)
         entries = []
         for name in sorted(os.listdir(dir_path)):
             full = os.path.join(dir_path, name)
