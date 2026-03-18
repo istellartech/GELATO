@@ -627,7 +627,9 @@ def orbital_elements(r_eci, v_eci):
     e = norm(f_eci) / GMe  # eccentricity
     a = p / (1.0 - e**2)  # semi-major axis
 
-    true_anomaly_rad = acos(f1_eci[0] * nr[0] + f1_eci[1] * nr[1] + f1_eci[2] * nr[2])
+    cos_ta = f1_eci[0] * nr[0] + f1_eci[1] * nr[1] + f1_eci[2] * nr[2]
+    cos_ta = max(-1.0, min(1.0, cos_ta))
+    true_anomaly_rad = acos(cos_ta)
     if v_eci[0] * r_eci[0] + v_eci[1] * r_eci[1] + v_eci[2] * r_eci[2] < 0.0:
         true_anomaly_rad = 2.0 * np.pi - true_anomaly_rad
 
