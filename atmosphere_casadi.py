@@ -18,7 +18,11 @@ def _build_tables():
     """Pre-compute atmosphere tables indexed by geometric altitude.
 
     Fine grid 0–90 km (100 m steps), coarse grid 90–1000 km (1 km steps).
-    Values are evaluated at the corresponding geopotential altitude.
+
+    For each geometric altitude, atmospheric properties are evaluated using
+    ``usatm.geopotential_altitude(h)``: this corresponds to geopotential
+    altitude below about 86 km and to geometric altitude above that, following
+    the US Standard Atmosphere 1976 convention.
     """
     alt_geo_fine = np.arange(0, 90001, 100, dtype=np.float64)
     alt_geo_coarse = np.arange(91000, 1100001, 1000, dtype=np.float64)
