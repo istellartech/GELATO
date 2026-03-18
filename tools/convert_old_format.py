@@ -136,10 +136,15 @@ def convert(old_json_path: Path, out_json_path: Path) -> None:
     # ── RocketStage: remove Isp_vac / dropMass; collect DropMass ────────────────
     rocket_stage_new = {}
     drop_mass = {}
-    for sk, sv in old["RocketStage"].items():
-        rocket_stage_new[sk] = {
+    first_stage = True
+    for sk, sv in sorted(old["RocketStage"].items()):
+        stage_data = {
             k: v for k, v in sv.items() if k not in ("Isp_vac", "dropMass")
         }
+        if not first_stage:
+            stage_data.setdefault("aero_enabled", False)
+        first_stage = False
+        rocket_stage_new[sk] = stage_data
         for dm_name, dm_val in sv.get("dropMass", {}).items():
             drop_mass[dm_name] = dm_val
 

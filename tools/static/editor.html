@@ -354,6 +354,12 @@ function renderStages() {
       field('reference_area',
         numInput(stage.reference_area, sf('reference_area'), {step:'0.01'}),
         h('span', {className:'unit'}, 'm\u00B2')),
+      field('aero_enabled', (() => {
+        const aeroVal = stage.aero_enabled !== undefined ? stage.aero_enabled : true;
+        const cb = h('input', {type:'checkbox', ...(aeroVal ? {checked:'true'} : {})});
+        cb.addEventListener('change', () => { stage.aero_enabled = cb.checked; markDirty(); });
+        return cb;
+      })()),
       field('ignition_at',
         selectInput(stage.ignition_at, [''].concat(snames), sfSelect('ignition_at'))),
       field('cutoff_at',
@@ -367,7 +373,7 @@ function renderStages() {
     const keys = Object.keys(d.RocketStage).map(Number).filter(n=>!isNaN(n));
     const next = keys.length ? Math.max(...keys) + 1 : 1;
     d.RocketStage[String(next)] = {
-      mass_dry:0, mass_propellant:0, reference_area:0,
+      mass_dry:0, mass_propellant:0, reference_area:0, aero_enabled:true,
       ignition_at:'', cutoff_at:'', separation_at:''
     };
     markDirty(); render();

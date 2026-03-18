@@ -36,10 +36,17 @@ def _compute_acceleration_impl(
     wind_n_fn,
     wind_e_fn,
     ca_fn,
+    aero_enabled=True,
 ):
     """Core acceleration computation (pure symbolic, no Function wrapping)."""
     # --- Gravity ---
     grav = gravity_eci(pos_eci)
+
+    if not aero_enabled:
+        # No atmosphere dependency — vacuum thrust only, no aero
+        thrust_dir = quatrot(conj(quat), ca.vertcat(1, 0, 0))
+        thrust_eci = thrust_dir * thrust_vac
+        return grav + thrust_eci / mass
 
     # --- Geodetic altitude (for atmosphere lookup) ---
     pos_ecef = eci2ecef(pos_eci, t_phys)
@@ -50,7 +57,7 @@ def _compute_acceleration_impl(
     p_atm = pressure_fn(alt_clamp)
     a_sound = sound_speed_fn(alt_clamp)
 
-    # --- Thrust (body +X axis) ---
+    # --- Thrust (body +X axis) with backpressure correction ---
     thrust_mag = thrust_vac - nozzle_area * p_atm
     thrust_dir = quatrot(conj(quat), ca.vertcat(1, 0, 0))
     thrust_eci = thrust_dir * thrust_mag
@@ -97,6 +104,7 @@ def compute_acceleration(
     wind_n_fn,
     wind_e_fn,
     ca_fn,
+    aero_enabled=True,
 ):
     """Compute translational acceleration in ECI frame [m/s^2].
 
@@ -117,6 +125,7 @@ def compute_acceleration(
         wind_n_fn,
         wind_e_fn,
         ca_fn,
+        aero_enabled=aero_enabled,
     )
 
 

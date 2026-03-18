@@ -185,6 +185,7 @@ def build_and_solve(
         massflow = p["massflow"]
         ref_area = p["reference_area"]
         nozzle_area = p["nozzle_area"]
+        aero_enabled = p.get("aero_enabled", True)
 
         # Slices
         m_s = mass[xa:xb]  # (n+1,)
@@ -244,6 +245,7 @@ def build_and_solve(
                 wind_n_fn,
                 wind_e_fn,
                 ca_fn,
+                aero_enabled=aero_enabled,
             )
 
             for dim in range(3):
