@@ -47,11 +47,16 @@ def _make_wind_interpolants(wind_table):
     # Ensure strictly increasing grid (deduplicate, sort)
     _, idx = np.unique(alt_gp, return_index=True)
     alt_gp, wn, we = alt_gp[idx], wn[idx], we[idx]
-    # Discard sentinel values beyond 1000 km geopotential
-    valid = alt_gp <= 1000000
+    # Keep only physically meaningful range [0, 1000 km] geopotential
+    valid = (alt_gp >= 0) & (alt_gp <= 1000000)
     alt_gp, wn, we = alt_gp[valid], wn[valid], we[valid]
     # Convert geopotential → geometric altitude for the grid
     alt_geo = geometric_altitude(alt_gp)
+    # Ensure grid starts at 0 m geometric
+    if alt_geo[0] > 0:
+        alt_geo = np.insert(alt_geo, 0, 0.0)
+        wn = np.insert(wn, 0, wn[0])
+        we = np.insert(we, 0, we[0])
     # Extend to 1000 km geometric with last known values if needed
     if alt_geo[-1] < 1000000:
         alt_geo = np.append(alt_geo, 1000000)
