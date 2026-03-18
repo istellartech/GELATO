@@ -429,6 +429,10 @@ def build_and_solve(
     # ============================================================
     for sec in range(num_sections - 1):
         section_name = pdict["params"][sec]["name"]
+        aero_enabled = pdict["params"][sec].get("aero_enabled", True)
+        if not aero_enabled:
+            continue
+
         ua, ub, xa, xb, n = ps.get_index(sec)
         to_s, tf_s = t[sec], t[sec + 1]
         tau = ps.tau(sec)
