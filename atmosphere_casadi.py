@@ -37,6 +37,16 @@ def _build_tables():
     return alt_geo, rho, pres, sos
 
 
+def geopotential_altitude(h_geometric):
+    """Convert geometric altitude to geopotential altitude (CasADi compatible)."""
+    return _R_EARTH_ATMO * h_geometric / (_R_EARTH_ATMO + h_geometric)
+
+
+def geometric_altitude(h_geopotential):
+    """Convert geopotential altitude to geometric altitude."""
+    return _R_EARTH_ATMO * h_geopotential / (_R_EARTH_ATMO - h_geopotential)
+
+
 # Build tables once at module load
 _ALT, _RHO, _PRES, _SOS = _build_tables()
 

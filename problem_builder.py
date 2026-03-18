@@ -11,7 +11,7 @@ import shutil
 import casadi as ca
 import numpy as np
 
-from atmosphere_casadi import create_atmosphere_interpolants
+from atmosphere_casadi import create_atmosphere_interpolants, geometric_altitude
 from coordinate_casadi import (
     angular_momentum,
     angular_momentum_from_altitude,
@@ -36,23 +36,29 @@ from iip_casadi import iip_latlon
 
 
 def _make_wind_interpolants(wind_table):
-    """Create CasADi interpolants for wind north/east components."""
-    alt = wind_table[:, 0].copy()
+    """Create CasADi interpolants for wind north/east components.
+
+    The wind CSV is indexed by geopotential altitude, but the interpolants
+    are re-indexed by geometric altitude so callers can pass alt_m directly.
+    """
+    alt_gp = wind_table[:, 0].copy()
     wn = wind_table[:, 1].copy()
     we = wind_table[:, 2].copy()
     # Ensure strictly increasing grid (deduplicate, sort)
-    _, idx = np.unique(alt, return_index=True)
-    alt, wn, we = alt[idx], wn[idx], we[idx]
-    # Discard sentinel values beyond 1000 km
-    valid = alt <= 1000000
-    alt, wn, we = alt[valid], wn[valid], we[valid]
+    _, idx = np.unique(alt_gp, return_index=True)
+    alt_gp, wn, we = alt_gp[idx], wn[idx], we[idx]
+    # Discard sentinel values beyond 1000 km geopotential
+    valid = alt_gp <= 1000000
+    alt_gp, wn, we = alt_gp[valid], wn[valid], we[valid]
+    # Convert geopotential → geometric altitude for the grid
+    alt_geo = geometric_altitude(alt_gp)
     # Extend to 1000 km geometric with last known values if needed
-    if alt[-1] < 1000000:
-        alt = np.append(alt, 1000000)
+    if alt_geo[-1] < 1000000:
+        alt_geo = np.append(alt_geo, 1000000)
         wn = np.append(wn, wn[-1])
         we = np.append(we, we[-1])
-    fn_n = ca.interpolant("wind_n", "bspline", [alt], wn)
-    fn_e = ca.interpolant("wind_e", "bspline", [alt], we)
+    fn_n = ca.interpolant("wind_n", "bspline", [alt_geo], wn)
+    fn_e = ca.interpolant("wind_e", "bspline", [alt_geo], we)
     return fn_n, fn_e
 
 
