@@ -1,6 +1,5 @@
 {
   "name": "example",
-  "Event setting file": "example-events.csv",
   "Wind file": "example-wind_average.csv",
   "CA file": "example-CA.csv",
   "Initial trajectory file": "example-trajectory_init.csv",
@@ -10,8 +9,6 @@
     "1": {
       "mass_dry": 1361.0,
       "mass_propellant": 21500.0,
-      "dropMass": {},
-      "Isp_vac": 304.0,
       "reference_area": 2.21,
       "ignition_at": "LIFTOFF",
       "cutoff_at": "MECO",
@@ -20,17 +17,16 @@
     "2": {
       "mass_dry": 544.0,
       "mass_propellant": 4037.0,
-      "dropMass": {
-        "fairing": {
-          "mass": 140.0,
-          "separation_at": "FAIRING"
-        }
-      },
-      "Isp_vac": 317.0,
       "reference_area": 0.0,
       "ignition_at": "SEIG",
       "cutoff_at": "SECO",
       "separation_at": "SEP2"
+    }
+  },
+  "DropMass": {
+    "fairing": {
+      "mass": 140.0,
+      "separation_at": "FAIRING"
     }
   },
 
@@ -52,48 +48,380 @@
     "flightpath_vel_inertial_geocentric": 0.0
   },
 
-  "FlightConstraint": {
-    "AOA_max":{
-      "MECO" : {
-        "value" : 10.0,
-        "range" : "initial"
-      }
-    },
-    "dynamic_pressure_max":{
-    },
-    "Q_alpha_max":{
-      "ZEROLIFT_START" : {
-        "value" : 30000.0,
-        "range" : "all"
-      }
-    },
-    "waypoint": {
-      "FAIRING": {
-        "altitude": {
-          "exact": 100000.0
-        },
-        "lon_IIP" : {
-          "min": 145.0
-        }
-      }
-    },
-    "antenna": {
-      "ANT1" : {
-        "lon": 143.45659,
-        "lat": 42.50587,
-        "altitude": 50.0,
-        "elevation_min": {
-          "SECO": 0.0
-        }
-      }
-    }
-  },
-
-  "IPOPT": {
-    "linear_solver": "mumps",
+  "solver": "IPOPT",
+  "IPOPT_options": {
     "tol": 1.0e-6,
     "acceptable_tol": 1.0e-4,
     "max_iter": 2000
-  }
+  },
+  "SNOPT_options": {
+    "Major feasibility tolerance": 1e-07,
+    "Major optimality tolerance": 1e-06,
+    "Time limit": 1200
+  },
 
+  "sections": [
+    {
+      "name": "LIFTOFF",
+      "num_nodes": 5,
+      "rocket_stage": "1",
+      "engine_mode": "full",
+      "thrust_vac": 420000,
+      "Isp_vac": 304,
+      "throttle": [1.0, 1.0],
+      "nozzle_area": 0.68,
+      "attitude constraint": "vertical",
+      "initial guess": {
+        "time": 0.0,
+        "pitch_rate": 0.0,
+        "yaw_rate": 0.0
+      },
+      "time constraint": {
+        "mode": "fixed",
+        "value": 0.0,
+        "reference point": null
+      },
+      "AOA constraint": {},
+      "dynamic pressure constraint": {},
+      "Q-alpha constraint": {},
+      "waypoint constraint": {},
+      "antenna constraint": {}
+    },
+    {
+      "name": "KICKTURN",
+      "num_nodes": 5,
+      "rocket_stage": "1",
+      "engine_mode": "full",
+      "thrust_vac": 420000,
+      "Isp_vac": 304,
+      "throttle": [1.0, 1.0],
+      "nozzle_area": 0.68,
+      "attitude constraint": "kick-turn",
+      "initial guess": {
+        "time": 10.0,
+        "pitch_rate": -1.0,
+        "yaw_rate": 0.0
+      },
+      "time constraint": {
+        "mode": "fixed",
+        "value": 10.0,
+        "reference point": "LIFTOFF"
+      },
+      "AOA constraint": {},
+      "dynamic pressure constraint": {},
+      "Q-alpha constraint": {},
+      "waypoint constraint": {},
+      "antenna constraint": {}
+    },
+    {
+      "name": "ZEROLIFT_START",
+      "num_nodes": 16,
+      "rocket_stage": "1",
+      "engine_mode": "full",
+      "thrust_vac": 420000,
+      "Isp_vac": 304,
+      "throttle": [1.0, 1.0],
+      "nozzle_area": 0.68,
+      "attitude constraint": "zero-lift-turn",
+      "initial guess": {
+        "time": 20.0,
+        "pitch_rate": 0.0,
+        "yaw_rate": 0.0
+      },
+      "time constraint": {
+        "mode": "fixed",
+        "value": 20.0,
+        "reference point": "LIFTOFF"
+      },
+      "AOA constraint": {},
+      "dynamic pressure constraint": {},
+      "Q-alpha constraint": {
+        "mode": "max",
+        "value" : 30000.0,
+        "range" : "all"
+      },
+      "waypoint constraint": {},
+      "antenna constraint": {}
+    },
+    {
+      "name": "ZEROLIFT_END",
+      "num_nodes": 8,
+      "rocket_stage": "1",
+      "engine_mode": "full",
+      "thrust_vac": 420000,
+      "Isp_vac": 304,
+      "throttle": [1.0, 1.0],
+      "nozzle_area": 0.68,
+      "attitude constraint": "pitch-yaw",
+      "initial guess": {
+        "time": 90.0,
+        "pitch_rate": -0.1,
+        "yaw_rate": 0.0
+      },
+      "time constraint": {
+        "mode": "fixed",
+        "value": 90.0,
+        "reference point": "LIFTOFF"
+      },
+      "AOA constraint": {},
+      "dynamic pressure constraint": {},
+      "Q-alpha constraint": {},
+      "waypoint constraint": {},
+      "antenna constraint": {}
+    },
+    {
+      "name": "MECO",
+      "num_nodes": 2,
+      "rocket_stage": "1",
+      "engine_mode": "off",
+      "thrust_vac": 0,
+      "Isp_vac": 304,
+      "throttle": [0.0, 0.0],
+      "nozzle_area": 0,
+      "attitude constraint": "hold",
+      "initial guess": {
+        "time": 169.0,
+        "pitch_rate": 0.0,
+        "yaw_rate": 0.0
+      },
+      "time constraint": {
+        "mode": "free",
+        "value": null,
+        "reference point": null
+      },
+      "AOA constraint": {
+        "mode": "max",
+        "value" : 10.0,
+        "range" : "initial"
+      },
+      "dynamic pressure constraint": {},
+      "Q-alpha constraint": {},
+      "waypoint constraint": {},
+      "antenna constraint": {}
+    },
+    {
+      "name": "SEP1",
+      "num_nodes": 2,
+      "rocket_stage": "2",
+      "engine_mode": "off",
+      "thrust_vac": 0,
+      "Isp_vac": 317,
+      "throttle": [0.0, 0.0],
+      "nozzle_area": 0,
+      "attitude constraint": "hold",
+      "initial guess": {
+        "time": 174.0,
+        "pitch_rate": 0.0,
+        "yaw_rate": 0.0
+      },
+      "time constraint": {
+        "mode": "relative",
+        "value": 5.0,
+        "reference point": "MECO"
+      },
+      "AOA constraint": {},
+      "dynamic pressure constraint": {},
+      "Q-alpha constraint": {},
+      "waypoint constraint": {},
+      "antenna constraint": {}
+    },
+    {
+      "name": "SEIG",
+      "num_nodes": 5,
+      "rocket_stage": "2",
+      "engine_mode": "full",
+      "thrust_vac": 30700,
+      "Isp_vac": 317,
+      "throttle": [1.0, 1.0],
+      "nozzle_area": 0,
+      "attitude constraint": "pitch-yaw",
+      "initial guess": {
+        "time": 179.0,
+        "pitch_rate": -0.1,
+        "yaw_rate": 0.0
+      },
+      "time constraint": {
+        "mode": "relative",
+        "value": 5.0,
+        "reference point": "SEP1"
+      },
+      "AOA constraint": {},
+      "dynamic pressure constraint": {},
+      "Q-alpha constraint": {},
+      "waypoint constraint": {},
+      "antenna constraint": {}
+    },
+    {
+      "name": "FAIRING",
+      "num_nodes": 6,
+      "rocket_stage": "2",
+      "engine_mode": "full",
+      "thrust_vac": 30700,
+      "Isp_vac": 317,
+      "throttle": [1.0, 1.0],
+      "nozzle_area": 0,
+      "attitude constraint": "same-rate",
+      "initial guess": {
+        "time": 189.0,
+        "pitch_rate": -0.1,
+        "yaw_rate": 0.0
+      },
+      "time constraint": {
+        "mode": "relative",
+        "value": 15.0,
+        "reference point": "SEP1"
+      },
+      "AOA constraint": {},
+      "dynamic pressure constraint": {},
+      "Q-alpha constraint": {},
+      "waypoint constraint": {    
+        "altitude": {
+          "mode": "exact",
+          "value": 100000.0
+        },
+        "lon_IIP" : {
+          "mode": "min",
+          "value": 145.0
+        }
+      },
+      "antenna constraint": {}
+    },
+    {
+      "name": "RATE_CHANGE",
+      "num_nodes": 8,
+      "rocket_stage": "2",
+      "engine_mode": "full",
+      "thrust_vac": 30700,
+      "Isp_vac": 317,
+      "throttle": [1.0, 1.0],
+      "nozzle_area": 0,
+      "attitude constraint": "pitch-yaw",
+      "initial guess": {
+        "time": 280.0,
+        "pitch_rate": -0.1,
+        "yaw_rate": 0.0
+      },
+      "time constraint": {
+        "mode": "relative",
+        "value": 106.0,
+        "reference point": "SEP1"
+      },
+      "AOA constraint": {},
+      "dynamic pressure constraint": {},
+      "Q-alpha constraint": {},
+      "waypoint constraint": {},
+      "antenna constraint": {}
+    },
+    {
+      "name": "IIP_END",
+      "num_nodes": 4,
+      "rocket_stage": "2",
+      "engine_mode": "full",
+      "thrust_vac": 30700,
+      "Isp_vac": 317,
+      "throttle": [1.0, 1.0],
+      "nozzle_area": 0,
+      "attitude constraint": "same-rate",
+      "initial guess": {
+        "time": 595.0,
+        "pitch_rate": -0.1,
+        "yaw_rate": 0.0
+      },
+      "time constraint": {
+        "mode": "free",
+        "value": null,
+        "reference point": null
+      },
+      "AOA constraint": {},
+      "dynamic pressure constraint": {},
+      "Q-alpha constraint": {},
+      "waypoint constraint": {},
+      "antenna constraint": {}
+    },
+    {
+      "name": "SECO",
+      "num_nodes": 3,
+      "rocket_stage": "2",
+      "engine_mode": "off",
+      "thrust_vac": 0,
+      "Isp_vac": 317,
+      "throttle": [0.0, 0.0],
+      "nozzle_area": 0,
+      "attitude constraint": "hold",
+      "initial guess": {
+        "time": 597.0,
+        "pitch_rate": 0.0,
+        "yaw_rate": 0.0
+      },
+      "time constraint": {
+        "mode": "free",
+        "value": null,
+        "reference point": null
+      },
+      "AOA constraint": {},
+      "dynamic pressure constraint": {},
+      "Q-alpha constraint": {},
+      "waypoint constraint": {},
+      "antenna constraint": {
+        "ANT1" : {
+          "lon": 143.45659,
+          "lat": 42.50587,
+          "altitude": 50.0,
+          "elevation_min": 0.0
+        }
+      }
+    },
+    {
+      "name": "SEP2",
+      "num_nodes": 2,
+      "rocket_stage": "2",
+      "engine_mode": "off",
+      "thrust_vac": 0,
+      "Isp_vac": 317,
+      "throttle": [0.0, 0.0],
+      "nozzle_area": 0,
+      "attitude constraint": "hold",
+      "initial guess": {
+        "time": 627.0,
+        "pitch_rate": 0.0,
+        "yaw_rate": 0.0
+      },
+      "time constraint": {
+        "mode": "relative",
+        "value": 30.0,
+        "reference point": "SECO"
+      },
+      "AOA constraint": {},
+      "dynamic pressure constraint": {},
+      "Q-alpha constraint": {},
+      "waypoint constraint": {},
+      "antenna constraint": {}
+    },
+    {
+      "name": "SIMEND",
+      "num_nodes": 2,
+      "rocket_stage": "2",
+      "engine_mode": "off",
+      "thrust_vac": 0,
+      "Isp_vac": 317,
+      "throttle": [0.0, 0.0],
+      "nozzle_area": 0,
+      "attitude constraint": "hold",
+      "initial guess": {
+        "time": 630.0,
+        "pitch_rate": 0.0,
+        "yaw_rate": 0.0
+      },
+      "time constraint": {
+        "mode": "relative",
+        "value": 3.0,
+        "reference point": "SEP2"
+      },
+      "AOA constraint": {},
+      "dynamic pressure constraint": {},
+      "Q-alpha constraint": {},
+      "waypoint constraint": {},
+      "antenna constraint": {}
+    }
+  ]
 }

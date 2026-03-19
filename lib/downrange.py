@@ -23,10 +23,11 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-import sys
 import shutil
+import sys
+from math import atan, atan2, cos, pi, sin, sqrt, tan
+
 import pandas as pd
-from math import sin, cos, tan, atan, atan2, sqrt, pi
 
 
 def distance_vincenty(lat_origin, lon_origin, lat_target, lon_target):

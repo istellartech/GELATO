@@ -23,15 +23,36 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from math import asin, atan2, degrees
+
 import numpy as np
-from numpy.linalg import norm
-from math import atan2, asin, degrees
 import pandas as pd
-from lib.utils_c import *
-from lib.PSfunctions import *
-from lib.USStandardAtmosphere_c import *
-from lib.coordinate_c import *
-from lib.IIP_c import posLLH_IIP_FAA
+from numpy.linalg import norm
+
+from lib.coordinate import (
+    conj,
+    ecef2eci,
+    eci2ecef,
+    eci2geodetic,
+    euler_from_quat,
+    normalize,
+    orbital_elements,
+    quat_ecef2nedg,
+    quat_eci2nedg,
+    quat_nedg2body,
+    quat_nedg2eci,
+    quatrot,
+    vel_eci2ecef,
+)
+from lib.downrange import distance_vincenty
+from lib.IIP import posLLH_IIP_FAA
+from lib.USStandardAtmosphere import (
+    airdensity_at,
+    airpressure_at,
+    geopotential_altitude,
+    speed_of_sound,
+)
+from lib.utils import angle_of_attack_ab_rad, angle_of_attack_all_rad, wind_ned
 
 
 def output_result(xdict, unitdict, tx_res, tu_res, pdict):
@@ -55,7 +76,6 @@ def output_result(xdict, unitdict, tx_res, tu_res, pdict):
     unit_pos = unitdict["position"]
     unit_vel = unitdict["velocity"]
     unit_u = unitdict["u"]
-    unit_t = unitdict["t"]
 
     mass_ = xdict["mass"] * unit_mass
     pos_ = xdict["position"].reshape(-1, 3) * unit_pos
@@ -124,7 +144,6 @@ def output_result(xdict, unitdict, tx_res, tu_res, pdict):
     out["event"][0] = pdict["params"][0]["name"]
 
     for i in range(N):
-
         mass = mass_[i]
         pos = pos_[i]
         vel = vel_[i]
@@ -134,7 +153,6 @@ def output_result(xdict, unitdict, tx_res, tu_res, pdict):
         out["section"][i] = section
         out["stage"][i] = pdict["params"][section]["rocketStage"]
         thrust_vac_n = pdict["params"][section]["thrust"]
-        massflow = pdict["params"][section]["massflow"]
         airArea_m2 = pdict["params"][section]["reference_area"]
         nozzleArea_m2 = pdict["params"][section]["nozzle_area"]
         if (
@@ -232,8 +250,6 @@ def output_result(xdict, unitdict, tx_res, tu_res, pdict):
         )
         out["vel_air"][i] = norm(vel_air_eci)
 
-        ret = np.zeros(11)
-
         aero_n_eci = (
             0.5
             * rho
@@ -247,16 +263,12 @@ def output_result(xdict, unitdict, tx_res, tu_res, pdict):
         thrust_n = thrust_vac_n - nozzleArea_m2 * p
         out["thrust"][i] = thrust_n
         thrustdir_eci = quatrot(conj(quat), np.array([1.0, 0.0, 0.0]))
-        thrust_n_eci = thrustdir_eci * thrust_n
-        gravity_eci = gravity(pos)
         out["aero_BODY_X"][i] = aero_n_body[0]
         out["accel_BODY_X"][i] = (thrust_n + aero_n_body[0]) / mass
 
         out["lat_IIP"][i], out["lon_IIP"][i], _ = posLLH_IIP_FAA(
             pos_ecef, vel_ecef, False
         )
-
-        acc_eci = gravity_eci + (thrust_n_eci + aero_n_eci) / mass
 
         #####
 
