@@ -11,7 +11,7 @@ import shutil
 import casadi as ca
 import numpy as np
 
-from atmosphere_casadi import create_atmosphere_interpolants
+from atmosphere_casadi import create_atmosphere_interpolants, geometric_altitude
 from coordinate_casadi import (
     angular_momentum,
     angular_momentum_from_altitude,
@@ -36,20 +36,34 @@ from iip_casadi import iip_latlon
 
 
 def _make_wind_interpolants(wind_table):
-    """Create CasADi interpolants for wind north/east components."""
-    alt = wind_table[:, 0].copy()
+    """Create CasADi interpolants for wind north/east components.
+
+    The wind CSV is indexed by geopotential altitude, but the interpolants
+    are re-indexed by geometric altitude so callers can pass alt_m directly.
+    """
+    alt_gp = wind_table[:, 0].copy()
     wn = wind_table[:, 1].copy()
     we = wind_table[:, 2].copy()
     # Ensure strictly increasing grid (deduplicate, sort)
-    _, idx = np.unique(alt, return_index=True)
-    alt, wn, we = alt[idx], wn[idx], we[idx]
-    # Extend to cover the full altitude range if needed
-    if alt[-1] < 200000:
-        alt = np.append(alt, 200000)
-        wn = np.append(wn, 0.0)
-        we = np.append(we, 0.0)
-    fn_n = ca.interpolant("wind_n", "bspline", [alt], wn)
-    fn_e = ca.interpolant("wind_e", "bspline", [alt], we)
+    _, idx = np.unique(alt_gp, return_index=True)
+    alt_gp, wn, we = alt_gp[idx], wn[idx], we[idx]
+    # Keep only physically meaningful range [0, 1000 km] geopotential
+    valid = (alt_gp >= 0) & (alt_gp <= 1000000)
+    alt_gp, wn, we = alt_gp[valid], wn[valid], we[valid]
+    # Convert geopotential → geometric altitude for the grid
+    alt_geo = geometric_altitude(alt_gp)
+    # Ensure grid starts at 0 m geometric
+    if alt_geo[0] > 0:
+        alt_geo = np.insert(alt_geo, 0, 0.0)
+        wn = np.insert(wn, 0, wn[0])
+        we = np.insert(we, 0, we[0])
+    # Extend to 1000 km geometric with last known values if needed
+    if alt_geo[-1] < 1000000:
+        alt_geo = np.append(alt_geo, 1000000)
+        wn = np.append(wn, wn[-1])
+        we = np.append(we, we[-1])
+    fn_n = ca.interpolant("wind_n", "bspline", [alt_geo], wn)
+    fn_e = ca.interpolant("wind_e", "bspline", [alt_geo], we)
     return fn_n, fn_e
 
 
@@ -182,6 +196,7 @@ def build_and_solve(
         massflow = p["massflow"]
         ref_area = p["reference_area"]
         nozzle_area = p["nozzle_area"]
+        aero_enabled = p.get("aero_enabled", True)
 
         # Slices
         m_s = mass[xa:xb]  # (n+1,)
@@ -241,6 +256,7 @@ def build_and_solve(
                 wind_n_fn,
                 wind_e_fn,
                 ca_fn,
+                aero_enabled=aero_enabled,
             )
 
             for dim in range(3):
@@ -418,6 +434,10 @@ def build_and_solve(
     # ============================================================
     for sec in range(num_sections - 1):
         section_name = pdict["params"][sec]["name"]
+        aero_enabled = pdict["params"][sec].get("aero_enabled", True)
+        if not aero_enabled:
+            continue
+
         ua, ub, xa, xb, n = ps.get_index(sec)
         to_s, tf_s = t[sec], t[sec + 1]
         tau = ps.tau(sec)

@@ -8,7 +8,6 @@
 
 import casadi as ca
 
-from atmosphere_casadi import geopotential_altitude
 from coordinate_casadi import (
     OMEGA_EARTH,
     conj,
@@ -37,29 +36,35 @@ def _compute_acceleration_impl(
     wind_n_fn,
     wind_e_fn,
     ca_fn,
+    aero_enabled=True,
 ):
     """Core acceleration computation (pure symbolic, no Function wrapping)."""
     # --- Gravity ---
     grav = gravity_eci(pos_eci)
 
+    if not aero_enabled:
+        # No atmosphere dependency — vacuum thrust only, no aero
+        thrust_dir = quatrot(conj(quat), ca.vertcat(1, 0, 0))
+        thrust_eci = thrust_dir * thrust_vac
+        return grav + thrust_eci / mass
+
     # --- Geodetic altitude (for atmosphere lookup) ---
     pos_ecef = eci2ecef(pos_eci, t_phys)
     lat_r, lon_r, alt_m = ecef2geodetic(pos_ecef)
-    alt_gp = geopotential_altitude(alt_m)
-    alt_clamp = ca.fmax(0, ca.fmin(alt_gp, 89000))
+    alt_clamp = ca.fmax(0, ca.fmin(alt_m, 1000000))
 
     rho = density_fn(alt_clamp)
     p_atm = pressure_fn(alt_clamp)
     a_sound = sound_speed_fn(alt_clamp)
 
-    # --- Thrust (body +X axis) ---
+    # --- Thrust (body +X axis) with backpressure correction ---
     thrust_mag = thrust_vac - nozzle_area * p_atm
     thrust_dir = quatrot(conj(quat), ca.vertcat(1, 0, 0))
     thrust_eci = thrust_dir * thrust_mag
 
     # --- Aerodynamic force ---
     # Wind: NED → ECEF → ECI
-    alt_wind = ca.fmax(0, ca.fmin(alt_gp, 89000))
+    alt_wind = ca.fmax(0, ca.fmin(alt_m, 120000))
     w_n = wind_n_fn(alt_wind)
     w_e = wind_e_fn(alt_wind)
     north_ecef, east_ecef = ned_basis_ecef(lat_r, lon_r)
@@ -99,6 +104,7 @@ def compute_acceleration(
     wind_n_fn,
     wind_e_fn,
     ca_fn,
+    aero_enabled=True,
 ):
     """Compute translational acceleration in ECI frame [m/s^2].
 
@@ -119,6 +125,7 @@ def compute_acceleration(
         wind_n_fn,
         wind_e_fn,
         ca_fn,
+        aero_enabled=aero_enabled,
     )
 
 
@@ -149,11 +156,10 @@ def angle_of_attack(pos_eci, vel_eci, quat, t_phys, wind_n_fn, wind_e_fn):
     """
     pos_ecef = eci2ecef(pos_eci, t_phys)
     lat_r, lon_r, alt_m = ecef2geodetic(pos_ecef)
-    alt_gp = geopotential_altitude(alt_m)
-    alt_clamp = ca.fmax(0, ca.fmin(alt_gp, 89000))
+    alt_wind = ca.fmax(0, ca.fmin(alt_m, 120000))
 
-    w_n = wind_n_fn(alt_clamp)
-    w_e = wind_e_fn(alt_clamp)
+    w_n = wind_n_fn(alt_wind)
+    w_e = wind_e_fn(alt_wind)
     north_ecef, east_ecef = ned_basis_ecef(lat_r, lon_r)
     wind_ecef = w_n * north_ecef + w_e * east_ecef
     wind_eci = ecef2eci(wind_ecef, t_phys)
@@ -175,13 +181,13 @@ def dynamic_pressure(pos_eci, vel_eci, t_phys, wind_n_fn, wind_e_fn, density_fn)
     """Dynamic pressure [Pa]."""
     pos_ecef = eci2ecef(pos_eci, t_phys)
     lat_r, lon_r, alt_m = ecef2geodetic(pos_ecef)
-    alt_gp = geopotential_altitude(alt_m)
-    alt_clamp = ca.fmax(0, ca.fmin(alt_gp, 89000))
+    alt_clamp_atmo = ca.fmax(0, ca.fmin(alt_m, 1000000))
+    alt_clamp_wind = ca.fmax(0, ca.fmin(alt_m, 120000))
 
-    rho = density_fn(alt_clamp)
+    rho = density_fn(alt_clamp_atmo)
 
-    w_n = wind_n_fn(alt_clamp)
-    w_e = wind_e_fn(alt_clamp)
+    w_n = wind_n_fn(alt_clamp_wind)
+    w_e = wind_e_fn(alt_clamp_wind)
     north_ecef, east_ecef = ned_basis_ecef(lat_r, lon_r)
     wind_ecef = w_n * north_ecef + w_e * east_ecef
     wind_eci = ecef2eci(wind_ecef, t_phys)

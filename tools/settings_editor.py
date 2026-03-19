@@ -398,7 +398,7 @@ def _order_settings(data):
         "IPOPT_options", "SNOPT_options", "sections",
     ]
     STAGE_KEY_ORDER = [
-        "mass_dry", "mass_propellant", "reference_area",
+        "mass_dry", "mass_propellant", "reference_area", "aero_enabled",
         "ignition_at", "cutoff_at", "separation_at",
     ]
     LC_KEY_ORDER = ["lon", "lat", "altitude", "flight_azimuth_init"]

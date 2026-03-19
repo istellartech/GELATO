@@ -208,9 +208,11 @@ def main():
 
     events["massflow"] = 0.0
     events["reference_area"] = 0.0
+    events["aero_enabled"] = True
     for i in events.index:
         stage = stages[str(events.at[i, "rocketStage"])]
         events.at[i, "reference_area"] = stage["reference_area"]
+        events.at[i, "aero_enabled"] = stage.get("aero_enabled", True)
         if events.at[i, "engineOn"]:
             events.at[i, "massflow"] = (
                 events.at[i, "thrust"] / events.at[i, "Isp_vac"] / 9.80665
