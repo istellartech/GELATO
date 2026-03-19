@@ -275,7 +275,7 @@ def main():
         "u": np.zeros(2),
     }
     condition["flight_azimuth_init"] = launch_conditions["flight_azimuth_init"]
-    condition["OptimizationMode"] = "Payload" # other modes are not supported in this version
+    condition["OptimizationMode"] = "Payload"  # other modes are not supported in this version
 
     # ============================================================
     # Initial guess
