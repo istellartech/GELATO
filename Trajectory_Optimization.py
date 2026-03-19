@@ -31,9 +31,6 @@ import time
 import numpy as np
 import pandas as pd
 
-# --- Path setup ---
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
 from initialize import initialize_xdict_from_file, initialize_xdict_from_simulation
 from lib.coordinate import (
     ecef2eci,
