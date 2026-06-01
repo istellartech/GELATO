@@ -173,10 +173,10 @@ def main():
             }
         wp = sec.get("waypoint constraint", {})
         if wp:
-            wp_old = {}
-            for wp_key, wp_val in wp.items():
-                wp_old[wp_key] = {wp_val["mode"]: wp_val["value"]}
-            flight_constraint["waypoint"][name] = wp_old
+            flight_constraint["waypoint"][name] = {
+                wp_key: {"mode": wp_val["mode"], "value": wp_val["value"]}
+                for wp_key, wp_val in wp.items()
+            }
         ant = sec.get("antenna constraint", {})
         if ant:
             for ant_name, ant_data in ant.items():
