@@ -48,7 +48,6 @@ from lib.USStandardAtmosphere import (
 )
 from lib.utils import wind_ned
 from output_result import output_result
-from tools.plot_output import display_6DoF
 
 
 def dynamics_init(x, u, t, param, zlt, wind, ca):
@@ -315,8 +314,6 @@ def initialize_xdict_from_simulation(
     xdict["velocity"] = (x_nodes[:, 4:7] / unitdict["velocity"]).ravel()
     xdict["quaternion"] = (x_nodes[:, 7:11]).ravel()
 
-    if flag_display:
-        display_6DoF(output_result(xdict, unitdict, time_x_nodes, time_nodes, pdict))
     return xdict
 
 
@@ -402,6 +399,4 @@ def initialize_xdict_from_file(x_ref, pdict, condition, unitdict, flag_display=T
         / unitdict["u"]
     ).ravel()
 
-    if flag_display:
-        display_6DoF(output_result(xdict, unitdict, time_x_nodes, time_nodes, pdict))
     return xdict
