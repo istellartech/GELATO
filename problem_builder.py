@@ -571,7 +571,9 @@ def build_and_solve(
 
             # IIP constraints (analytical Kepler propagation, no callback)
             if "lat_IIP" in wp or "lon_IIP" in wp:
-                iip_lat, iip_lon = iip_latlon(r_phys, v_phys, t_phys)
+                lat_suggest = wp["lat_IIP"]["value"] if "lat_IIP" in wp else 0.0
+                r_suggest = np.linalg.norm(geodetic2ecef_np(lat_suggest, 0.0, 0.0))
+                iip_lat, iip_lon = iip_latlon(r_phys, v_phys, t_phys, r_target=r_suggest)
 
                 if "lat_IIP" in wp:
                     normed = (iip_lat - wp["lat_IIP"]["value"]) / 90.0
