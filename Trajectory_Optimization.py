@@ -44,7 +44,7 @@ from output_result import output_result
 from problem_builder import build_and_solve
 from psmethod import PSparams
 
-version = "1.0.0"
+version = "1.0.1"
 
 
 def main():
