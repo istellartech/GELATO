@@ -285,13 +285,9 @@ def main():
 
     if settings.get("Initial trajectory file") is not None:
         x_ref = pd.read_csv(_resolve(settings["Initial trajectory file"]))
-        xdict_init = initialize_xdict_from_file(
-            x_ref, pdict, condition, unitdict, False
-        )
+        xdict_init = initialize_xdict_from_file(x_ref, pdict, unitdict)
     else:
-        xdict_init = initialize_xdict_from_simulation(
-            x_init, pdict, condition, unitdict, 0.1, False
-        )
+        xdict_init = initialize_xdict_from_simulation(x_init, pdict, unitdict, 0.1)
 
     # ============================================================
     # Solve
