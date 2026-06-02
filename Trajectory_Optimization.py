@@ -44,7 +44,7 @@ from output_result import output_result
 from problem_builder import build_and_solve
 from psmethod import PSparams
 
-version = "1.0.0"
+version = "1.0.1"
 
 
 def main():
@@ -173,10 +173,10 @@ def main():
             }
         wp = sec.get("waypoint constraint", {})
         if wp:
-            wp_old = {}
-            for wp_key, wp_val in wp.items():
-                wp_old[wp_key] = {wp_val["mode"]: wp_val["value"]}
-            flight_constraint["waypoint"][name] = wp_old
+            flight_constraint["waypoint"][name] = {
+                wp_key: {"mode": wp_val["mode"], "value": wp_val["value"]}
+                for wp_key, wp_val in wp.items()
+            }
         ant = sec.get("antenna constraint", {})
         if ant:
             for ant_name, ant_data in ant.items():
@@ -285,13 +285,9 @@ def main():
 
     if settings.get("Initial trajectory file") is not None:
         x_ref = pd.read_csv(_resolve(settings["Initial trajectory file"]))
-        xdict_init = initialize_xdict_from_file(
-            x_ref, pdict, condition, unitdict, False
-        )
+        xdict_init = initialize_xdict_from_file(x_ref, pdict, unitdict)
     else:
-        xdict_init = initialize_xdict_from_simulation(
-            x_init, pdict, condition, unitdict, 0.1, False
-        )
+        xdict_init = initialize_xdict_from_simulation(x_init, pdict, unitdict, 0.1)
 
     # ============================================================
     # Solve

@@ -541,50 +541,57 @@ def build_and_solve(
 
             # Latitude
             if "lat" in wp:
-                if "exact" in wp["lat"]:
-                    opti.subject_to((posLLH[0] - wp["lat"]["exact"]) / 90.0 == 0)
-                if "min" in wp["lat"]:
-                    opti.subject_to((posLLH[0] - wp["lat"]["min"]) / 90.0 >= 0)
-                if "max" in wp["lat"]:
-                    opti.subject_to(-(posLLH[0] - wp["lat"]["max"]) / 90.0 >= 0)
+                normed = (posLLH[0] - wp["lat"]["value"]) / 90.0
+                if wp["lat"]["mode"] == "exact":
+                    opti.subject_to(normed == 0)
+                elif wp["lat"]["mode"] == "min":
+                    opti.subject_to(normed >= 0)
+                elif wp["lat"]["mode"] == "max":
+                    opti.subject_to(-normed >= 0)
 
             # Longitude
             if "lon" in wp:
-                if "exact" in wp["lon"]:
-                    opti.subject_to((posLLH[1] - wp["lon"]["exact"]) / 180.0 == 0)
-                if "min" in wp["lon"]:
-                    opti.subject_to((posLLH[1] - wp["lon"]["min"]) / 180.0 >= 0)
-                if "max" in wp["lon"]:
-                    opti.subject_to(-(posLLH[1] - wp["lon"]["max"]) / 180.0 >= 0)
+                normed = (posLLH[1] - wp["lon"]["value"]) / 180.0
+                if wp["lon"]["mode"] == "exact":
+                    opti.subject_to(normed == 0)
+                elif wp["lon"]["mode"] == "min":
+                    opti.subject_to(normed >= 0)
+                elif wp["lon"]["mode"] == "max":
+                    opti.subject_to(-normed >= 0)
 
             # Altitude
             if "altitude" in wp:
-                if "exact" in wp["altitude"]:
-                    opti.subject_to(posLLH[2] / wp["altitude"]["exact"] - 1.0 == 0)
-                if "min" in wp["altitude"]:
-                    opti.subject_to(posLLH[2] / wp["altitude"]["min"] - 1.0 >= 0)
-                if "max" in wp["altitude"]:
-                    opti.subject_to(-(posLLH[2] / wp["altitude"]["max"] - 1.0) >= 0)
+                normed = posLLH[2] / wp["altitude"]["value"] - 1.0
+                if wp["altitude"]["mode"] == "exact":
+                    opti.subject_to(normed == 0)
+                elif wp["altitude"]["mode"] == "min":
+                    opti.subject_to(normed >= 0)
+                elif wp["altitude"]["mode"] == "max":
+                    opti.subject_to(-normed >= 0)
 
             # IIP constraints (analytical Kepler propagation, no callback)
             if "lat_IIP" in wp or "lon_IIP" in wp:
-                iip_lat, iip_lon = iip_latlon(r_phys, v_phys, t_phys)
+                lat_suggest = wp["lat_IIP"]["value"] if "lat_IIP" in wp else 0.0
+                r_suggest = np.linalg.norm(geodetic2ecef_np(lat_suggest, 0.0, 0.0))
+                iip_lat, iip_lon = iip_latlon(r_phys, v_phys, t_phys, r_target=r_suggest)
 
                 if "lat_IIP" in wp:
-                    if "exact" in wp["lat_IIP"]:
-                        opti.subject_to((iip_lat - wp["lat_IIP"]["exact"]) / 90.0 == 0)
-                    if "min" in wp["lat_IIP"]:
-                        opti.subject_to((iip_lat - wp["lat_IIP"]["min"]) / 90.0 >= 0)
-                    if "max" in wp["lat_IIP"]:
-                        opti.subject_to(-(iip_lat - wp["lat_IIP"]["max"]) / 90.0 >= 0)
+                    normed = (iip_lat - wp["lat_IIP"]["value"]) / 90.0
+                    if wp["lat_IIP"]["mode"] == "exact":
+                        opti.subject_to(normed == 0)
+                    elif wp["lat_IIP"]["mode"] == "min":
+                        opti.subject_to(normed >= 0)
+                    elif wp["lat_IIP"]["mode"] == "max":
+                        opti.subject_to(-normed >= 0)
 
                 if "lon_IIP" in wp:
-                    if "exact" in wp["lon_IIP"]:
-                        opti.subject_to((iip_lon - wp["lon_IIP"]["exact"]) / 180.0 == 0)
-                    if "min" in wp["lon_IIP"]:
-                        opti.subject_to((iip_lon - wp["lon_IIP"]["min"]) / 180.0 >= 0)
-                    if "max" in wp["lon_IIP"]:
-                        opti.subject_to(-(iip_lon - wp["lon_IIP"]["max"]) / 180.0 >= 0)
+                    normed = (iip_lon - wp["lon_IIP"]["value"]) / 180.0
+                    if wp["lon_IIP"]["mode"] == "exact":
+                        opti.subject_to(normed == 0)
+                    elif wp["lon_IIP"]["mode"] == "min":
+                        opti.subject_to(normed >= 0)
+                    elif wp["lon_IIP"]["mode"] == "max":
+                        opti.subject_to(-normed >= 0)
 
     # ============================================================
     # 11. Antenna elevation constraints

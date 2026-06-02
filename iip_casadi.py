@@ -11,24 +11,25 @@ import casadi as ca
 from coordinate_casadi import E2, MU_EARTH, OMEGA_EARTH, R_EARTH_A
 
 
-def iip_latlon(pos_eci, vel_eci, t_phys):
+def iip_latlon(pos_eci, vel_eci, t_phys, r_target=R_EARTH_A):
     """Compute IIP latitude and longitude analytically (no iteration).
 
     Uses Kepler f-and-g series propagation to find the point where
     the ballistic (thrust-off) trajectory intersects a sphere of
-    radius R_EARTH_A.  Earth rotation during flight is accounted for.
+    radius r_target.  Earth rotation during flight is accounted for.
 
     Args:
         pos_eci:  ECI position [m]  (3-vector, CasADi MX/SX)
         vel_eci:  ECI velocity [m/s] (3-vector, CasADi MX/SX)
         t_phys:   time since epoch [s] (scalar, CasADi MX/SX)
+        r_target: target radius for IIP (for Earth radius correction) [m]
 
     Returns:
         (lat_deg, lon_deg): geodetic latitude and east longitude
                             of impact point [deg]
     """
     mu = MU_EARTH
-    R = R_EARTH_A  # spherical Earth radius for intersection
+    r_k = r_target  # spherical Earth radius for intersection
 
     r0 = ca.norm_2(pos_eci)
     v0_sq = ca.dot(vel_eci, vel_eci)
@@ -46,7 +47,7 @@ def iip_latlon(pos_eci, vel_eci, t_phys):
     eps2 = eps_cos**2 + eps_sin**2
 
     # (v)-(I): e * cos(E_impact), with r_impact = R
-    eps_k_cos = (a - R) / a
+    eps_k_cos = (a - r_k) / a
 
     # (v)-(J): e * sin(E_impact) — negative (descending branch)
     eps_k_sin = -ca.sqrt(ca.fmax(1e-30, eps2 - eps_k_cos**2))

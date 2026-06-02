@@ -47,8 +47,6 @@ from lib.USStandardAtmosphere import (
     speed_of_sound,
 )
 from lib.utils import wind_ned
-from output_result import output_result
-from tools.plot_output import display_6DoF
 
 
 def dynamics_init(x, u, t, param, zlt, wind, ca):
@@ -251,19 +249,15 @@ def integrate_runge_kutta_4d(function, x, t, dt):
     return x + (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0 * dt
 
 
-def initialize_xdict_from_simulation(
-    x_init, pdict, condition, unitdict, dt=0.005, flag_display=True
-):
+def initialize_xdict_from_simulation(x_init, pdict, unitdict, dt=0.005):
     """
     Initialize and set xdict by solving equation of motion.
 
     Args:
         x_init (dict) : initial values of state(mass, position, velocity, quaternion)
         pdict (dict) : calculation parameters
-        condition (dict) : flight condition parameters
         unitdict (dict) : unit of the state (use for normalizing)
         dt (double) : time step for integration
-        flag_display (bool) : plot and display initial state if true
 
     Returns:
         xdict (dict) : initial values of variables for NLP
@@ -315,21 +309,17 @@ def initialize_xdict_from_simulation(
     xdict["velocity"] = (x_nodes[:, 4:7] / unitdict["velocity"]).ravel()
     xdict["quaternion"] = (x_nodes[:, 7:11]).ravel()
 
-    if flag_display:
-        display_6DoF(output_result(xdict, unitdict, time_x_nodes, time_nodes, pdict))
     return xdict
 
 
-def initialize_xdict_from_file(x_ref, pdict, condition, unitdict, flag_display=True):
+def initialize_xdict_from_file(x_ref, pdict, unitdict):
     """
     Initialize and set xdict by interpolating reference values.
 
     Args:
         x_ref (DataFrame) : time history of state(mass, position, velocity, quaternion)
         pdict (dict) : calculation parameters
-        condition (dict) : flight condition parameters
         unitdict (dict) : unit of the state (use for normalizing)
-        flag_display (bool) : plot and display initial state if true
 
     Returns:
         xdict (dict) : initial values of variables for NLP
@@ -402,6 +392,4 @@ def initialize_xdict_from_file(x_ref, pdict, condition, unitdict, flag_display=T
         / unitdict["u"]
     ).ravel()
 
-    if flag_display:
-        display_6DoF(output_result(xdict, unitdict, time_x_nodes, time_nodes, pdict))
     return xdict
